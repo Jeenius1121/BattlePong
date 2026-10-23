@@ -519,9 +519,11 @@ const CHARS = {
   },
   smoker: {
     nom: "Smoker", emoji: "👅", vitesse: 215, images: ["coup", "langue"], sonNom: "coup", son2: "langue",
-    // image 3 pendant toute la prise à la langue, image 2 à chaque coup
-    imageDe: f => f.attT > 0 ? 2 : f.langue ? 3 : 1,
-    desc: "Frappe au corps à corps. Toutes les 4 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), le frappe pendant 2 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe.",
+    // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
+    imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
+    // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
+    bouche: [0.785, 0.147],
+    desc: "Frappe au corps à corps. Toutes les 4 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 2 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -561,15 +563,16 @@ const CHARS = {
         if (d < Math.max(o.hw, o.hh) * 0.5 || touche(o, L.x, L.y, 6)) { // attrapé !
           L.etat = "attire"; o.capture = f; arreterSons(o); // l'adversaire attrapé se tait
           o.burst = 0; o.charge = 0; o.tir = 0; o.muzzle = 0; o.rot = 0; o.vx = 0; o.vy = 0;
-          eclats(g, L.x, L.y, "#c2456b");
+          eclats(g, L.x, L.y, "#6e3038");
         } else if (L.t > 0.9) L.etat = "rentre";
       } else if (L.etat === "attire") { // il ramène l'adversaire contre lui
         const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy) || 1;
         if (ecart(f, o) > 2) { const pas = Math.min(d, 420 * dt); o.x += dx / d * pas; o.y += dy / d * pas; }
         else { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; }
-      } else if (L.etat === "etreinte") { // 2 s de coups, langue toujours enroulée
+      } else if (L.etat === "etreinte") { // 2 s d'étranglement : la langue serre, l'adversaire perd des PV par à-coups
         L.t -= dt; L.coup -= dt;
-        if (L.coup <= 0) { L.coup = 0.25; f.attT = 0.12; son(f); degats(g, o, 4, (f.x + o.x) / 2, (f.y + o.y) / 2); }
+        if (L.coup <= 0) { L.coup = 0.25; L.serre = 0.18; degats(g, o, 4, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
+        L.serre = Math.max(0, (L.serre || 0) - dt);
         if (L.t <= 0) { // il le relâche un peu plus loin
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
           liberer(o, f, dx / d, dy / d);
@@ -782,7 +785,15 @@ function explosion(g, x, y, cible, dmg, ang) {
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== LANGUE DU SMOKER ===== */
 const LANGUE_CD = 4, LANGUE_VITESSE = 750, ETREINTE_DUREE = 2;
-function bouche(f) { return { x: f.x + f.face * f.hw * 0.3, y: f.y - f.hh * 0.5 }; }
+// bouche du Smoker : point réglé sur son image 3 s'il en a une, sinon le haut du perso vers l'avant
+function bouche(f) {
+  const c = CHARS[f.type], s3 = c.spr && c.spr[3];
+  if (c.bouche && s3 && f.sp === s3) {
+    const lx = c.bouche[0] * s3.tw * f.k - f.hw + (f.ox || 0), ly = c.bouche[1] * s3.th * f.k - f.hh;
+    return { x: f.x + f.face * lx, y: f.y + ly };
+  }
+  return { x: f.x + f.face * f.hw * 0.3, y: f.y - f.hh * 0.5 };
+}
 function distSeg(px, py, ax, ay, bx, by) {
   const vx = bx - ax, vy = by - ay, l = vx * vx + vy * vy || 1, t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / l));
   return Math.hypot(px - ax - vx * t, py - ay - vy * t);
@@ -810,7 +821,7 @@ function langueCoupee(f, o, g) {
     for (const z of g.feux) if (z.owner === o && Math.hypot(x - z.x, y - z.y) < z.r) coupe = { x, y };
   }
   if (!coupe) return false;
-  for (let i = 0; i < 12; i++) g.parts.push({ x: coupe.x, y: coupe.y, vx: (Math.random() - 0.5) * 300, vy: (Math.random() - 0.5) * 300 - 80, t: 0.5, g: 500, c: i % 2 ? "#c2456b" : "#8a1c3c" });
+  for (let i = 0; i < 12; i++) g.parts.push({ x: coupe.x, y: coupe.y, vx: (Math.random() - 0.5) * 300, vy: (Math.random() - 0.5) * 300 - 80, t: 0.5, g: 500, c: i % 2 ? "#6e3038" : "#2e1216" });
   liberer(o, f);
   const L = f.langue; L.etat = "rentre"; L.x = coupe.x; L.y = coupe.y;
   return true;
@@ -1037,7 +1048,10 @@ function dessiner() {
     if (f.mort) continue;
     const s = spriteDe(f);
     ctx.save(); ctx.translate(f.x, f.y);
-    if (f.capture) ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 3); // il se débat
+    if (f.capture) { // il se débat, plus fort quand la langue serre
+      const L = f.capture.langue, k = L && L.serre > 0 ? 3 : 1;
+      ctx.translate((Math.random() - 0.5) * 4 * k, (Math.random() - 0.5) * 3 * k);
+    }
     if (f.lent > 0) { // ralenti
       ctx.strokeStyle = "#c03adf"; ctx.lineWidth = 4; ctx.setLineDash([6, 6]);
       ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 8, f.hh + 8, performance.now() / 500, 0, 7); ctx.stroke();
@@ -1130,17 +1144,18 @@ function dessiner() {
     const mx = (m.x + b.x) / 2, my = (m.y + b.y) / 2, d = Math.hypot(b.x - m.x, b.y - m.y) || 1;
     const ondule = Math.sin(tt * 14) * Math.min(14, d * 0.05), cx = mx - (b.y - m.y) / d * ondule, cy = my + (b.x - m.x) / d * ondule + Math.min(25, d * 0.08);
     ctx.save(); ctx.lineCap = "round";
-    for (const [w, c] of [[11, "#7a1f3d"], [8, "#c2456b"], [3, "#ec8fac"]]) {
+    for (const [w, c] of [[9, "#2e1216"], [6.5, "#6e3038"], [2.2, "#a5646c"]]) {
       ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.quadraticCurveTo(cx, cy, b.x, b.y); ctx.stroke();
     }
-    if (o.capture === f) { // anneaux de langue autour du corps
+    if (o.capture === f) { // anneaux de langue autour du corps, qui serrent pendant l'étranglement
+      const L = f.langue, serre = L.etat === "etreinte" ? 0.12 + 0.1 * (L.serre || 0) / 0.18 : 0;
       for (let i = 0; i < 3; i++) {
-        const yy = o.y + (i - 1) * o.hh * 0.32, rx = o.hw * 0.95 + 4, ry = 7 + Math.sin(tt * 6 + i) * 1.5;
-        for (const [w, c] of [[10, "#7a1f3d"], [7, "#c2456b"], [2.5, "#ec8fac"]]) {
+        const yy = o.y + (i - 1) * o.hh * 0.32, rx = (o.hw * 0.95 + 4) * (1 - serre), ry = (7 + Math.sin(tt * 6 + i) * 1.5) * (1 - serre * 0.5);
+        for (const [w, c] of [[8.5, "#2e1216"], [6, "#6e3038"], [2, "#a5646c"]]) {
           ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.ellipse(o.x, yy, rx, ry, Math.sin(tt * 3 + i) * 0.08, 0, 7); ctx.stroke();
         }
       }
-    } else { ctx.fillStyle = "#c2456b"; ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, 7); ctx.fill(); }
+    } else { ctx.fillStyle = "#6e3038"; ctx.beginPath(); ctx.arc(b.x, b.y, 5.5, 0, 7); ctx.fill(); }
     ctx.restore();
   }
   for (const p of g.proj) {
@@ -1957,7 +1972,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.6", NOTES = "L’Inconnu se téléporte un peu plus souvent (toutes les 4,5 à 8 s).";
+const VERSION = "1.4.7", NOTES = "Smoker : la langue part de sa bouche, et il étrangle au lieu de frapper.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

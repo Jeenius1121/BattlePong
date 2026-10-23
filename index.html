@@ -74,11 +74,23 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 .cle[hidden]{display:none}
 .cle p{margin:0 0 8px; font-size:.88rem; color:var(--muted)}
 .cle input{flex:1; min-width:0; font:inherit; padding:10px 12px; border:2px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink)}
-.row{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); position:relative}
-.row .thumb{width:44px; height:44px}
-.row .nm{flex:1; font-weight:600}
-.row .nm small{display:block; font-weight:400; color:var(--muted); font-size:.78rem}
-.btns{display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; max-width:62%}
+.carte{border:2px solid var(--line); border-radius:14px; background:var(--panel); margin:10px 0}
+.carte summary{display:flex; align-items:center; gap:12px; padding:10px 12px; cursor:pointer; list-style:none; font-weight:800}
+.carte summary::-webkit-details-marker{display:none}
+.carte summary::after{content:"▾"; margin-left:auto; color:var(--muted); transition:transform .2s}
+.carte[open] summary::after{transform:rotate(180deg)}
+.carte summary .thumb{width:44px; height:44px; object-fit:contain}
+.carte summary small{display:block; font-weight:400; color:var(--muted); font-size:.78rem}
+.groupe{padding:0 12px 12px}
+.groupe h4{margin:4px 0 8px; font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
+.slot{display:grid; grid-template-columns:52px 1fr; column-gap:12px; row-gap:8px; align-items:center; padding:10px; border-radius:12px; background:var(--bg); margin-bottom:8px; position:relative}
+.sthumb{grid-row:span 2; width:52px; height:52px; object-fit:contain; border-radius:10px; background:var(--panel)}
+.sthumb.vide{opacity:.3}
+.sicone{display:grid; place-items:center; font-size:1.4rem}
+.sinfo{font-size:.92rem; min-width:0}
+.sinfo small{display:block; color:var(--muted); font-size:.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.sact{display:flex; flex-wrap:wrap; gap:6px}
+.small.danger{border-color:var(--hp-low); color:var(--hp-low); margin-left:auto}
 .small{font:inherit; font-size:.85rem; font-weight:600; border:2px solid var(--ink); border-radius:10px; padding:6px 10px; background:transparent; color:var(--ink); cursor:pointer; position:relative}
 .small input{position:absolute; inset:0; opacity:0; cursor:pointer; width:100%}
 .small[hidden]{display:none}
@@ -196,7 +208,8 @@ const CHARS = {
     }
   },
   alcoolique: {
-    nom: "Vieux alcoolique", emoji: "🍺", vitesse: 210,
+    nom: "Vieux alcoolique", emoji: "🍺", vitesse: 210, images: ["attaque"],
+    imageDe: f => f.attT > 0 ? 2 : 1,
     desc: "Balance des bouteilles un peu au hasard et titube dans tous les sens.",
     svg: `<g ${O} transform='rotate(-7 60 140)'>
       <rect x='44' y='110' width='13' height='28' fill='#5a4a3a'/><rect x='62' y='110' width='13' height='28' fill='#5a4a3a'/>
@@ -218,7 +231,7 @@ const CHARS = {
       f.vx = Math.cos(ang) * sp; f.vy = Math.sin(ang) * sp;
       f.cd -= dt;
       if (f.cd <= 0 && !cache(o)) {
-        f.cd = 1.15 + Math.random() * 0.45; son(f);
+        f.cd = 1.15 + Math.random() * 0.45; f.attT = 0.45; son(f);
         plusTard(g, latenceSon(f), () => {
           const a = Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 0.6;
           g.proj.push({ kind: "bouteille", x: f.x, y: f.y, vx: Math.cos(a) * 430, vy: Math.sin(a) * 430, r: 10, dmg: 10, owner: f, rot: 0 });
@@ -227,7 +240,8 @@ const CHARS = {
     }
   },
   sorcier: {
-    nom: "Sorcier", emoji: "🧙", vitesse: 200,
+    nom: "Sorcier", emoji: "🧙", vitesse: 200, images: ["attaque"],
+    imageDe: f => f.attT > 0 ? 2 : 1,
     desc: "Lent, mais lance des boules de feu qui suivent l’adversaire.",
     svg: `<g ${O}>
       <rect x='92' y='34' width='6' height='112' rx='3' fill='#8a5228'/><circle cx='95' cy='30' r='10' fill='#4fc3f7'/>
@@ -242,7 +256,7 @@ const CHARS = {
     attaque(f, o, g, dt) {
       f.cd -= dt;
       if (f.cd <= 0 && !cache(o)) {
-        f.cd = 2.1; son(f);
+        f.cd = 2.1; f.attT = 0.5; son(f);
         plusTard(g, latenceSon(f), () => {
           const a = Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 1.2;
           g.proj.push({ kind: "feu", homing: true, x: f.x, y: f.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, r: 13, dmg: 14, owner: f, rot: 0 });
@@ -251,7 +265,8 @@ const CHARS = {
     }
   },
   robot: {
-    nom: "Robot", emoji: "🤖", vitesse: 220,
+    nom: "Robot", emoji: "🤖", vitesse: 220, images: ["attaque"],
+    imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : 1,
     desc: "Vise, charge, puis tire un gros laser qui reste allumé 2 secondes en suivant le robot et brûle l’adversaire s’il passe dedans.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='26' fill='#8b93a6'/><rect x='64' y='112' width='12' height='26' fill='#8b93a6'/>
@@ -308,7 +323,8 @@ const CHARS = {
     }
   },
   inconnu: {
-    nom: "L’Inconnu", emoji: "👁️", vitesse: 230, son2: "téléportation",
+    nom: "L’Inconnu", emoji: "👁️", vitesse: 230, son2: "téléportation", images: ["attaque"],
+    imageDe: f => f.attT > 0 ? 2 : 1,
     desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit, puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter.",
     svg: `<g ${O}>
       <path d='M36 60 Q60 50 84 60 L94 140 Q86 132 78 142 Q70 132 60 144 Q50 132 42 142 Q34 132 26 140Z' fill='#2a2440'/>
@@ -345,7 +361,7 @@ const CHARS = {
       // tir de mortier : part vers le haut, retombe avec la gravité en passant par l'adversaire
       f.cd -= dt;
       if (f.cd <= 0 && !cache(o)) {
-        f.cd = 2; son(f);
+        f.cd = 2; f.attT = 0.5; son(f);
         plusTard(g, latenceSon(f), () => {
           const G = 900, x0 = f.x, y0 = f.y - f.hh * 0.3;
           const dx = o.x - x0, dy = o.y - y0, T = 0.55 + Math.hypot(dx, dy) / 650;
@@ -356,7 +372,7 @@ const CHARS = {
     }
   },
   rodeur: {
-    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], sonLong: true, son2: "traque",
+    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], sonLong: true, son2: "traque", sonNom: "furie",
     imageDe: f => f.etat === "furie" ? 2 : 1,
     desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. S’il réapparaît trop près, il se téléporte dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
     svg: `<g ${O}>
@@ -665,7 +681,7 @@ function maj(dt) {
     else if (Math.abs(f.vx) > 20) f.face = f.vx > 0 ? 1 : -1;
     // le robot tourne son image vers sa cible tant qu'il charge ou tire
     f.rot = f.charge > 0 || f.tir > 0 ? (f.face > 0 ? f.laserAng : f.laserAng - Math.PI) : 0;
-    f.flash = Math.max(0, f.flash - dt); f.muzzle = Math.max(0, f.muzzle - dt);
+    f.flash = Math.max(0, f.flash - dt); f.muzzle = Math.max(0, f.muzzle - dt); f.attT = Math.max(0, (f.attT || 0) - dt);
   }
   // collision entre les deux persos (rectangles ajustés à l'image)
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -794,9 +810,6 @@ function dessiner() {
     if (f.mort) continue;
     const s = spriteDe(f);
     ctx.save(); ctx.translate(f.x, f.y);
-    ctx.globalAlpha = 0.55 * (f.vis ?? 1); ctx.fillStyle = f.side ? couleurs.droite : couleurs.gauche;
-    ctx.beginPath(); ctx.ellipse(0, f.hh - 4, f.hw * 0.75, 8, 0, 0, 7); ctx.fill();
-    ctx.globalAlpha = 1;
     if (f.lent > 0) { // ralenti
       ctx.strokeStyle = "#c03adf"; ctx.lineWidth = 4; ctx.setLineDash([6, 6]);
       ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 8, f.hh + 8, performance.now() / 500, 0, 7); ctx.stroke();
@@ -985,17 +998,23 @@ document.getElementById("mute").addEventListener("click", e => {
 });
 
 function majVignettes(id) {
-  document.querySelectorAll(`img[data-id="${id}"]`).forEach(i => i.src = CHARS[id].sprite.url);
-  const r = document.querySelector(`.row[data-id="${id}"]`);
-  if (r) {
-    r.querySelector(".reset").hidden = !CHARS[id].perso;
-    r.querySelector("small").textContent = CHARS[id].perso ? "Image perso" : "Image par défaut";
-    (CHARS[id].images || []).forEach((nom, i) => {
-      const n = i + 2, perso = persoImage(id + "-" + n);
-      r.querySelector(".imgInfo" + n).textContent = "Image " + n + " (" + nom + ") : " + (perso ? "perso" : "aucune");
-      r.querySelector(".delImg" + n).hidden = !perso;
-    });
-  }
+  const c = CHARS[id];
+  document.querySelectorAll(`img[data-id="${id}"]`).forEach(i => i.src = c.sprite.url);
+  const carte = document.querySelector(`.carte[data-id="${id}"]`);
+  if (!carte) return;
+  carte.querySelectorAll("[data-img]").forEach(sl => {
+    const cle = sl.dataset.img, n = numImage(cle), perso = persoImage(cle), spr = spriteImage(cle), th = sl.querySelector(".sthumb");
+    th.src = (spr || c.sprite).url; th.classList.toggle("vide", !spr);
+    sl.querySelector("small").textContent = n > 1 ? (perso ? "Image perso" : "Aucune : l’image 1 est utilisée") : (perso ? "Image perso" : "Dessin par défaut");
+    sl.querySelector(".del").hidden = !perso;
+  });
+  majResume(id);
+}
+function majResume(id) {
+  const carte = document.querySelector(`.carte[data-id="${id}"]`);
+  if (!carte) return;
+  const ni = clesImage(id).filter(persoImage).length, ns = clesSon(id).filter(k => sons[k]).length;
+  carte.querySelector(".resume").textContent = `${ni}/${clesImage(id).length} images perso · ${ns}/${clesSon(id).length} sons`;
 }
 // cle = id du perso, ou id + "-2" pour sa deuxième image (sprite null = pas de deuxième image)
 function appliquerSprite(cle, sprite, perso) {
@@ -1027,96 +1046,79 @@ function construireUI() {
   document.getElementById("descs").innerHTML = Object.values(CHARS)
     .map(c => `<p class="desc">${c.emoji} <strong>${c.nom}</strong> : ${c.desc}</p>`).join("");
 
+  // une carte par perso : ses images, puis ses sons ; chaque « retirer » demande confirmation
   const list = document.getElementById("customList");
+  const FICHIER = 'style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"';
+  const AUDIO = "audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm";
+  const ouvrir = inp => { if (typeof inp.showPicker === "function") { try { inp.showPicker(); return; } catch (err) {} } inp.click(); };
   for (const [id, c] of Object.entries(CHARS)) {
-    const r = document.createElement("div");
-    r.className = "row"; r.dataset.id = id;
-    r.innerHTML = `<img class="thumb" alt="" data-id="${id}" src="${c.sprite.url}">
-      <div class="nm">${c.nom}<small></small>${(c.images || []).map((_, i) => `<small class="imgInfo${i + 2}"></small>`).join("")}<small class="sonInfo">Son : aucun</small>${c.son2 ? '<small class="sonInfo2"></small>' : ""}</div>
-      <div class="btns">
-        <button class="small pick" type="button">Image</button>
-        <button class="small reset" type="button">Image par défaut</button>
-        ${(c.images || []).map((nom, i) => `<button class="small pickImg${i + 2}" type="button">Image ${i + 2} (${nom})</button><button class="small delImg${i + 2}" type="button" hidden>Retirer l’image ${i + 2}</button>`).join("")}
-        <button class="small pickSon" type="button">Son</button>
-        <button class="small micSon" type="button">Micro</button>
-        <button class="small delSon" type="button" hidden>Retirer le son</button>
-        ${c.son2 ? `<button class="small pickSon2" type="button">Son 2 (${c.son2})</button><button class="small delSon2" type="button" hidden>Retirer le son 2</button>` : ""}
-      </div>
-      <input type="file" class="fSon2" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm" aria-label="Choisir le son 2 de ${c.nom}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
-      <input type="file" class="fImg" accept="image/*" aria-label="Changer l’image de ${c.nom}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
-      ${(c.images || []).map((_, i) => `<input type="file" class="fImg${i + 2}" accept="image/*" aria-label="Changer l’image ${i + 2} de ${c.nom}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">`).join("")}
-      <input type="file" class="fSon" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm" aria-label="Choisir le son de ${c.nom}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">`;
-    r.querySelector(".pick").addEventListener("click", () => {
-      const inp = r.querySelector(".fImg");
-      if (typeof inp.showPicker === "function") { try { inp.showPicker(); return; } catch (err) {} }
-      inp.click();
-    });
-    const lireImage = cle => async e => {
-      const file = e.target.files[0]; e.target.value = "";
-      if (!file) return;
-      try {
-        const url = await new Promise((ok, ko) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = ko; fr.readAsDataURL(file); });
-        ouvrirEditeur(cle, await chargerImage(url));
-      } catch (err) {
-        r.querySelector("small").textContent = "Ce fichier n’a pas pu être lu. Essaie un PNG ou un JPG.";
-      }
-    };
-    r.querySelector(".fImg").addEventListener("change", lireImage(id));
-    (c.images || []).forEach((_, i) => {
-      const n = i + 2, fi = r.querySelector(".fImg" + n), cleN = id + "-" + n;
-      r.querySelector(".pickImg" + n).addEventListener("click", () => {
-        if (typeof fi.showPicker === "function") { try { fi.showPicker(); return; } catch (err) {} }
-        fi.click();
-      });
-      fi.addEventListener("change", lireImage(cleN));
-      r.querySelector(".delImg" + n).addEventListener("click", () => {
-        try { localStorage.removeItem("duel-img:" + cleN); } catch (err) {}
-        nuageEcrire("images/" + cleN, null);
-        appliquerSprite(cleN, null, false);
-      });
-    });
-    r.querySelector(".reset").addEventListener("click", async () => {
-      try { localStorage.removeItem("duel-img:" + id); } catch (err) {}
-      nuageEcrire("images/" + id, null);
-      appliquerSprite(id, traiter(await chargerImage(svgUrl(c.svg))), false);
-    });
-    const fSon = r.querySelector(".fSon"), info = r.querySelector(".sonInfo"), del = r.querySelector(".delSon");
-    const majSon = () => majInfoSon(id);
-    if (c.son2) {
-      const f2 = r.querySelector(".fSon2"), cle2 = id + "-2";
-      r.querySelector(".pickSon2").addEventListener("click", () => {
-        contexteAudio();
-        if (typeof f2.showPicker === "function") { try { f2.showPicker(); return; } catch (err) {} }
-        f2.click();
-      });
-      f2.addEventListener("change", async e => {
+    const carte = document.createElement("details");
+    carte.className = "carte"; carte.dataset.id = id;
+    const imgs = clesImage(id).map((cle, i) => `
+      <div class="slot" data-img="${cle}">
+        <img class="sthumb" alt="">
+        <div class="sinfo"><b>Image ${i + 1}</b> · ${i ? c.images[i - 1] : "déplacement"}<small></small></div>
+        <div class="sact">
+          <button class="small change" type="button">Changer</button>
+          <button class="small danger del" type="button" aria-label="Retirer l’image ${i + 1}">✕ Retirer</button>
+        </div>
+        <input type="file" accept="image/*" aria-label="Image ${i + 1} de ${c.nom}" ${FICHIER}>
+      </div>`).join("");
+    const sns = clesSon(id).map((cle, i) => `
+      <div class="slot" data-son="${cle}">
+        <div class="sthumb sicone" aria-hidden="true">🔊</div>
+        <div class="sinfo"><b>Son ${i + 1}</b> · ${i ? c.son2 : c.sonNom || "attaque"}<small></small></div>
+        <div class="sact">
+          <button class="small ecoute" type="button" aria-label="Écouter">▶</button>
+          <button class="small change" type="button">Fichier</button>
+          ${i ? "" : '<button class="small micSon" type="button">🎤 Micro</button>'}
+          <button class="small danger del" type="button" aria-label="Retirer le son ${i + 1}">✕ Retirer</button>
+        </div>
+        <input type="file" accept="${AUDIO}" aria-label="Son ${i + 1} de ${c.nom}" ${FICHIER}>
+      </div>`).join("");
+    carte.innerHTML = `<summary><img class="thumb" alt="" data-id="${id}" src="${c.sprite.url}"><span>${c.nom}<small class="resume"></small></span></summary>
+      <div class="groupe"><h4>Images</h4>${imgs}</div>
+      <div class="groupe"><h4>Sons</h4>${sns}</div>`;
+    carte.querySelectorAll("[data-img]").forEach(sl => {
+      const cle = sl.dataset.img, n = numImage(cle), inp = sl.querySelector("input");
+      const nomImg = "l’image " + n + " (" + (n > 1 ? c.images[n - 2] : "déplacement") + ") de " + c.nom;
+      sl.querySelector(".change").addEventListener("click", () => ouvrir(inp));
+      inp.addEventListener("change", async e => {
         const file = e.target.files[0]; e.target.value = "";
         if (!file) return;
-        try { await definirSon(cle2, file, file.name); }
-        catch (err) { r.querySelector(".sonInfo2").textContent = "Ce fichier son n’a pas pu être lu. Essaie un MP3."; }
+        try {
+          const url = await new Promise((ok, ko) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = ko; fr.readAsDataURL(file); });
+          ouvrirEditeur(cle, await chargerImage(url));
+        } catch (err) {
+          sl.querySelector("small").textContent = "Ce fichier n’a pas pu être lu. Essaie un PNG ou un JPG.";
+        }
       });
-      r.querySelector(".delSon2").addEventListener("click", () => retirerSon(cle2));
-      majInfoSon(cle2);
-    }
-    const micBtn = r.querySelector(".micSon");
-    micBtn.addEventListener("click", () => enregistrerMicro(id, micBtn));
-    r.querySelector(".pickSon").addEventListener("click", () => {
-      contexteAudio();
-      if (typeof fSon.showPicker === "function") { try { fSon.showPicker(); return; } catch (err) {} }
-      fSon.click();
+      sl.querySelector(".del").addEventListener("click", async () => {
+        if (!confirm("Retirer " + nomImg + " ?" + (n > 1 ? "" : "\nLe dessin par défaut reviendra."))) return;
+        try { localStorage.removeItem("duel-img:" + cle); } catch (err) {}
+        nuageEcrire("images/" + cle, null);
+        appliquerSprite(cle, n > 1 ? null : traiter(await chargerImage(svgUrl(c.svg))), false);
+      });
     });
-    fSon.addEventListener("change", async e => {
-      const file = e.target.files[0]; e.target.value = "";
-      if (!file) return;
-      try {
-        await definirSon(id, file, file.name);
-      } catch (err) {
-        info.textContent = "Ce fichier son n’a pas pu être lu. Essaie un MP3.";
-      }
+    carte.querySelectorAll("[data-son]").forEach(sl => {
+      const cle = sl.dataset.son, inp = sl.querySelector("input"), n = cle === id ? 1 : 2;
+      sl.querySelector(".change").addEventListener("click", () => { contexteAudio(); ouvrir(inp); });
+      inp.addEventListener("change", async e => {
+        const file = e.target.files[0]; e.target.value = "";
+        if (!file) return;
+        try { await definirSon(cle, file, file.name); }
+        catch (err) { sl.querySelector("small").textContent = "Ce fichier son n’a pas pu être lu. Essaie un MP3."; }
+      });
+      sl.querySelector(".ecoute").addEventListener("click", () => { contexteAudio(); son({ type: cle, side: 9 }); });
+      const mic = sl.querySelector(".micSon");
+      if (mic) mic.addEventListener("click", () => enregistrerMicro(cle, mic));
+      sl.querySelector(".del").addEventListener("click", () => {
+        if (!confirm("Retirer le son " + n + " (" + (n > 1 ? c.son2 : c.sonNom || "attaque") + ") de " + c.nom + " ?")) return;
+        retirerSon(cle);
+      });
     });
-    del.addEventListener("click", () => retirerSon(id));
-    majSon();
-    list.appendChild(r);
+    list.appendChild(carte);
+    clesSon(id).forEach(majInfoSon);
     majVignettes(id);
   }
 }
@@ -1220,13 +1222,12 @@ async function chargerSon(id, blob, nom) {
 }
 function clesSon(id) { return CHARS[id] && CHARS[id].son2 ? [id, id + "-2"] : [id]; }
 function majInfoSon(cle) {
-  const deux = cle.endsWith("-2"), id = deux ? cle.slice(0, -2) : cle;
-  const r = document.querySelector(`.row[data-id="${id}"]`);
-  if (!r) return;
-  const info = r.querySelector(deux ? ".sonInfo2" : ".sonInfo"), del = r.querySelector(deux ? ".delSon2" : ".delSon");
-  if (!info) return;
-  info.textContent = (deux ? "Son 2 (" + CHARS[id].son2 + ") : " : "Son : ") + (sons[cle] ? sons[cle].nom : "aucun");
-  del.hidden = !sons[cle];
+  const sl = document.querySelector(`[data-son="${cle}"]`);
+  if (!sl) return;
+  sl.querySelector("small").textContent = sons[cle] ? sons[cle].nom : "Aucun son";
+  sl.querySelector(".del").hidden = !sons[cle];
+  sl.querySelector(".ecoute").hidden = !sons[cle];
+  majResume(cle.replace(/-2$/, ""));
 }
 async function definirSon(id, blob, nom) {
   await chargerSon(id, blob, nom);
@@ -1236,7 +1237,7 @@ async function definirSon(id, blob, nom) {
   const enLigne = await nuageEcrire("sons/" + id, { wav: versB64(s.wav), nom });
   majInfoSon(id);
   if (!local && !enLigne) {
-    const el = document.querySelector(`.row[data-id="${id.replace(/-2$/, "")}"] ${id.endsWith("-2") ? ".sonInfo2" : ".sonInfo"}`);
+    const el = document.querySelector(`[data-son="${id}"] small`);
     if (el) el.textContent += " (pour cette session seulement)";
   }
   son({ type: id, side: 9 });
@@ -1436,7 +1437,7 @@ function enregistrer(id, sprite) {
   let sauve = true;
   try { localStorage.setItem("duel-img:" + id, sprite.url); } catch (err) { sauve = false; }
   appliquerSprite(id, sprite, true);
-  if (!sauve) document.querySelector(`.row[data-id="${persoDe(id)}"] small`).textContent = "Image perso (pour cette session seulement)";
+  if (!sauve) document.querySelector(`[data-img="${id}"] small`).textContent = "Image perso (pour cette session seulement)";
 }
 
 /* ===== DÉTOURAGE AUTOMATIQUE =====

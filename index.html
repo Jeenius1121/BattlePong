@@ -448,6 +448,8 @@ const CHARS = {
     }
   },
   rodeur: {
+    // relâché par le Smoker : sa musique de furie (ou de traque) reprend là où elle s'était coupée
+    reprendre(f) { if (f.etat === "furie") son(f, 1, true, true); else if (f.etat === "stalk") son(f, 2, true, true); },
     nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], sonLong: true, son2: "traque", sonNom: "furie",
     imageDe: f => f.etat === "furie" ? 2 : 1,
     desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. Il réapparaît toujours dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
@@ -568,7 +570,7 @@ const CHARS = {
       } else if (L.etat === "attire") { // il ramène l'adversaire contre lui
         const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy) || 1;
         if (ecart(f, o) > 2) { const pas = Math.min(d, 420 * dt); o.x += dx / d * pas; o.y += dy / d * pas; }
-        else { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; son(f, 3, true); } // musique d'étranglement en boucle
+        else { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; son(f, 3, true, true); } // musique d'étranglement, reprise là où elle s'était arrêtée
       } else if (L.etat === "etreinte") { // 2 s d'étranglement : la langue serre, l'adversaire perd des PV par à-coups
         L.t -= dt; L.coup -= dt;
         // 8 à-coups de 4 PV, quelle que soit la durée de l'étranglement
@@ -804,6 +806,7 @@ function boutLangue(f, o) { const L = f.langue; return L.etat === "attire" || L.
 function liberer(o, f, ux, uy) {
   if (o.capture !== f) return;
   o.capture = null; arreterSon(f, 3); // fin de la musique d'étranglement
+  if (CHARS[o.type].reprendre && !o.mort) CHARS[o.type].reprendre(o);
   if (ux !== undefined) { o.recul = 0.35; o.rvx = ux * 700; o.rvy = uy * 700; o.vx = ux; o.vy = uy; }
   normaliser(o); redresser(o);
 }
@@ -1528,18 +1531,30 @@ function latenceSon(f, n) {
   return (l > 0.01 ? l : 0.1) * vitesseJeu;
 }
 function plusTard(g, t, fn) { if (t <= 0) fn(); else g.retards.push({ t, fn }); }
-function son(f, n, boucle) {
+// reprise = true : une musique en boucle repart là où elle avait été coupée la dernière fois
+function son(f, n, boucle, reprise) {
   const k = cleSon(f.type, n), s = sons[k];
   if (!sonsActifs || !s || !audioCtx) return;
   if (audioCtx.state === "suspended") audioCtx.resume();
   const cle = k + f.side;
-  try { enCours[cle] && enCours[cle].stop(); } catch (e) {}
+  couper(cle);
   const src = audioCtx.createBufferSource(), gain = audioCtx.createGain();
   // sonFort : ses sons (trop faibles) sont remontés au niveau des autres
   const fort = CHARS[persoDe(k)] && CHARS[persoDe(k)].sonFort;
   src.buffer = s.buffer; src.loop = !!boucle; gain.gain.value = fort ? 0.8 * Math.min(30, 0.9 / (s.pic || 0.9)) : 0.8;
   src.connect(gain); gain.connect(audioCtx.destination);
-  src.start(); enCours[cle] = src;
+  const debut = reprise ? (positions[k] || 0) % s.buffer.duration : 0;
+  src.start(0, debut); src.debut = audioCtx.currentTime - debut; src.cleSon = k;
+  enCours[cle] = src;
+}
+// arrête un son en cours ; pour une musique en boucle, retient où elle en était
+const positions = {};
+function couper(cle) {
+  const src = enCours[cle];
+  if (!src) return;
+  if (src.loop && src.cleSon && audioCtx) positions[src.cleSon] = (audioCtx.currentTime - src.debut) % src.buffer.duration;
+  try { src.stop(); } catch (e) {}
+  delete enCours[cle];
 }
 // coupe tous les sons en cours d'un perso (attrapé par le Smoker, ou mort)
 function arreterSons(f) { arreterSon(f); arreterSon(f, 2); arreterSon(f, 3); }
@@ -1557,14 +1572,10 @@ function jouerGeneral(cle) {
     src.connect(filtre); filtre.connect(gain); gain.connect(ac.destination); src.start();
   }
 }
-function arreterSon(f, n) {
-  const cle = cleSon(f.type, n) + f.side;
-  try { enCours[cle] && enCours[cle].stop(); } catch (e) {}
-  delete enCours[cle];
-}
+function arreterSon(f, n) { couper(cleSon(f.type, n) + f.side); }
 // coupe les sons qui tournent en boucle (furie de Myers) à la fin du combat
 function arreterBoucles() {
-  for (const [cle, src] of Object.entries(enCours)) if (src.loop) { try { src.stop(); } catch (e) {} delete enCours[cle]; }
+  for (const [cle, src] of Object.entries(enCours)) if (src.loop) couper(cle);
 }
 // Tout son (MP3, M4A…) est converti en WAV mono léger de 3 s max : facile à stocker partout.
 // Myers a droit à un son long (10 s) : il dure toute sa furie.
@@ -1981,7 +1992,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.9", NOTES = "Smoker : étranglement de 5 s, son d’étranglement gardé en entier (jusqu’à 20 s) et coupé à la fin.";
+const VERSION = "1.4.10", NOTES = "Les musiques reprennent là où elles s’étaient arrêtées (furie de Myers, étranglement du Smoker).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

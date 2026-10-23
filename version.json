@@ -1,1 +1,1 @@
-{"version": "1.4.1", "notes": "Robot : son de minuteur à chaque chiffre du compte à rebours."}
+{"version": "1.4.2", "notes": "Sons coupés quand on est attrapé ou mort, bruit d’explosion à la mort."}

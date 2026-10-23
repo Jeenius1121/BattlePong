@@ -559,7 +559,7 @@ const CHARS = {
         const dx = o.x - L.x, dy = o.y - L.y, d = Math.hypot(dx, dy) || 1, pas = Math.min(d, LANGUE_VITESSE * dt);
         L.x += dx / d * pas; L.y += dy / d * pas;
         if (d < Math.max(o.hw, o.hh) * 0.5 || touche(o, L.x, L.y, 6)) { // attrapé !
-          L.etat = "attire"; o.capture = f;
+          L.etat = "attire"; o.capture = f; arreterSons(o); // l'adversaire attrapé se tait
           o.burst = 0; o.charge = 0; o.tir = 0; o.muzzle = 0; o.rot = 0; o.vx = 0; o.vy = 0;
           eclats(g, L.x, L.y, "#c2456b");
         } else if (L.t > 0.9) L.etat = "rentre";
@@ -829,6 +829,7 @@ const RECHARGE = 1.2; // rechargement du Cowboy après chaque rafale (secondes)
 const FIN = 3.2; // durée de la séquence de fin (secondes réelles)
 function exploser(g, f) {
   f.mort = true; f.copies = [];
+  arreterSons(f); jouerGeneral("explosion");
   for (const x of g.f) if (x.capture === f) x.capture = null; // le Smoker mort lâche sa prise
   g.proj = g.proj.filter(p => p.owner !== f);
   g.boums.push({ x: f.x, y: f.y, t: 0.6 });
@@ -1319,7 +1320,7 @@ function majVignettes(id) {
 }
 function majResume(id) {
   const carte = document.querySelector(`.carte[data-id="${id}"]`);
-  if (!carte) return;
+  if (!carte || !CHARS[id]) return;
   const ni = clesImage(id).filter(persoImage).length, ns = clesSon(id).filter(k => sons[k]).length;
   carte.querySelector(".resume").textContent = `${ni}/${clesImage(id).length} images perso · ${ns}/${clesSon(id).length} sons`;
 }
@@ -1459,6 +1460,38 @@ function construireUI() {
     clesSon(id).forEach(majInfoSon);
     majVignettes(id);
   }
+  // carte des sons communs à tous (explosion quand un perso meurt)
+  const gen = document.createElement("details");
+  gen.className = "carte"; gen.dataset.id = "general";
+  gen.innerHTML = `<summary><span class="sicone thumb" aria-hidden="true">💥</span><span>Sons généraux<small class="resume">Pour tous les persos</small></span></summary>
+    <div class="groupe"><h4>Sons</h4>${Object.entries(SONS_GENERAUX).map(([cle, nom]) => `
+      <div class="slot" data-son="${cle}">
+        <div class="sthumb sicone" aria-hidden="true">🔊</div>
+        <div class="sinfo"><b>${nom}</b><small></small></div>
+        <div class="sact">
+          <button class="small ecoute" type="button" aria-label="Écouter">▶</button>
+          <button class="small change" type="button">Fichier</button>
+          <button class="small danger del" type="button" aria-label="Retirer le son">✕ Retirer</button>
+        </div>
+        <input type="file" accept="${AUDIO}" aria-label="${nom}" ${FICHIER}>
+      </div>`).join("")}</div>`;
+  gen.querySelectorAll("[data-son]").forEach(sl => {
+    const cle = sl.dataset.son, inp = sl.querySelector("input");
+    sl.querySelector(".change").addEventListener("click", () => { contexteAudio(); ouvrir(inp); });
+    inp.addEventListener("change", async e => {
+      const file = e.target.files[0]; e.target.value = "";
+      if (!file) return;
+      try { await definirSon(cle, file, file.name); }
+      catch (err) { sl.querySelector("small").textContent = "Ce fichier son n’a pas pu être lu. Essaie un MP3."; }
+    });
+    sl.querySelector(".ecoute").addEventListener("click", () => { contexteAudio(); jouerGeneral(cle); });
+    sl.querySelector(".del").addEventListener("click", () => {
+      if (!confirm("Retirer le son « " + SONS_GENERAUX[cle] + " » ? Le son par défaut reviendra.")) return;
+      retirerSon(cle);
+    });
+  });
+  list.appendChild(gen);
+  Object.keys(SONS_GENERAUX).forEach(majInfoSon);
 }
 
 /* ===== SONS =====
@@ -1490,6 +1523,22 @@ function son(f, n, boucle) {
   src.buffer = s.buffer; src.loop = !!boucle; gain.gain.value = fort ? 0.8 * Math.min(30, 0.9 / (s.pic || 0.9)) : 0.8;
   src.connect(gain); gain.connect(audioCtx.destination);
   src.start(); enCours[cle] = src;
+}
+// coupe tous les sons en cours d'un perso (attrapé par le Smoker, ou mort)
+function arreterSons(f) { arreterSon(f); arreterSon(f, 2); }
+// sons communs à tous : un fichier perso s'il y en a un, sinon un son fabriqué par le jeu
+const SONS_GENERAUX = { explosion: "Explosion (perso mort)" };
+function jouerGeneral(cle) {
+  if (sons[cle]) return son({ type: cle, side: 8 });
+  if (!sonsActifs || !audioCtx) return;
+  if (cle === "explosion") { // boum : bruit grave qui s'éteint
+    const ac = audioCtx, d = 1.2, buf = ac.createBuffer(1, Math.round(ac.sampleRate * d), ac.sampleRate), x = buf.getChannelData(0);
+    for (let i = 0; i < x.length; i++) x[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / x.length, 2.2);
+    const src = ac.createBufferSource(), filtre = ac.createBiquadFilter(), gain = ac.createGain();
+    filtre.type = "lowpass"; filtre.frequency.setValueAtTime(1800, ac.currentTime); filtre.frequency.exponentialRampToValueAtTime(120, ac.currentTime + d);
+    gain.gain.value = 1.4; src.buffer = buf;
+    src.connect(filtre); filtre.connect(gain); gain.connect(ac.destination); src.start();
+  }
 }
 function arreterSon(f, n) {
   const cle = (n === 2 ? f.type + "-2" : f.type) + f.side;
@@ -1585,9 +1634,10 @@ function clesSon(id) { return CHARS[id] && CHARS[id].son2 ? [id, id + "-2"] : [i
 function majInfoSon(cle) {
   const sl = document.querySelector(`[data-son="${cle}"]`);
   if (!sl) return;
-  sl.querySelector("small").textContent = sons[cle] ? sons[cle].nom : "Aucun son";
+  const general = cle in SONS_GENERAUX;
+  sl.querySelector("small").textContent = sons[cle] ? sons[cle].nom : general ? "Son par défaut" : "Aucun son";
   sl.querySelector(".del").hidden = !sons[cle];
-  sl.querySelector(".ecoute").hidden = !sons[cle];
+  sl.querySelector(".ecoute").hidden = !sons[cle] && !general;
   majResume(cle.replace(/-2$/, ""));
 }
 async function definirSon(id, blob, nom) {
@@ -1723,18 +1773,23 @@ async function brancherNuageSuite() {
         appliquerSprite(k, deux ? null : traiter(await chargerImage(svgUrl(c.svg))), false);
       }
     } catch (e) { echec = true; }
-    for (const k of clesSon(id)) try {
+    for (const k of clesSon(id)) echec = !await sonEnLigne(k) || echec;
+  }
+  for (const k of Object.keys(SONS_GENERAUX)) echec = !await sonEnLigne(k) || echec;
+  async function sonEnLigne(k) {
+    try {
       const so = await db.doc("sons/" + k).get();
       if (so.exists && so.data().wav) {
         await chargerSon(k, new Blob([depuisB64(so.data().wav)], { type: "audio/wav" }), so.data().nom || "Son");
         try { await bddSet(k, { blob: new Blob([sons[k].wav], { type: "audio/wav" }), nom: sons[k].nom }); } catch (e) {}
       } else if (nuage && sons[k] && !migre) {
-        if (!await nuageEcrire("sons/" + k, { wav: versB64(sons[k].wav), nom: sons[k].nom })) echec = true;
+        if (!await nuageEcrire("sons/" + k, { wav: versB64(sons[k].wav), nom: sons[k].nom })) return false;
       } else if (sons[k] && (nuage || !proprio)) {
         delete sons[k]; try { await bddSet(k, null); } catch (e) {}
       }
       majInfoSon(k);
-    } catch (e) { echec = true; }
+      return true;
+    } catch (e) { return false; }
   }
   // on ne note la migration comme faite que si tout est bien arrivé en ligne
   if (nuage && !echec) { try { localStorage.setItem("duel-migre", "1"); } catch (e) {} }
@@ -1853,7 +1908,7 @@ async function init() {
       try { if (src2) { c.spr[numImage(k)] = traiter(await chargerImage(src2)); c.pn[numImage(k)] = true; } } catch (e) {}
     }
   }
-  for (const id of Object.keys(CHARS)) for (const k of clesSon(id)) {
+  for (const k of [...Object.keys(CHARS).flatMap(clesSon), ...Object.keys(SONS_GENERAUX)]) {
     try { const v = await bddGet(k); if (v && v.blob) await chargerSon(k, v.blob, v.nom); } catch (e) {}
   }
   construireUI();
@@ -1901,7 +1956,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.1", NOTES = "Robot : son de minuteur à chaque chiffre du compte à rebours.";
+const VERSION = "1.4.2", NOTES = "Sons coupés quand on est attrapé ou mort, bruit d’explosion à la mort.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

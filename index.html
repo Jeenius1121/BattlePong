@@ -334,7 +334,7 @@ const CHARS = {
   robot: {
     nom: "Robot", emoji: "🤖", vitesse: 220, images: ["attaque"], sonNom: "laser", son2: "minuteur",
     imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : 1,
-    desc: "Vise, charge, puis tire un gros laser qui reste allumé 2 secondes en suivant le robot et brûle l’adversaire s’il passe dedans. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire avec lui (égalité).",
+    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle l’adversaire s’il passe dedans. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire avec lui (égalité).",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='26' fill='#8b93a6'/><rect x='64' y='112' width='12' height='26' fill='#8b93a6'/>
       <rect x='40' y='134' width='20' height='10' rx='2' fill='#5d6476'/><rect x='60' y='134' width='20' height='10' rx='2' fill='#5d6476'/>
@@ -379,7 +379,7 @@ const CHARS = {
         if (!f.sonJoue && f.charge <= latenceSon(f)) { f.sonJoue = true; son(f); }
         if (f.charge <= 0) {
           if (!f.sonJoue) { f.sonJoue = true; son(f); }
-          f.tir = 2.15; f.cd = 3.4;
+          f.tir = 1.15; f.cd = 3;
           const r = rayon(); f.laserLen = r.len;
           if (r.px !== undefined) { f.brule = 0.35; degats(g, o, 24, r.px, r.py); }
         }
@@ -388,7 +388,7 @@ const CHARS = {
         const th = Math.atan2(o.y - f.y, o.x - f.x), d = Math.hypot(o.x - f.x, o.y - f.y) || 1;
         f.laserFace = Math.cos(th) >= 0 ? 1 : -1;
         const p = canonLocal(f).y * f.laserFace;
-        f.charge = 0.6; f.sonJoue = false; f.laserAng = th - Math.asin(Math.max(-1, Math.min(1, p / d)));
+        f.charge = 0.4; f.sonJoue = false; f.laserAng = th - Math.asin(Math.max(-1, Math.min(1, p / d)));
         // se décolle du mur : il repart en direction de l'adversaire
         f.vx = Math.cos(f.laserAng); f.vy = Math.sin(f.laserAng);
       }
@@ -452,7 +452,7 @@ const CHARS = {
     reprendre(f) { if (f.etat === "furie") son(f, 1, true, true); else if (f.etat === "stalk") son(f, 2, true, true); },
     nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], reduction: 0.2, sonLong: true, son2: "traque", sonNom: "furie",
     imageDe: f => f.etat === "furie" ? 2 : 1,
-    desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. Pendant la traque et la furie, il prend 20 % de dégâts en moins. Il réapparaît toujours dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
+    desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. Pendant la furie, il prend 20 % de dégâts en moins. Il réapparaît toujours dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
     svg: `<g ${O}>
       <rect x='46' y='118' width='11' height='22' fill='#2b2b30'/><rect x='63' y='118' width='11' height='22' fill='#2b2b30'/>
       <rect x='42' y='136' width='17' height='8' rx='2' fill='#151518'/><rect x='61' y='136' width='17' height='8' rx='2' fill='#151518'/>
@@ -470,12 +470,12 @@ const CHARS = {
     quandTouche(f, g) {
       if (f.etat !== "stalk") return;
       arreterSon(f, 2); // le son de traque se coupe net
-      f.etat = "rode"; f.etatT = 2 + Math.random() * 1.5;
+      f.etat = "rode"; f.etatT = 1.5 + Math.random() * 1.5;
       const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f);
       eclats(g, f.x, f.y, "#55555f");
     },
     attaque(f, o, g, dt) {
-      if (!f.etat) { f.etat = "rode"; f.etatT = 2 + Math.random() * 1.5; f.jauge = 0; }
+      if (!f.etat) { f.etat = "rode"; f.etatT = 1.5 + Math.random() * 1.5; f.jauge = 0; }
       const visCible = f.etat === "rode" ? 0.12 : 1;
       f.vis = (f.vis ?? 1) + (visCible - (f.vis ?? 1)) * Math.min(1, dt * 6);
       f.coupT = Math.max(0, (f.coupT || 0) - dt);
@@ -515,7 +515,7 @@ const CHARS = {
           const ex = o.x - f.x, ey = o.y - f.y, ed = Math.hypot(ex, ey) || 1;
           degats(g, o, 15, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
         }
-        if (f.jauge <= 0) { f.jauge = 0; f.etat = "rode"; arreterSon(f); f.etatT = 2.5 + Math.random() * 1.5; normaliser(f); }
+        if (f.jauge <= 0) { f.jauge = 0; f.etat = "rode"; arreterSon(f); f.etatT = 2 + Math.random() * 1.5; normaliser(f); }
       }
     }
   },
@@ -581,7 +581,7 @@ const CHARS = {
       } else if (L.etat === "etreinte") { // 2 s d'étranglement : la langue serre, l'adversaire perd des PV par à-coups
         L.t -= dt; L.coup -= dt;
         // un à-coup de 4 PV toutes les 0,625 s tant que dure l'étranglement
-        if (L.coup <= 0) { L.coup = ETREINTE_TIC; L.serre = 0.18; degats(g, o, 4, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
+        if (L.coup <= 0) { L.coup = ETREINTE_TIC; L.serre = 0.18; degats(g, o, 6, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
         L.serre = Math.max(0, (L.serre || 0) - dt);
         if (L.t <= 0) { // il le relâche un peu plus loin
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -764,8 +764,8 @@ function degats(g, cible, n, x, y) {
   if (cible.mort) return;
   const c = CHARS[cible.type];
   if (c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
-  // Myers encaisse moins pendant sa traque et sa furie (arrondi, 1 dégât minimum)
-  if (c.reduction && (cible.etat === "furie" || cible.etat === "stalk")) n = Math.max(1, Math.round(n * (1 - c.reduction)));
+  // Myers encaisse moins pendant sa furie (arrondi, 1 dégât minimum)
+  if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction)));
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
   const reaction = CHARS[cible.type].quandTouche;
   if (reaction) reaction(cible, g);
@@ -2009,7 +2009,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.15", NOTES = "Myers prend 20 % de dégâts en moins pendant sa traque et sa furie.";
+const VERSION = "1.5.0", NOTES = "Équilibrage : Robot plus mobile (charge 0,4 s, laser 1,15 s, 3 s entre deux), Myers rôde moins longtemps, étranglement du Smoker à 6.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

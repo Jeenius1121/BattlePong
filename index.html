@@ -244,7 +244,7 @@ const CHARS = {
     nom: "Sorcier", emoji: "🧙", vitesse: 200, images: ["attaque", "bouclier"], son2: "bouclier",
     tailles: { 3: 1.4 }, // l'image du bouclier (cercle de feu) est affichée plus grande
     imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : 1,
-    desc: "Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes.",
+    desc: "Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes.",
     svg: `<g ${O}>
       <rect x='92' y='34' width='6' height='112' rx='3' fill='#8a5228'/><circle cx='95' cy='30' r='10' fill='#4fc3f7'/>
       <rect x='28' y='72' width='12' height='30' rx='6' fill='#6a4bb5'/>
@@ -277,7 +277,7 @@ const CHARS = {
         plusTard(g, latenceSon(f), () => {
           // part vers l'adversaire et tourne un peu vers lui au début, sans le suivre partout
           const a = Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 0.5;
-          g.proj.push({ kind: "feu", homing: true, virage: 0.7, guideT: 1, x: f.x, y: f.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, r: 13, dmg: 14, owner: f, rot: 0 });
+          g.proj.push({ kind: "feu", homing: true, virage: 0.7, guideT: 1, x: f.x, y: f.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, r: 13, dmg: 16, owner: f, rot: 0 });
         });
       }
     },
@@ -285,6 +285,9 @@ const CHARS = {
     encaisse(f, g, n) {
       if (!(f.bouclier > 0)) return n;
       f.bouclier -= n; f.flash = 0.1;
+      // comme un cactus : l'attaquant reprend 20 % des dégâts qu'il voulait faire
+      const o = g.f.find(x => x !== f), renvoi = Math.round(n * BOUCLIER_RENVOI);
+      if (o && renvoi > 0) degats(g, o, renvoi, o.x, o.y - o.hh * 0.3);
       if (f.bouclier <= 0) this.casser(f, g);
       return 0;
     },
@@ -676,6 +679,7 @@ function explosion(g, x, y, cible, dmg, ang) {
   if (Math.hypot(dx, dy) < 140) degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3);
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
+const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const BOUCLIER_PV = 35, FEU_RAYON = 110, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const RECHARGE = 1.2; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
@@ -1693,7 +1697,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.2.1", NOTES = "Robot : 1 seconde de plus avant de pouvoir retirer.";
+const VERSION = "1.2.2", NOTES = "Sorcier : boules de feu à 16 dégâts, son bouclier renvoie 20 % des dégâts.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

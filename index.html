@@ -598,7 +598,7 @@ function explosion(g, x, y, cible, dmg, ang) {
   const dx = Math.max(Math.abs(cible.x - x) - cible.hw, 0), dy = Math.max(Math.abs(cible.y - y) - cible.hh, 0);
   if (Math.hypot(dx, dy) < 140) degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3);
 }
-const RECHARGE = 2; // rechargement du Cowboy après chaque rafale (secondes)
+const RECHARGE = 1.2; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
 const FIN = 3.2; // durée de la séquence de fin (secondes réelles)

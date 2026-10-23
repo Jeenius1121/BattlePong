@@ -72,6 +72,9 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 .custom h2{font-size:1.1rem; font-weight:800; margin:0 0 4px}
 .custom > p{margin:0 0 12px; font-size:.88rem; color:var(--muted)}
 .cle[hidden]{display:none}
+/* pendant le chargement en ligne : rien n'est cliquable dans la partie de modification */
+.custom.charge #customList, .custom.charge .cle, .custom.charge .editeur{pointer-events:none; opacity:.4}
+.custom.charge #statutNuage{color:var(--ink); font-weight:700}
 .cle p{margin:0 0 8px; font-size:.88rem; color:var(--muted)}
 .cle input{flex:1; min-width:0; font:inherit; padding:10px 12px; border:2px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink)}
 .carte{border:2px solid var(--line); border-radius:14px; background:var(--panel); margin:10px 0}
@@ -135,11 +138,11 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
   </div>
   <div id="descs"></div>
 
-  <section class="custom" id="custom" hidden>
+  <section class="custom charge" id="custom" hidden>
     <h2>Images des personnages</h2>
     <p>Remplace l’image d’un perso par la tienne. Prends de préférence un PNG à fond transparent : la zone de touche suit alors la forme exacte du personnage. L’image est redimensionnée sans être déformée. Les sons démarrent automatiquement là où ta voix commence et sont coupés à 3 secondes. Les sons de Myers peuvent durer jusqu’à 10 secondes : le son 2 (traque) tourne pendant que sa jauge monte, le son normal pendant toute sa furie.</p>
-    <p id="statutNuage"></p>
-    <div class="cle" id="cleBloc">
+    <p id="statutNuage">⏳ Chargement des images et des sons… attends quelques secondes.</p>
+    <div class="cle" id="cleBloc" hidden>
       <p>Pour que tout le monde voie tes images et tes sons, colle ici ta clé GitHub (à faire une seule fois sur cet appareil).</p>
       <div class="actions"><input type="password" id="cleGithub" placeholder="github_pat_…" autocomplete="off" aria-label="Clé GitHub"><button class="btn" id="cleOk" type="button">Connecter</button></div>
     </div>
@@ -1319,6 +1322,13 @@ function majStatutNuage() {
   document.getElementById("cleBloc").hidden = !!nuage;
 }
 async function brancherNuage() {
+  const custom = document.getElementById("custom");
+  custom.classList.add("charge");
+  document.getElementById("statutNuage").textContent = "⏳ Chargement des images et des sons… attends quelques secondes.";
+  try { await brancherNuageSuite(); }
+  finally { custom.classList.remove("charge"); majStatutNuage(); }
+}
+async function brancherNuageSuite() {
   const jeton = lireJeton(), db = depot(jeton);
   nuage = jeton ? db : null;
   const proprio = estProprio();

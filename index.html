@@ -304,7 +304,7 @@ const CHARS = {
         plusTard(g, latenceSon(f), () => {
           // part vers l'adversaire et tourne un peu vers lui au début, sans le suivre partout
           const a = Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 0.5;
-          g.proj.push({ kind: "feu", homing: true, virage: 0.7, guideT: 1, x: f.x, y: f.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, r: 13, dmg: 12, owner: f, rot: 0 });
+          g.proj.push({ kind: "feu", homing: true, virage: 0.7, guideT: 1, x: f.x, y: f.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, r: 13, dmg: 13, owner: f, rot: 0 });
         });
       }
     },
@@ -401,7 +401,7 @@ const CHARS = {
   inconnu: {
     nom: "L’Inconnu", emoji: "👁️", vitesse: 230, son2: "téléportation", images: ["attaque"],
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit, puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter.",
+    desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit l’adversaire (déplacements et attaques), puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter.",
     svg: `<g ${O}>
       <path d='M36 60 Q60 50 84 60 L94 140 Q86 132 78 142 Q70 132 60 144 Q50 132 42 142 Q34 132 26 140Z' fill='#2a2440'/>
       <path d='M80 74 Q96 78 104 70' fill='none' stroke='#2a2440' stroke-width='11'/>
@@ -857,6 +857,7 @@ function autodestruction(g, f, o) {
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const BOUCLIER_PV = 35, FEU_RAYON = 110, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
+const RALENTI = 0.7; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const RECHARGE = 2; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
@@ -898,9 +899,10 @@ function maj(dt) {
   prets.forEach(fn => fn());
   for (const [f, o] of [[a, b], [b, a]]) {
     if (f.mort) continue;
-    if (g.running && !f.capture) CHARS[f.type].attaque(f, o, g, dt);
+    // ralenti par l'Inconnu : il se déplace et recharge ses attaques à 70 % de sa vitesse
+    if (g.running && !f.capture) CHARS[f.type].attaque(f, o, g, f.lent > 0 ? dt * RALENTI : dt);
     majTaille(f);
-    const lenteur = f.lent > 0 ? 0.5 : 1;
+    const lenteur = f.lent > 0 ? RALENTI : 1;
     f.lent = Math.max(0, (f.lent || 0) - dt);
     if (!f.capture) { f.x += f.vx * dt * lenteur; f.y += f.vy * dt * lenteur; }
     if (f.recul > 0) { f.recul -= dt; f.x += f.rvx * dt; f.y += f.rvy * dt; } // projeté par le Smoker
@@ -964,8 +966,8 @@ function maj(dt) {
           p.dedans = true;
           continue;
         }
-        // balles d'une même rafale : chaque balle qui touche fait 1 dégât de moins que la précédente
-        degats(g, cible, p.rafale ? Math.max(1, p.dmg - p.rafale.touches++) : p.dmg, p.x, p.y);
+        // balles d'une même rafale : 8, 8, puis 1 dégât de moins à chaque balle qui touche (8, 8, 7, 6, 5, 4)
+        degats(g, cible, p.rafale ? Math.max(1, p.dmg - Math.max(0, p.rafale.touches++ - 1)) : p.dmg, p.x, p.y);
         if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
         return false;
       } else p.dedans = false;
@@ -2011,7 +2013,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.5.2", NOTES = "Smoker : il tire sa langue toutes les 4 s.";
+const VERSION = "1.5.3", NOTES = "Équilibrage : Sorcier à 13, balles de McCree 8-8-7-6-5-4, ralentissement de l’Inconnu à 70 % sur le déplacement et les recharges.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

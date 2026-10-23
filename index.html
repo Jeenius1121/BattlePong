@@ -71,6 +71,9 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 .custom{margin-top:28px; border-top:2px solid var(--line); padding-top:18px}
 .custom h2{font-size:1.1rem; font-weight:800; margin:0 0 4px}
 .custom > p{margin:0 0 12px; font-size:.88rem; color:var(--muted)}
+.cle[hidden]{display:none}
+.cle p{margin:0 0 8px; font-size:.88rem; color:var(--muted)}
+.cle input{flex:1; min-width:0; font:inherit; padding:10px 12px; border:2px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink)}
 .row{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); position:relative}
 .row .thumb{width:44px; height:44px}
 .row .nm{flex:1; font-weight:600}
@@ -129,6 +132,10 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
     <h2>Images des personnages</h2>
     <p>Remplace l’image d’un perso par la tienne. Prends de préférence un PNG à fond transparent : la zone de touche suit alors la forme exacte du personnage. L’image est redimensionnée sans être déformée. Les sons (fichier ou micro) démarrent automatiquement là où ta voix commence et sont coupés à 3 secondes.</p>
     <p id="statutNuage"></p>
+    <div class="cle" id="cleBloc">
+      <p>Pour que tout le monde voie tes images et tes sons, colle ici ta clé GitHub (à faire une seule fois sur cet appareil).</p>
+      <div class="actions"><input type="password" id="cleGithub" placeholder="github_pat_…" autocomplete="off" aria-label="Clé GitHub"><button class="btn" id="cleOk" type="button">Connecter</button></div>
+    </div>
     <p id="astuceSon" hidden>Pour enregistrer ta voix : utilise l’appli dictaphone de ton téléphone, puis choisis le fichier avec le bouton « Son » (le micro est bloqué sur les pages publiées).</p>
     <div class="micPanel" id="micPanel" role="dialog" aria-live="polite" hidden>
       <p id="micTexte"></p>
@@ -1258,9 +1265,44 @@ async function bddGet(k) {
 }
 
 /* ===== SAUVEGARDE EN LIGNE =====
-   Les images et sons modifiés sont enregistrés avec la page elle-même :
-   on les retrouve sur l'appli, le navigateur, le PC… */
+   Les images et sons modifiés sont enregistrés dans le dépôt GitHub du jeu
+   (dossier perso/) : tout le monde les voit. Seul le propriétaire, avec sa clé
+   GitHub, peut les modifier. */
+const DEPOT = "Jeenius1121/BattlePong";
 let nuage = null;
+function depot(jeton) {
+  const api = chemin => `https://api.github.com/repos/${DEPOT}/contents/perso/${chemin}.json`;
+  const h = jeton ? { Authorization: "Bearer " + jeton, "X-GitHub-Api-Version": "2022-11-28" } : null;
+  let file = Promise.resolve();
+  // une écriture à la fois, sinon GitHub refuse (version du fichier périmée)
+  const ecrire = (chemin, data) => (file = file.catch(() => {}).then(async () => {
+    const r = await fetch(api(chemin) + "?ref=main", { headers: h, cache: "no-store" });
+    const sha = r.ok ? (await r.json()).sha : undefined;
+    if (data === null && !sha) return;
+    const corps = data === null
+      ? { message: "Retire perso/" + chemin, sha, branch: "main" }
+      : { message: "Met à jour perso/" + chemin, sha, branch: "main",
+          content: versB64(new TextEncoder().encode(JSON.stringify(data))) };
+    const w = await fetch(api(chemin), { method: data === null ? "DELETE" : "PUT", headers: h, body: JSON.stringify(corps) });
+    if (!w.ok) throw new Error("GitHub " + w.status);
+  }));
+  return { doc: chemin => ({
+    async get() {
+      // le propriétaire lit directement GitHub (toujours à jour), les autres lisent le site
+      const r = h
+        ? await fetch(api(chemin) + "?ref=main", { headers: { ...h, Accept: "application/vnd.github.raw+json" }, cache: "no-store" })
+        : await fetch(`perso/${chemin}.json?t=${Date.now()}`, { cache: "no-store" });
+      if (r.status === 404) return { exists: false, data: () => undefined };
+      if (!r.ok) throw new Error("GitHub " + r.status);
+      const d = await r.json();
+      return { exists: true, data: () => d };
+    },
+    set: data => ecrire(chemin, data),
+    delete: () => ecrire(chemin, null)
+  }) };
+}
+function lireJeton() { try { return localStorage.getItem("duel-jeton"); } catch (e) { return null; } }
+function estProprio() { try { return localStorage.getItem("duel-proprio") === "1"; } catch (e) { return false; } }
 async function nuageEcrire(chemin, data) {
   if (!nuage) return false;
   try {
@@ -1281,18 +1323,15 @@ function urlCompacte(sprite) {
 }
 function majStatutNuage() {
   document.getElementById("statutNuage").textContent = nuage
-    ? "Tes modifications sont enregistrées en ligne : tu les retrouves sur tous tes appareils."
+    ? "Tes modifications sont enregistrées en ligne : tout le monde les voit (environ 1 minute après)."
     : "Modifications enregistrées sur cet appareil seulement.";
+  document.getElementById("cleBloc").hidden = !!nuage;
 }
 async function brancherNuage() {
-  if (!window.claude || typeof window.claude.use !== "function") { majStatutNuage(); return; }
-  const user = await window.claude.use("user");
-  // Seul le propriétaire voit la partie pour modifier les images et les sons.
-  try { if (user && await user.isOwner()) document.getElementById("custom").hidden = false; } catch (e) {}
-  const db = await window.claude.use("db");
-  if (!db) { majStatutNuage(); return; }
-  try { if (user && await user.canEdit()) nuage = db; } catch (e) {}
-  let migre = false;
+  const jeton = lireJeton(), db = depot(jeton);
+  nuage = jeton ? db : null;
+  const proprio = estProprio();
+  let migre = false, echec = false;
   try { migre = localStorage.getItem("duel-migre") === "1"; } catch (e) {}
   for (const [id, c] of Object.entries(CHARS)) {
     try {
@@ -1300,27 +1339,29 @@ async function brancherNuage() {
       if (im.exists && im.data().url) {
         appliquerSprite(id, traiter(await chargerImage(im.data().url)), true);
         try { localStorage.setItem("duel-img:" + id, im.data().url); } catch (e) {}
-      } else if (nuage && c.perso) {
-        if (!migre) await nuageEcrire("images/" + id, { url: urlCompacte(c.sprite) });
-        else {
-          try { localStorage.removeItem("duel-img:" + id); } catch (e) {}
-          appliquerSprite(id, traiter(await chargerImage(svgUrl(c.svg))), false);
-        }
+      } else if (nuage && c.perso && !migre) {
+        if (!await nuageEcrire("images/" + id, { url: urlCompacte(c.sprite) })) echec = true;
+      } else if (c.perso && (nuage || !proprio)) {
+        // l'image a été retirée en ligne : on revient au dessin par défaut
+        try { localStorage.removeItem("duel-img:" + id); } catch (e) {}
+        appliquerSprite(id, traiter(await chargerImage(svgUrl(c.svg))), false);
       }
-    } catch (e) {}
+    } catch (e) { echec = true; }
     for (const k of clesSon(id)) try {
       const so = await db.doc("sons/" + k).get();
       if (so.exists && so.data().wav) {
         await chargerSon(k, new Blob([depuisB64(so.data().wav)], { type: "audio/wav" }), so.data().nom || "Son");
         try { await bddSet(k, { blob: new Blob([sons[k].wav], { type: "audio/wav" }), nom: sons[k].nom }); } catch (e) {}
-      } else if (nuage && sons[k]) {
-        if (!migre) await nuageEcrire("sons/" + k, { wav: versB64(sons[k].wav), nom: sons[k].nom });
-        else { delete sons[k]; try { await bddSet(k, null); } catch (e) {} }
+      } else if (nuage && sons[k] && !migre) {
+        if (!await nuageEcrire("sons/" + k, { wav: versB64(sons[k].wav), nom: sons[k].nom })) echec = true;
+      } else if (sons[k] && (nuage || !proprio)) {
+        delete sons[k]; try { await bddSet(k, null); } catch (e) {}
       }
       majInfoSon(k);
-    } catch (e) {}
+    } catch (e) { echec = true; }
   }
-  if (nuage) { try { localStorage.setItem("duel-migre", "1"); } catch (e) {} }
+  // on ne note la migration comme faite que si tout est bien arrivé en ligne
+  if (nuage && !echec) { try { localStorage.setItem("duel-migre", "1"); } catch (e) {} }
   majStatutNuage();
 }
 
@@ -1466,6 +1507,21 @@ document.getElementById("titre").addEventListener("click", async () => {
   try { localStorage.setItem("duel-proprio", "1"); } catch (e) {}
   afficherPerso();
   document.getElementById("custom").scrollIntoView({ behavior: "smooth" });
+});
+
+document.getElementById("cleOk").addEventListener("click", async () => {
+  const champ = document.getElementById("cleGithub"), jeton = champ.value.trim(), statut = document.getElementById("statutNuage");
+  if (!jeton) return;
+  statut.textContent = "Vérification de la clé…";
+  try {
+    const r = await fetch(`https://api.github.com/repos/${DEPOT}`, { headers: { Authorization: "Bearer " + jeton }, cache: "no-store" });
+    const d = r.ok ? await r.json() : null;
+    if (!d || !d.permissions || !d.permissions.push) throw new Error();
+  } catch (e) { statut.textContent = "Cette clé ne marche pas : vérifie qu’elle a bien accès à BattlePong en écriture (Contents : Read and write)."; return; }
+  try { localStorage.setItem("duel-jeton", jeton); } catch (e) {}
+  champ.value = "";
+  statut.textContent = "Clé acceptée, envoi de tes images et sons…";
+  await brancherNuage();
 });
 
 init();

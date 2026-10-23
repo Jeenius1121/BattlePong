@@ -506,11 +506,15 @@ function spriteDe(f) {
 // adapte la taille et la zone de touche quand l'image affichée change ;
 // les images en plus ont la même hauteur que l'image normale
 function majTaille(f) {
-  const s = spriteDe(f), m = CHARS[f.type].sprite;
+  const s = spriteDe(f), c = CHARS[f.type], m = c.sprite;
   if (f.sp === s) return;
-  f.sp = s;
-  f.k = s === m ? echelle(s) : Math.min(m.th * echelle(m) / s.th, TAILLE_MAX * 1.3 / s.tw);
+  const kDe = x => x === m ? echelle(x) : Math.min(m.th * echelle(m) / x.th, TAILLE_MAX * 1.3 / x.tw);
+  f.sp = s; f.k = kDe(s);
   f.hw = s.tw * f.k / 2; f.hh = s.th * f.k / 2;
+  // image 3+ (ex. « tir » avec l'étincelle) calée sur le dos de l'image 2 : le corps ne bouge pas,
+  // seule la partie en plus (l'étincelle) dépasse vers l'avant
+  const s2 = c.spr && c.spr[2];
+  f.ox = s2 && s !== m && s !== s2 ? (s.tw * f.k - s2.tw * kDe(s2)) / 2 : 0;
 }
 function persoDe(cle) { return cle.replace(/-\d$/, ""); }
 function numImage(cle) { const m = /-(\d)$/.exec(cle); return m ? +m[1] : 1; }
@@ -527,6 +531,7 @@ function touche(f, px, py, pr) {
     const c = Math.cos(f.rot), sn = Math.sin(f.rot), dx = px - f.x, dy = py - f.y;
     px = f.x + c * dx + sn * dy; py = f.y - sn * dx + c * dy;
   }
+  if (f.ox) px -= f.ox * f.face;
   if (Math.abs(px - f.x) > f.hw + pr || Math.abs(py - f.y) > f.hh + pr) return false;
   const s = spriteDe(f);
   for (const [ox, oy] of [[0, 0], [pr, 0], [-pr, 0], [0, pr], [0, -pr]]) {
@@ -546,7 +551,7 @@ function canonLocal(f) {
       for (let j = 0; j < s.th; j++) if (s.mask[j * s.tw + i]) { sy += j; n++; }
     s.canon = { x: s.tw - 1, y: n ? sy / n : s.th / 2 };
   }
-  return { x: s.canon.x * f.k - f.hw, y: s.canon.y * f.k - f.hh };
+  return { x: s.canon.x * f.k - f.hw + (f.ox || 0), y: s.canon.y * f.k - f.hh };
 }
 function canonMonde(f) {
   const l = canonLocal(f), r = f.rot || 0, c = Math.cos(r), sn = Math.sin(r), lx = l.x * f.face;
@@ -763,6 +768,11 @@ function dessiner() {
     }
     if (f.rot) ctx.rotate(f.rot);
     ctx.scale(f.face, 1);
+    if (f.ox) ctx.translate(f.ox, 0);
+    if (f.type === "cowboy" && f.muzzle > 0) { // recul du revolver : petite secousse vers le haut
+      const t = f.muzzle / 0.06;
+      ctx.translate(0, -2.5 * t); ctx.rotate(-0.035 * t);
+    }
     ctx.globalAlpha = f.vis ?? 1;
     if (f.etat === "furie") { ctx.shadowColor = "rgba(220,30,30,.85)"; ctx.shadowBlur = 20; }
     ctx.drawImage(s.img, -f.hw, -f.hh, f.hw * 2, f.hh * 2);

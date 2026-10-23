@@ -513,6 +513,71 @@ const CHARS = {
         if (f.jauge <= 0) { f.jauge = 0; f.etat = "rode"; arreterSon(f); f.etatT = 2.5 + Math.random() * 1.5; normaliser(f); }
       }
     }
+  },
+  smoker: {
+    nom: "Smoker", emoji: "👅", vitesse: 215, images: ["coup", "langue"], sonNom: "coup", son2: "langue",
+    // image 3 pendant toute la prise à la langue, image 2 à chaque coup
+    imageDe: f => f.attT > 0 ? 2 : f.langue ? 3 : 1,
+    desc: "Frappe au corps à corps. Toutes les 4 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), le frappe pendant 2 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe.",
+    svg: `<g ${O}>
+      <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
+      <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
+      <path d='M34 70 Q30 98 26 122' fill='none' stroke='#5b6b45' stroke-width='11'/><circle cx='26' cy='124' r='6' fill='#9fae8a'/>
+      <path d='M38 60 Q60 50 82 60 L86 116 H34Z' fill='#5b6b45'/>
+      <path d='M86 70 Q96 96 98 120' fill='none' stroke='#5b6b45' stroke-width='11'/><circle cx='98' cy='122' r='6' fill='#9fae8a'/>
+      <path d='M40 62 Q42 20 62 18 Q82 20 82 62 Q62 52 40 62Z' fill='#4b5a3a'/>
+      <circle cx='62' cy='40' r='16' fill='#9fae8a'/>
+      <circle cx='52' cy='32' r='5' fill='#c98a6a'/><circle cx='70' cy='47' r='4' fill='#c98a6a'/><circle cx='56' cy='50' r='3' fill='#c98a6a'/>
+      <circle cx='66' cy='35' r='2.6' fill='#f2e46b' stroke='none'/><circle cx='74' cy='36' r='2.2' fill='#f2e46b' stroke='none'/>
+      <ellipse cx='72' cy='45' rx='5' ry='4' fill='#3a1020'/>
+      <path d='M74 46 Q86 56 90 72 Q92 80 86 80 Q82 72 78 60Z' fill='#c2456b'/></g>`,
+    attaque(f, o, g, dt) {
+      const L = f.langue;
+      if (!L) {
+        // corps à corps normal : tac, tac, tac quand il touche l'adversaire
+        f.cd -= dt;
+        if (f.cd <= 0 && !cache(o) && ecart(f, o) < 8) {
+          f.cd = 0.45; f.attT = 0.15; son(f);
+          degats(g, o, 6, (f.x + o.x) / 2, (f.y + o.y) / 2);
+        }
+        f.langueCd = (f.langueCd ?? 2.5) - dt;
+        if (f.langueCd <= 0 && !cache(o)) { // il tire sa langue
+          f.face = o.x >= f.x ? 1 : -1;
+          const m = bouche(f);
+          f.langue = { etat: "tire", x: m.x, y: m.y, t: 0 }; f.vx = 0; f.vy = 0;
+          son(f, 2);
+        }
+        return;
+      }
+      f.vx = 0; f.vy = 0; // immobile tant que la langue est sortie
+      if (L.etat !== "rentre" && langueCoupee(f, o, g)) return;
+      if (L.etat === "tire") { // la langue file vers l'adversaire
+        L.t += dt;
+        const dx = o.x - L.x, dy = o.y - L.y, d = Math.hypot(dx, dy) || 1, pas = Math.min(d, LANGUE_VITESSE * dt);
+        L.x += dx / d * pas; L.y += dy / d * pas;
+        if (d < Math.max(o.hw, o.hh) * 0.5 || touche(o, L.x, L.y, 6)) { // attrapé !
+          L.etat = "attire"; o.capture = f;
+          o.burst = 0; o.charge = 0; o.tir = 0; o.muzzle = 0; o.rot = 0; o.vx = 0; o.vy = 0;
+          eclats(g, L.x, L.y, "#c2456b");
+        } else if (L.t > 0.9) L.etat = "rentre";
+      } else if (L.etat === "attire") { // il ramène l'adversaire contre lui
+        const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy) || 1;
+        if (ecart(f, o) > 2) { const pas = Math.min(d, 420 * dt); o.x += dx / d * pas; o.y += dy / d * pas; }
+        else { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; }
+      } else if (L.etat === "etreinte") { // 2 s de coups, langue toujours enroulée
+        L.t -= dt; L.coup -= dt;
+        if (L.coup <= 0) { L.coup = 0.25; f.attT = 0.12; son(f); degats(g, o, 4, (f.x + o.x) / 2, (f.y + o.y) / 2); }
+        if (L.t <= 0) { // il le relâche un peu plus loin
+          const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
+          liberer(o, f, dx / d, dy / d);
+          L.etat = "rentre"; L.x = o.x; L.y = o.y;
+        }
+      } else { // la langue revient dans la bouche
+        const m = bouche(f), dx = m.x - L.x, dy = m.y - L.y, d = Math.hypot(dx, dy) || 1, pas = Math.min(d, 1300 * dt);
+        L.x += dx / d * pas; L.y += dy / d * pas;
+        if (d < 8) { f.langue = null; f.langueCd = LANGUE_CD; const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); }
+      }
+    }
   }
 };
 
@@ -712,6 +777,41 @@ function explosion(g, x, y, cible, dmg, ang) {
   if (Math.hypot(dx, dy) < 140) degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3);
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
+/* ===== LANGUE DU SMOKER ===== */
+const LANGUE_CD = 4, LANGUE_VITESSE = 750, ETREINTE_DUREE = 2;
+function bouche(f) { return { x: f.x + f.face * f.hw * 0.3, y: f.y - f.hh * 0.5 }; }
+function distSeg(px, py, ax, ay, bx, by) {
+  const vx = bx - ax, vy = by - ay, l = vx * vx + vy * vy || 1, t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / l));
+  return Math.hypot(px - ax - vx * t, py - ay - vy * t);
+}
+function boutLangue(f, o) { const L = f.langue; return L.etat === "attire" || L.etat === "etreinte" ? { x: o.x, y: o.y } : { x: L.x, y: L.y }; }
+// relâche l'adversaire attrapé, éventuellement en le projetant dans la direction (ux, uy)
+function liberer(o, f, ux, uy) {
+  if (o.capture !== f) return;
+  o.capture = null;
+  if (ux !== undefined) { o.recul = 0.35; o.rvx = ux * 700; o.rvy = uy * 700; o.vx = ux; o.vy = uy; }
+  normaliser(o); redresser(o);
+}
+// un projectile, le laser ou le feu de l'adversaire touche la langue : elle est coupée
+function langueCoupee(f, o, g) {
+  const m = bouche(f), b = boutLangue(f, o);
+  let coupe = null;
+  for (const p of g.proj) if (p.owner === o && distSeg(p.x, p.y, m.x, m.y, b.x, b.y) < p.r + 5) { coupe = { x: p.x, y: p.y }; break; }
+  const n = Math.max(2, Math.ceil(Math.hypot(b.x - m.x, b.y - m.y) / 12));
+  for (let i = 1; i < n && !coupe; i++) {
+    const x = m.x + (b.x - m.x) * i / n, y = m.y + (b.y - m.y) * i / n;
+    if (o.tir > 0 && o.laserLen) {
+      const c = canonMonde(o);
+      if (distSeg(x, y, c.x, c.y, c.x + Math.cos(o.laserAng) * o.laserLen, c.y + Math.sin(o.laserAng) * o.laserLen) < 14) coupe = { x, y };
+    }
+    for (const z of g.feux) if (z.owner === o && Math.hypot(x - z.x, y - z.y) < z.r) coupe = { x, y };
+  }
+  if (!coupe) return false;
+  for (let i = 0; i < 12; i++) g.parts.push({ x: coupe.x, y: coupe.y, vx: (Math.random() - 0.5) * 300, vy: (Math.random() - 0.5) * 300 - 80, t: 0.5, g: 500, c: i % 2 ? "#c2456b" : "#8a1c3c" });
+  liberer(o, f);
+  const L = f.langue; L.etat = "rentre"; L.x = coupe.x; L.y = coupe.y;
+  return true;
+}
 const AUTODESTRUCTION_PV = 25, AUTODESTRUCTION_DUREE = 5; // Robot
 // le Robot explose et emporte l'adversaire : les deux tombent à 0, c'est une égalité
 function autodestruction(g, f, o) {
@@ -726,6 +826,7 @@ const RECHARGE = 1.2; // rechargement du Cowboy après chaque rafale (secondes)
 const FIN = 3.2; // durée de la séquence de fin (secondes réelles)
 function exploser(g, f) {
   f.mort = true; f.copies = [];
+  for (const x of g.f) if (x.capture === f) x.capture = null; // le Smoker mort lâche sa prise
   g.proj = g.proj.filter(p => p.owner !== f);
   g.boums.push({ x: f.x, y: f.y, t: 0.6 });
   g.secousse = 0.5;
@@ -737,6 +838,8 @@ function exploser(g, f) {
 }
 // le gagnant arrête d'attaquer mais continue de se déplacer, bien visible
 function calmer(f) {
+  f.capture = null;
+  if (f.langue) { f.langue = null; f.langueCd = LANGUE_CD; }
   f.charge = 0; f.tir = 0; f.burst = 0; f.muzzle = 0; f.rot = 0; f.vis = 1;
   if (f.etat) { f.etat = null; f.jauge = 0; }
   if (Math.hypot(f.vx, f.vy) < 1) { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); }
@@ -757,11 +860,12 @@ function maj(dt) {
   prets.forEach(fn => fn());
   for (const [f, o] of [[a, b], [b, a]]) {
     if (f.mort) continue;
-    if (g.running) CHARS[f.type].attaque(f, o, g, dt);
+    if (g.running && !f.capture) CHARS[f.type].attaque(f, o, g, dt);
     majTaille(f);
     const lenteur = f.lent > 0 ? 0.5 : 1;
     f.lent = Math.max(0, (f.lent || 0) - dt);
-    f.x += f.vx * dt * lenteur; f.y += f.vy * dt * lenteur;
+    if (!f.capture) { f.x += f.vx * dt * lenteur; f.y += f.vy * dt * lenteur; }
+    if (f.recul > 0) { f.recul -= dt; f.x += f.rvx * dt; f.y += f.rvy * dt; } // projeté par le Smoker
     let rebond = false;
     if (f.x < f.hw) { f.x = f.hw; f.vx = Math.abs(f.vx); rebond = true; }
     if (f.x > W - f.hw) { f.x = W - f.hw; f.vx = -Math.abs(f.vx); rebond = true; }
@@ -928,6 +1032,7 @@ function dessiner() {
     if (f.mort) continue;
     const s = spriteDe(f);
     ctx.save(); ctx.translate(f.x, f.y);
+    if (f.capture) ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 3); // il se débat
     if (f.lent > 0) { // ralenti
       ctx.strokeStyle = "#c03adf"; ctx.lineWidth = 4; ctx.setLineDash([6, 6]);
       ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 8, f.hh + 8, performance.now() / 500, 0, 7); ctx.stroke();
@@ -1013,6 +1118,25 @@ function dessiner() {
       if (f.tir > 0) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 6; ctx.stroke(); }
       ctx.restore();
     }
+  }
+  for (const f of g.f) { // langue du Smoker, enroulée autour de l'adversaire quand il l'attrape
+    if (!f.langue || f.mort) continue;
+    const o = g.f.find(x => x !== f), m = bouche(f), b = boutLangue(f, o), tt = performance.now() / 1000;
+    const mx = (m.x + b.x) / 2, my = (m.y + b.y) / 2, d = Math.hypot(b.x - m.x, b.y - m.y) || 1;
+    const ondule = Math.sin(tt * 14) * Math.min(14, d * 0.05), cx = mx - (b.y - m.y) / d * ondule, cy = my + (b.x - m.x) / d * ondule + Math.min(25, d * 0.08);
+    ctx.save(); ctx.lineCap = "round";
+    for (const [w, c] of [[11, "#7a1f3d"], [8, "#c2456b"], [3, "#ec8fac"]]) {
+      ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.quadraticCurveTo(cx, cy, b.x, b.y); ctx.stroke();
+    }
+    if (o.capture === f) { // anneaux de langue autour du corps
+      for (let i = 0; i < 3; i++) {
+        const yy = o.y + (i - 1) * o.hh * 0.32, rx = o.hw * 0.95 + 4, ry = 7 + Math.sin(tt * 6 + i) * 1.5;
+        for (const [w, c] of [[10, "#7a1f3d"], [7, "#c2456b"], [2.5, "#ec8fac"]]) {
+          ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.ellipse(o.x, yy, rx, ry, Math.sin(tt * 3 + i) * 0.08, 0, 7); ctx.stroke();
+        }
+      }
+    } else { ctx.fillStyle = "#c2456b"; ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, 7); ctx.fill(); }
+    ctx.restore();
   }
   for (const p of g.proj) {
     ctx.save(); ctx.translate(p.x, p.y);
@@ -1774,7 +1898,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.3.1", NOTES = "Nouvel écran de fin avec bouton Revanche, boutons plus jolis.";
+const VERSION = "1.4.0", NOTES = "Nouveau perso : le Smoker et sa langue.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

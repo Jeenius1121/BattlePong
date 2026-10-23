@@ -340,7 +340,7 @@ const CHARS = {
         if (!f.sonJoue && f.charge <= latenceSon(f)) { f.sonJoue = true; son(f); }
         if (f.charge <= 0) {
           if (!f.sonJoue) { f.sonJoue = true; son(f); }
-          f.tir = 2.15; f.cd = 2.4;
+          f.tir = 2.15; f.cd = 3.4;
           const r = rayon(); f.laserLen = r.len;
           if (r.px !== undefined) { f.brule = 0.35; degats(g, o, 24, r.px, r.py); }
         }
@@ -1693,7 +1693,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.2.0", NOTES = "Nouvel écran de sélection des persos, façon jeu de combat.";
+const VERSION = "1.2.1", NOTES = "Robot : 1 seconde de plus avant de pouvoir retirer.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

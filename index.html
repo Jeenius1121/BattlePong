@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Duel en boîte</title>
+<title>Battle Pong</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
@@ -99,7 +99,7 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 </head>
 <body>
 <main>
-  <h1 id="titre">Duel en boîte</h1>
+  <h1 id="titre">Battle Pong</h1>
   <p class="intro">Choisis deux combattants, lance le duel et regarde-les rebondir jusqu’au KO.</p>
 
   <div class="picker">
@@ -329,9 +329,9 @@ const CHARS = {
       f.brule = Math.max(0, (f.brule || 0) - dt);
       // le rayon reste allumé et suit le robot : il brûle l'adversaire s'il passe dedans
       const rayon = () => {
-        const ca = Math.cos(f.laserAng), sa = Math.sin(f.laserAng);
-        for (let t = bord(f, f.laserAng); t < 900; t += 6) {
-          const px = f.x + ca * t, py = f.y + sa * t;
+        const ca = Math.cos(f.laserAng), sa = Math.sin(f.laserAng), c0 = canonMonde(f);
+        for (let t = 0; t < 900; t += 6) {
+          const px = c0.x + ca * t, py = c0.y + sa * t;
           if (px < 0 || px > W || py < 0 || py > W) return { len: t };
           if (touche(o, px, py, 10)) return { len: t, px, py };
         }
@@ -353,7 +353,11 @@ const CHARS = {
           if (r.px !== undefined) { f.brule = 0.35; degats(g, o, 24, r.px, r.py); }
         }
       } else if (f.cd <= 0 && !cache(o) && f.tir <= 0) {
-        f.charge = 0.6; f.sonJoue = false; f.laserAng = Math.atan2(o.y - f.y, o.x - f.x);
+        // vise depuis le canon : le robot se tourne vers l'adversaire et le rayon part du pistolet
+        const th = Math.atan2(o.y - f.y, o.x - f.x), d = Math.hypot(o.x - f.x, o.y - f.y) || 1;
+        f.laserFace = Math.cos(th) >= 0 ? 1 : -1;
+        const p = canonLocal(f).y * f.laserFace;
+        f.charge = 0.6; f.sonJoue = false; f.laserAng = th - Math.asin(Math.max(-1, Math.min(1, p / d)));
         // se décolle du mur : il repart en direction de l'adversaire
         f.vx = Math.cos(f.laserAng); f.vy = Math.sin(f.laserAng);
       }
@@ -544,6 +548,10 @@ function ecart(a, b) {
 }
 // test au pixel près : le projectile touche-t-il une partie visible de l'image ?
 function touche(f, px, py, pr) {
+  if (f.rot) { // on ramène le point dans le repère de l'image tournée
+    const c = Math.cos(f.rot), sn = Math.sin(f.rot), dx = px - f.x, dy = py - f.y;
+    px = f.x + c * dx + sn * dy; py = f.y - sn * dx + c * dy;
+  }
   if (Math.abs(px - f.x) > f.hw + pr || Math.abs(py - f.y) > f.hh + pr) return false;
   const s = CHARS[f.type].sprite;
   for (const [ox, oy] of [[0, 0], [pr, 0], [-pr, 0], [0, pr], [0, -pr]]) {
@@ -553,6 +561,21 @@ function touche(f, px, py, pr) {
     if (lx >= 0 && ly >= 0 && lx < s.tw && ly < s.th && s.mask[ly * s.tw + lx]) return true;
   }
   return false;
+}
+// bout du pistolet : la partie visible la plus à droite de l'image (le perso regarde vers la droite)
+function canonLocal(f) {
+  const s = CHARS[f.type].sprite;
+  if (!s.canon) {
+    let sy = 0, n = 0;
+    for (let i = s.tw - 1; i >= Math.max(0, s.tw - 4); i--)
+      for (let j = 0; j < s.th; j++) if (s.mask[j * s.tw + i]) { sy += j; n++; }
+    s.canon = { x: s.tw - 1, y: n ? sy / n : s.th / 2 };
+  }
+  return { x: s.canon.x * f.k - f.hw, y: s.canon.y * f.k - f.hh };
+}
+function canonMonde(f) {
+  const l = canonLocal(f), r = f.rot || 0, c = Math.cos(r), sn = Math.sin(r), lx = l.x * f.face;
+  return { x: f.x + c * lx - sn * l.y, y: f.y + sn * lx + c * l.y };
 }
 function bord(f, a) {
   return Math.min(f.hw / (Math.abs(Math.cos(a)) || 1e-6), f.hh / (Math.abs(Math.sin(a)) || 1e-6));
@@ -632,8 +655,10 @@ function maj(dt) {
     }
     if (f.burst > 0) f.face = f.dir;
     else if (f.punchT > 0) f.face = Math.cos(f.punchAng) >= 0 ? 1 : -1;
-    else if (f.charge > 0 || f.tir > 0) f.face = Math.cos(f.laserAng) >= 0 ? 1 : -1;
+    else if (f.charge > 0 || f.tir > 0) f.face = f.laserFace;
     else if (Math.abs(f.vx) > 20) f.face = f.vx > 0 ? 1 : -1;
+    // le robot tourne son image vers sa cible tant qu'il charge ou tire
+    f.rot = f.charge > 0 || f.tir > 0 ? (f.face > 0 ? f.laserAng : f.laserAng - Math.PI) : 0;
     f.flash = Math.max(0, f.flash - dt); f.muzzle = Math.max(0, f.muzzle - dt); f.punchT = Math.max(0, f.punchT - dt);
   }
   // collision entre les deux persos (rectangles ajustés à l'image)
@@ -760,6 +785,7 @@ function dessiner() {
       ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 8, f.hh + 8, performance.now() / 500, 0, 7); ctx.stroke();
       ctx.setLineDash([]);
     }
+    if (f.rot) ctx.rotate(f.rot);
     ctx.scale(f.face, 1);
     ctx.globalAlpha = f.vis ?? 1;
     if (f.etat === "furie") { ctx.shadowColor = "rgba(220,30,30,.85)"; ctx.shadowBlur = 20; }
@@ -792,14 +818,14 @@ function dessiner() {
       ctx.fillText("🥊", f.x + Math.cos(f.punchAng) * dist, f.y + Math.sin(f.punchAng) * dist);
     }
     if (f.charge > 0 || f.tir > 0) {
-      const d0 = bord(f, f.laserAng), L = f.tir > 0 ? f.laserLen : 900;
+      const c0 = canonMonde(f), L = f.tir > 0 ? f.laserLen : 900;
       ctx.save(); ctx.lineCap = "round";
       ctx.strokeStyle = f.tir > 0 ? "#ff3b3b" : "rgba(255,59,59,.5)";
       ctx.lineWidth = f.tir > 0 ? 20 + Math.sin(performance.now() / 40) * 2 : 4;
       if (!(f.tir > 0)) ctx.setLineDash([12, 10]);
       ctx.beginPath();
-      ctx.moveTo(f.x + Math.cos(f.laserAng) * d0, f.y + Math.sin(f.laserAng) * d0);
-      ctx.lineTo(f.x + Math.cos(f.laserAng) * L, f.y + Math.sin(f.laserAng) * L);
+      ctx.moveTo(c0.x, c0.y);
+      ctx.lineTo(c0.x + Math.cos(f.laserAng) * L, c0.y + Math.sin(f.laserAng) * L);
       ctx.stroke();
       if (f.tir > 0) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 6; ctx.stroke(); }
       ctx.restore();

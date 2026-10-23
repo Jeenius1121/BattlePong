@@ -490,6 +490,17 @@ function normaliser(f) {
   const v = Math.hypot(f.vx, f.vy) || 1, sp = CHARS[f.type].vitesse;
   f.vx = f.vx / v * sp; f.vy = f.vy / v * sp;
 }
+// évite qu'un perso reste coincé à aller tout droit (que vertical ou que horizontal) :
+// sa direction garde toujours un peu des deux, sans changer sa vitesse
+function redresser(f) {
+  const sp = Math.hypot(f.vx, f.vy);
+  if (sp < 1) return;
+  const MIN = 0.35, sx = Math.sign(f.vx) || (Math.random() < 0.5 ? -1 : 1), sy = Math.sign(f.vy) || (Math.random() < 0.5 ? -1 : 1);
+  let c = Math.abs(f.vx) / sp, sn = Math.abs(f.vy) / sp;
+  if (c < MIN) { c = MIN; sn = Math.sqrt(1 - c * c); }
+  else if (sn < MIN) { sn = MIN; c = Math.sqrt(1 - sn * sn); }
+  f.vx = sx * c * sp; f.vy = sy * sn * sp;
+}
 // l'adversaire est-il invisible (Myers qui rôde) ? Personne ne peut alors le viser
 function cache(o) { return o.etat === "rode"; }
 // images en plus : Myers (furie), Cowboy (visée, tir). Image n stockée sous la clé id + "-n".
@@ -654,6 +665,7 @@ function maj(dt) {
     if (rebond) {
       const ang = Math.atan2(f.vy, f.vx) + (Math.random() - 0.5) * 0.2, sp = Math.hypot(f.vx, f.vy);
       f.vx = Math.cos(ang) * sp; f.vy = Math.sin(ang) * sp;
+      redresser(f);
     }
     if (f.burst > 0) f.face = f.dir;
     else if (f.charge > 0 || f.tir > 0) f.face = f.laserFace;
@@ -673,7 +685,7 @@ function maj(dt) {
       const s = Math.sign(dy) || 1; a.y -= s * oy / 2; b.y += s * oy / 2;
       if ((a.vy - b.vy) * s > 0) { const t = a.vy; a.vy = b.vy; b.vy = t; }
     }
-    normaliser(a); normaliser(b);
+    normaliser(a); normaliser(b); redresser(a); redresser(b);
   }
   // projectiles (déplacés par petits pas pour ne pas traverser les parties fines)
   g.proj = g.proj.filter(p => {
@@ -1542,7 +1554,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.0.1", NOTES = "Le Cowboy s’appelle McCree, ses sons de tir et de rechargement sont plus forts.";
+const VERSION = "1.0.2", NOTES = "Les persos ne restent plus coincés à aller que tout droit après un choc.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

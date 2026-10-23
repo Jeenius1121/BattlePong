@@ -520,7 +520,7 @@ const CHARS = {
     }
   },
   smoker: {
-    nom: "Smoker", emoji: "👅", vitesse: 215, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", sonsLongs: [3],
+    nom: "Smoker", emoji: "👅", vitesse: 215, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
     // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
@@ -827,6 +827,7 @@ function langueCoupee(f, o, g) {
   if (!coupe) return false;
   for (let i = 0; i < 12; i++) g.parts.push({ x: coupe.x, y: coupe.y, vx: (Math.random() - 0.5) * 300, vy: (Math.random() - 0.5) * 300 - 80, t: 0.5, g: 500, c: i % 2 ? "#6e3038" : "#2e1216" });
   liberer(o, f);
+  son(f, 4); // « aïe ! »
   const L = f.langue; L.etat = "rentre"; L.x = coupe.x; L.y = coupe.y;
   return true;
 }
@@ -1557,7 +1558,7 @@ function couper(cle) {
   delete enCours[cle];
 }
 // coupe tous les sons en cours d'un perso (attrapé par le Smoker, ou mort)
-function arreterSons(f) { arreterSon(f); arreterSon(f, 2); arreterSon(f, 3); }
+function arreterSons(f) { for (let n = 1; n <= 4; n++) arreterSon(f, n); }
 // sons communs à tous : un fichier perso s'il y en a un, sinon un son fabriqué par le jeu
 const SONS_GENERAUX = { explosion: "Explosion (perso mort)" };
 function jouerGeneral(cle) {
@@ -1663,9 +1664,9 @@ function detecterCoups(buf) {
   }
   return out;
 }
-// sons d'un perso : le son 1 sous son id, les sons 2 et 3 (son2, son3) sous id + "-2" et id + "-3"
-function clesSon(id) { const c = CHARS[id]; return !c ? [id] : [id, ...(c.son2 ? [id + "-2"] : []), ...(c.son3 ? [id + "-3"] : [])]; }
-function nomSon(id, n) { const c = CHARS[id]; return n === 3 ? c.son3 : n === 2 ? c.son2 : c.sonNom || "attaque"; }
+// sons d'un perso : le son 1 sous son id, les sons 2 à 4 (son2, son3, son4) sous id + "-2", "-3", "-4"
+function clesSon(id) { const c = CHARS[id]; return !c ? [id] : [id, ...[2, 3, 4].filter(n => c["son" + n]).map(n => id + "-" + n)]; }
+function nomSon(id, n) { const c = CHARS[id]; return n > 1 ? c["son" + n] : c.sonNom || "attaque"; }
 const cleSon = (type, n) => n > 1 ? type + "-" + n : type;
 function majInfoSon(cle) {
   const sl = document.querySelector(`[data-son="${cle}"]`);
@@ -1992,7 +1993,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.11", NOTES = "Smoker : étranglement de 4 s (mêmes à-coups), coups au corps à corps à 5.";
+const VERSION = "1.4.12", NOTES = "Smoker : son 4 quand sa langue est coupée.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

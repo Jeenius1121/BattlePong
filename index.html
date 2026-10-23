@@ -200,11 +200,10 @@ const CHARS = {
           // la balle part du bout du pistolet de l'image affichée
           f.face = f.dir; majTaille(f);
           const c0 = canonMonde(f);
-          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * 1200, vy: 0, r: 4, dmg: 5, owner: f, rot: 0 });
-          if (f.burst === 0) { // rechargement juste après la 6e balle : il ne retire qu'une fois fini
+          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * 1200, vy: 0, r: 4, dmg: 7, owner: f, rot: 0 });
+          if (f.burst === 0) { // rechargement de 2 s juste après la 6e balle : il ne retire qu'une fois fini
             son(f, 2);
-            const r = sons["cowboy-2"];
-            f.cd = Math.max(0.85, r ? r.buffer.duration : 0);
+            f.cd = f.recharge = RECHARGE;
           }
         }
       } else if (f.cd <= 0 && !cache(o) && Math.abs(o.y - f.y) < o.hh * 0.8) {
@@ -599,6 +598,7 @@ function explosion(g, x, y, cible, dmg, ang) {
   const dx = Math.max(Math.abs(cible.x - x) - cible.hw, 0), dy = Math.max(Math.abs(cible.y - y) - cible.hh, 0);
   if (Math.hypot(dx, dy) < 140) degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3);
 }
+const RECHARGE = 2; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
 const FIN = 3.2; // durée de la séquence de fin (secondes réelles)
@@ -812,6 +812,11 @@ function dessiner() {
       const bw = 76, bx = f.x - bw / 2, by = f.y - f.hh - 18;
       ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(bx - 2, by - 2, bw + 4, 12);
       ctx.fillStyle = f.etat === "furie" ? "#e0302a" : "#ffd23f"; ctx.fillRect(bx, by, bw * f.jauge, 8);
+    }
+    if (f.recharge > 0 && f.cd > 0 && !f.burst) { // barre de rechargement du Cowboy, qui se vide
+      const bw = 60, bx = f.x - bw / 2, by = f.y - f.hh - 14;
+      ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(bx - 2, by - 2, bw + 4, 10);
+      ctx.fillStyle = "#f2b134"; ctx.fillRect(bx, by, bw * Math.min(1, f.cd / f.recharge), 6);
     }
     if (f.muzzle > 0 && !spriteImage(f.type + "-3")) { // flash dessiné, sauf si une image « tir » est fournie
       ctx.fillStyle = "#ffcf3f"; ctx.beginPath();

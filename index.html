@@ -130,7 +130,7 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 
   <section class="custom" id="custom" hidden>
     <h2>Images des personnages</h2>
-    <p>Remplace l’image d’un perso par la tienne. Prends de préférence un PNG à fond transparent : la zone de touche suit alors la forme exacte du personnage. L’image est redimensionnée sans être déformée. Les sons (fichier ou micro) démarrent automatiquement là où ta voix commence et sont coupés à 3 secondes.</p>
+    <p>Remplace l’image d’un perso par la tienne. Prends de préférence un PNG à fond transparent : la zone de touche suit alors la forme exacte du personnage. L’image est redimensionnée sans être déformée. Les sons (fichier ou micro) démarrent automatiquement là où ta voix commence et sont coupés à 3 secondes. Le son de Myers peut durer jusqu’à 10 secondes : il est joué en boucle pendant toute sa furie.</p>
     <p id="statutNuage"></p>
     <div class="cle" id="cleBloc">
       <p>Pour que tout le monde voie tes images et tes sons, colle ici ta clé GitHub (à faire une seule fois sur cet appareil).</p>
@@ -423,7 +423,7 @@ const CHARS = {
     }
   },
   rodeur: {
-    nom: "Myers", emoji: "🔪", vitesse: 240, img2: "furie",
+    nom: "Myers", emoji: "🔪", vitesse: 240, img2: "furie", sonLong: true,
     desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. S’il réapparaît trop près, il se téléporte dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
     svg: `<g ${O}>
       <rect x='46' y='118' width='11' height='22' fill='#2b2b30'/><rect x='63' y='118' width='11' height='22' fill='#2b2b30'/>
@@ -469,7 +469,7 @@ const CHARS = {
         f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1;
         f.jauge = Math.min(1, f.jauge + dt / 3.5);
         if (f.jauge >= 1) {
-          f.etat = "furie";
+          f.etat = "furie"; son(f, 1, true); // son joué en boucle pendant toute la furie
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
           f.vx = dx / d; f.vy = dy / d;
         }
@@ -483,16 +483,11 @@ const CHARS = {
         f.vx = vx / n * sp; f.vy = vy / n * sp;
         f.cd -= dt;
         if (f.cd <= 0 && !cache(o) && ecart(f, o) < 30) {
-          f.cd = 0.5; son(f);
-          plusTard(g, latenceSon(f), () => {
-            f.coupT = 0.15;
-            if (ecart(f, o) < 45) {
-              const ex = o.x - f.x, ey = o.y - f.y, ed = Math.hypot(ex, ey) || 1;
-              degats(g, o, 14, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
-            }
-          });
+          f.cd = 0.5; f.coupT = 0.15;
+          const ex = o.x - f.x, ey = o.y - f.y, ed = Math.hypot(ex, ey) || 1;
+          degats(g, o, 14, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
         }
-        if (f.jauge <= 0) { f.jauge = 0; f.etat = "rode"; f.etatT = 2.5 + Math.random() * 1.5; normaliser(f); }
+        if (f.jauge <= 0) { f.jauge = 0; f.etat = "rode"; arreterSon(f); f.etatT = 2.5 + Math.random() * 1.5; normaliser(f); }
       }
     }
   }
@@ -629,6 +624,7 @@ function creerCombattant(type, side) {
   return f;
 }
 function nouveauJeu(running) {
+  arreterBoucles();
   jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], secousse: 0, running, fin: 0 };
   majHud();
 }
@@ -769,7 +765,7 @@ function maj(dt) {
   g.secousse = Math.max(0, g.secousse - dt);
 
   if (g.running && (a.hp <= 0 || b.hp <= 0)) {
-    g.running = false; g.fin = 0.9;
+    g.running = false; g.fin = 0.9; arreterBoucles();
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
     document.getElementById("winText").textContent = gagnant ? `${CHARS[gagnant.type].nom} gagne !` : "Double KO !";
   }
@@ -1136,26 +1132,37 @@ function latenceSon(f, n) {
   return (l > 0.01 ? l : 0.1) * vitesseJeu;
 }
 function plusTard(g, t, fn) { if (t <= 0) fn(); else g.retards.push({ t, fn }); }
-function son(f, n) {
+function son(f, n, boucle) {
   const k = n === 2 ? f.type + "-2" : f.type, s = sons[k];
   if (!sonsActifs || !s || !audioCtx) return;
   if (audioCtx.state === "suspended") audioCtx.resume();
   const cle = k + f.side;
   try { enCours[cle] && enCours[cle].stop(); } catch (e) {}
   const src = audioCtx.createBufferSource(), gain = audioCtx.createGain();
-  src.buffer = s.buffer; gain.gain.value = 0.8;
+  src.buffer = s.buffer; src.loop = !!boucle; gain.gain.value = 0.8;
   src.connect(gain); gain.connect(audioCtx.destination);
   src.start(); enCours[cle] = src;
 }
+function arreterSon(f) {
+  const cle = f.type + f.side;
+  try { enCours[cle] && enCours[cle].stop(); } catch (e) {}
+  delete enCours[cle];
+}
+// coupe les sons qui tournent en boucle (furie de Myers) à la fin du combat
+function arreterBoucles() {
+  for (const [cle, src] of Object.entries(enCours)) if (src.loop) { try { src.stop(); } catch (e) {} delete enCours[cle]; }
+}
 // Tout son (MP3, micro…) est converti en WAV mono léger de 3 s max : facile à stocker partout.
-const SON_MAX = 3;
-async function preparerSon(arrayBuf) {
+// Myers a droit à un son long (10 s) : il dure toute sa furie.
+const SON_MAX = 3, SON_LONG = 10;
+function sonMax(cle) { const c = CHARS[persoDe(cle)]; return c && c.sonLong ? SON_LONG : SON_MAX; }
+async function preparerSon(arrayBuf, max = SON_MAX) {
   const ac = contexteAudio();
   if (!ac) throw new Error("audio indisponible");
   const brut = await new Promise((ok, ko) => ac.decodeAudioData(arrayBuf, ok, ko));
   // on coupe le blanc au début et à la fin : le son démarre pile quand la voix commence
   const [debut, fin] = bornesSon(brut);
-  const duree = Math.max(0.05, Math.min(fin - debut, SON_MAX));
+  const duree = Math.max(0.05, Math.min(fin - debut, max));
   const rate = 22050, len = Math.max(1, Math.ceil(duree * rate));
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const off = new OAC(1, len, rate);
@@ -1202,7 +1209,7 @@ function versB64(u8) {
 }
 function depuisB64(b) { const t = atob(b), u = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) u[i] = t.charCodeAt(i); return u; }
 async function chargerSon(id, blob, nom) {
-  const buffer = await preparerSon(await blob.arrayBuffer());
+  const buffer = await preparerSon(await blob.arrayBuffer(), sonMax(id));
   sons[id] = { buffer, nom, wav: versWav(buffer) };
 }
 function clesSon(id) { return CHARS[id] && CHARS[id].son2 ? [id, id + "-2"] : [id]; }
@@ -1271,11 +1278,11 @@ async function enregistrerMicro(id, btn) {
   if (micAnnule) { flux.getTracks().forEach(t => t.stop()); return; }
   const rec = new MediaRecorder(flux), morceaux = [], debut = performance.now();
   micEnCours = rec;
-  micAfficher("● Enregistrement… 0,0 s sur " + SON_MAX + " s", true);
+  micAfficher("● Enregistrement… 0,0 s sur " + sonMax(id) + " s", true);
   const tic = setInterval(() => {
-    const t = Math.min(SON_MAX, (performance.now() - debut) / 1000);
-    micTexte.textContent = "● Enregistrement… " + t.toFixed(1).replace(".", ",") + " s sur " + SON_MAX + " s";
-    if (t >= SON_MAX && rec.state === "recording") rec.stop();
+    const t = Math.min(sonMax(id), (performance.now() - debut) / 1000);
+    micTexte.textContent = "● Enregistrement… " + t.toFixed(1).replace(".", ",") + " s sur " + sonMax(id) + " s";
+    if (t >= sonMax(id) && rec.state === "recording") rec.stop();
   }, 100);
   rec.ondataavailable = e => { if (e.data && e.data.size) morceaux.push(e.data); };
   rec.onstop = async () => {

@@ -452,7 +452,7 @@ const CHARS = {
     reprendre(f) { if (f.etat === "furie") son(f, 1, true, true); else if (f.etat === "stalk") son(f, 2, true, true); },
     nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], reduction: 0.2, sonLong: true, son2: "traque", sonNom: "furie",
     imageDe: f => f.etat === "furie" ? 2 : 1,
-    desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. Pendant la furie, il prend 20 % de dégâts en moins. Il réapparaît toujours dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
+    desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. Pendant la furie, il prend 20 % de dégâts en moins et tranche la langue du Smoker. Il réapparaît toujours dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
     svg: `<g ${O}>
       <rect x='46' y='118' width='11' height='22' fill='#2b2b30'/><rect x='63' y='118' width='11' height='22' fill='#2b2b30'/>
       <rect x='42' y='136' width='17' height='8' rx='2' fill='#151518'/><rect x='61' y='136' width='17' height='8' rx='2' fill='#151518'/>
@@ -569,7 +569,9 @@ const CHARS = {
         L.t += dt;
         const dx = o.x - L.x, dy = o.y - L.y, d = Math.hypot(dx, dy) || 1, pas = Math.min(d, LANGUE_VITESSE * dt);
         L.x += dx / d * pas; L.y += dy / d * pas;
-        if (d < Math.max(o.hw, o.hh) * 0.5 || touche(o, L.x, L.y, 6)) { // attrapé !
+        const atteint = d < Math.max(o.hw, o.hh) * 0.5 || touche(o, L.x, L.y, 6);
+        if (atteint && o.etat === "furie") { couperLangue(f, o, g, L.x, L.y); return; } // Myers en furie tranche la langue
+        if (atteint) { // attrapé !
           L.etat = "attire"; o.capture = f; arreterSons(o); // l'adversaire attrapé se tait
           o.burst = 0; o.charge = 0; o.tir = 0; o.muzzle = 0; o.rot = 0; o.vx = 0; o.vy = 0;
           eclats(g, L.x, L.y, "#6e3038");
@@ -2009,7 +2011,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.5.0", NOTES = "Équilibrage : Robot plus mobile (charge 0,4 s, laser 1,15 s, 3 s entre deux), Myers rôde moins longtemps, étranglement du Smoker à 6.";
+const VERSION = "1.5.1", NOTES = "Myers en furie tranche la langue du Smoker.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

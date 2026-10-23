@@ -33,7 +33,7 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0; background:var(--bg); color:var(--ink); font-family:"Rubik",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.45}
 main{max-width:560px; margin:0 auto; padding:20px 16px 32px}
-h1{font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-weight:400; font-size:clamp(2rem,9vw,3rem); line-height:1; margin:0 0 6px; letter-spacing:-.01em; transform:rotate(-2deg); transform-origin:left}
+h1{font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-weight:400; font-size:clamp(2rem,9vw,3rem); line-height:1; margin:0 0 6px; letter-spacing:-.01em; transform:rotate(-2deg); transform-origin:left; user-select:none; -webkit-user-select:none; touch-action:manipulation}
 .intro{margin:0 0 18px; color:var(--muted); max-width:44ch}
 
 .picker{display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:start}
@@ -99,7 +99,7 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 </head>
 <body>
 <main>
-  <h1>Duel en boîte</h1>
+  <h1 id="titre">Duel en boîte</h1>
   <p class="intro">Choisis deux combattants, lance le duel et regarde-les rebondir jusqu’au KO.</p>
 
   <div class="picker">
@@ -1420,6 +1420,28 @@ async function init() {
     }
   } catch (e) {}
 }
+/* ===== MODE PROPRIÉTAIRE =====
+   Touche le titre 5 fois de suite puis tape le code : la partie pour modifier
+   les images et les sons apparaît, et cet appareil s'en souvient. */
+const CODE_HASH = "abd3f2ed90f684b305ed7632ee24e58ed439de9158399ce9a5952281ef804b43";
+function afficherPerso() { document.getElementById("custom").hidden = false; }
+try { if (localStorage.getItem("duel-proprio") === "1") afficherPerso(); } catch (e) {}
+let tapsTitre = 0, minuteurTitre = 0;
+document.getElementById("titre").addEventListener("click", async () => {
+  clearTimeout(minuteurTitre);
+  minuteurTitre = setTimeout(() => { tapsTitre = 0; }, 1500);
+  if (++tapsTitre < 5) return;
+  tapsTitre = 0;
+  const code = prompt("Code :");
+  if (!code) return;
+  const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code.trim()));
+  const hex = [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("");
+  if (hex !== CODE_HASH) { alert("Code incorrect."); return; }
+  try { localStorage.setItem("duel-proprio", "1"); } catch (e) {}
+  afficherPerso();
+  document.getElementById("custom").scrollIntoView({ behavior: "smooth" });
+});
+
 init();
 </script>
 </body>

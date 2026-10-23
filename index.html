@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>Battle Pong</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,6 +40,15 @@ h1{font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-weight:400; fo
 .version b{color:var(--ink)}
 .majDispo{position:fixed; left:50%; top:calc(10px + env(safe-area-inset-top,0px)); transform:translateX(-50%); z-index:30; width:min(92vw,440px); display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; background:var(--ink); color:var(--bg); box-shadow:0 10px 30px rgba(0,0,0,.25); font-weight:700; font-size:.9rem}
 .majDispo[hidden]{display:none}
+/* écran de chargement : cache tout tant que les images et sons en ligne ne sont pas arrivés */
+.chargement{position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; background:var(--bg); color:var(--ink); transition:opacity .35s}
+.chargement.fini{opacity:0; pointer-events:none}
+.chTitre{margin:0; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(2rem,10vw,3rem); transform:rotate(-2deg)}
+.chRond{width:46px; height:46px; border-radius:50%; border:5px solid var(--line); border-top-color:var(--droite); animation:tourne .8s linear infinite}
+@keyframes tourne{to{transform:rotate(360deg)}}
+#chTexte{margin:0; color:var(--muted); font-weight:600}
+.chBarre{width:min(70vw,260px); height:8px; border-radius:4px; background:var(--line); overflow:hidden}
+.chBarre span{display:block; height:100%; width:0; background:var(--gauche); transition:width .2s}
 .majDispo span{flex:1}
 .majDispo button{font:inherit; font-weight:800; border:0; border-radius:10px; padding:8px 12px; background:var(--bg); color:var(--ink); cursor:pointer}
 
@@ -154,6 +164,12 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 </style>
 </head>
 <body>
+<div class="chargement" id="chargement" role="status" aria-live="polite">
+  <p class="chTitre">Battle Pong</p>
+  <div class="chRond" aria-hidden="true"></div>
+  <p id="chTexte">Chargement des persos…</p>
+  <div class="chBarre"><span id="chBarre"></span></div>
+</div>
 <main>
   <h1 id="titre">Battle Pong</h1>
   <p class="version" id="version"></p>
@@ -646,9 +662,12 @@ const canvas = document.getElementById("arena"), ctx = canvas.getContext("2d");
 const choix = ["cowboy", "rodeur"];
 let jeu = null, vitesseJeu = 1, dernier = 0, couleurs = {};
 
+// l'arène est toujours sombre (même rendu sur tous les navigateurs, même ceux qui forcent leur propre thème)
+const ARENE = { arena: "#232a44", "arena-line": "#eef1f8", ink: "#eef1f8" };
 function lireCouleurs() {
   const s = getComputedStyle(document.documentElement);
-  for (const k of ["arena", "arena-line", "ink", "gauche", "droite"]) couleurs[k] = s.getPropertyValue("--" + k).trim();
+  for (const k of ["gauche", "droite"]) couleurs[k] = s.getPropertyValue("--" + k).trim();
+  Object.assign(couleurs, ARENE);
 }
 lireCouleurs();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { lireCouleurs(); if (jeu && !jeu.running) dessiner(); });
@@ -1802,23 +1821,42 @@ function majStatutNuage() {
     : "Modifications enregistrées sur cet appareil seulement.";
   document.getElementById("cleBloc").hidden = !!nuage;
 }
+function finChargement() {
+  const ch = document.getElementById("chargement");
+  if (!ch || ch.classList.contains("fini")) return;
+  ch.classList.add("fini"); setTimeout(() => ch.remove(), 400);
+}
+setTimeout(finChargement, 20000); // au pire, on ne bloque jamais plus de 20 s
 async function brancherNuage() {
   const custom = document.getElementById("custom");
   custom.classList.add("charge");
   document.getElementById("statutNuage").textContent = "⏳ Chargement des images et des sons… attends quelques secondes.";
   try { await brancherNuageSuite(); }
-  finally { custom.classList.remove("charge"); majStatutNuage(); }
+  finally { custom.classList.remove("charge"); majStatutNuage(); finChargement(); }
 }
 async function brancherNuageSuite() {
   const jeton = lireJeton(), db = depot(jeton);
   nuage = jeton ? db : null;
+  // tout est demandé d'un coup (bien plus rapide sur téléphone), puis traité dans l'ordre
+  const chemins = [...Object.keys(CHARS).flatMap(id => [...clesImage(id).map(k => "images/" + k), ...clesSon(id).map(k => "sons/" + k)]),
+    ...Object.keys(SONS_GENERAUX).map(k => "sons/" + k)];
+  const pre = {};
+  let recus = 0;
+  const progres = () => {
+    const b = document.getElementById("chBarre"), t = document.getElementById("chTexte");
+    if (b) b.style.width = Math.round(recus / chemins.length * 100) + "%";
+    if (t) t.textContent = `Chargement des persos… ${recus}/${chemins.length}`;
+  };
+  for (const c of chemins) pre[c] = db.doc(c).get().finally(() => { recus++; progres(); });
+  progres();
+  const lire = chemin => pre[chemin] || db.doc(chemin).get();
   const proprio = estProprio();
   let migre = false, echec = false;
   try { migre = localStorage.getItem("duel-migre") === "1"; } catch (e) {}
   for (const [id, c] of Object.entries(CHARS)) {
     for (const k of clesImage(id)) try {
       const deux = k !== id, perso = persoImage(k);
-      const im = await db.doc("images/" + k).get();
+      const im = await lire("images/" + k);
       if (im.exists && im.data().url) {
         appliquerSprite(k, traiter(await chargerImage(im.data().url)), true);
         try { localStorage.setItem("duel-img:" + k, im.data().url); } catch (e) {}
@@ -1835,7 +1873,7 @@ async function brancherNuageSuite() {
   for (const k of Object.keys(SONS_GENERAUX)) echec = !await sonEnLigne(k) || echec;
   async function sonEnLigne(k) {
     try {
-      const so = await db.doc("sons/" + k).get();
+      const so = await lire("sons/" + k);
       if (so.exists && so.data().wav) {
         await chargerSon(k, new Blob([depuisB64(so.data().wav)], { type: "audio/wav" }), so.data().nom || "Son");
         try { await bddSet(k, { blob: new Blob([sons[k].wav], { type: "audio/wav" }), nom: sons[k].nom }); } catch (e) {}
@@ -2013,7 +2051,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.5.3", NOTES = "Équilibrage : Sorcier à 13, balles de McCree 8-8-7-6-5-4, ralentissement de l’Inconnu à 70 % sur le déplacement et les recharges.";
+const VERSION = "1.5.4", NOTES = "Écran de chargement au démarrage, chargement plus rapide, arène toujours sombre sur tous les navigateurs.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

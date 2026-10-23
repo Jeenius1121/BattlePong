@@ -423,8 +423,8 @@ const CHARS = {
     }
   },
   rodeur: {
-    nom: "Le Rôdeur", emoji: "🔪", vitesse: 240,
-    desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
+    nom: "Myers", emoji: "🔪", vitesse: 240,
+    desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. S’il réapparaît trop près, il se téléporte dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
     svg: `<g ${O}>
       <rect x='46' y='118' width='11' height='22' fill='#2b2b30'/><rect x='63' y='118' width='11' height='22' fill='#2b2b30'/>
       <rect x='42' y='136' width='17' height='8' rx='2' fill='#151518'/><rect x='61' y='136' width='17' height='8' rx='2' fill='#151518'/>
@@ -452,7 +452,19 @@ const CHARS = {
       f.coupT = Math.max(0, (f.coupT || 0) - dt);
       if (f.etat === "rode") { // invisible, se balade
         f.etatT -= dt;
-        if (f.etatT <= 0) { f.etat = "stalk"; f.vx = 0; f.vy = 0; }
+        if (f.etatT <= 0) {
+          f.etat = "stalk"; f.vx = 0; f.vy = 0;
+          // trop près en réapparaissant : il se téléporte dans un coin, de préférence le plus éloigné
+          if (Math.hypot(o.x - f.x, o.y - f.y) < 260) {
+            const coins = [[f.hw, f.hh], [W - f.hw, f.hh], [f.hw, W - f.hh], [W - f.hw, W - f.hh]]
+              .map(([x, y]) => ({ x, y, p: Math.hypot(o.x - x, o.y - y) ** 4 }));
+            let t = Math.random() * coins.reduce((s, c) => s + c.p, 0), c = coins[0];
+            for (c of coins) if ((t -= c.p) <= 0) break;
+            eclats(g, f.x, f.y, "#55555f");
+            f.x = c.x; f.y = c.y; f.vis = 0;
+            eclats(g, f.x, f.y, "#55555f");
+          }
+        }
       } else if (f.etat === "stalk") { // immobile, fixe l'adversaire, la jauge monte
         f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1;
         f.jauge = Math.min(1, f.jauge + dt / 3.5);
@@ -547,7 +559,7 @@ function normaliser(f) {
   const v = Math.hypot(f.vx, f.vy) || 1, sp = CHARS[f.type].vitesse;
   f.vx = f.vx / v * sp; f.vy = f.vy / v * sp;
 }
-// l'adversaire est-il invisible (Rôdeur qui rôde) ? Personne ne peut alors le viser
+// l'adversaire est-il invisible (Myers qui rôde) ? Personne ne peut alors le viser
 function cache(o) { return o.etat === "rode"; }
 // distance entre les bords des deux personnages (négatif = ils se chevauchent)
 function ecart(a, b) {

@@ -256,14 +256,14 @@ const CHARS = {
           // la balle part du bout du pistolet de l'image affichée
           f.face = f.dir; majTaille(f);
           const c0 = canonMonde(f);
-          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * 1200, vy: 0, r: 4, dmg: 8, owner: f, rot: 0 });
+          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * 1200, vy: 0, r: 4, dmg: 8, owner: f, rot: 0, rafale: f.rafale });
           if (f.burst === 0) { // rechargement de 2 s juste après la 6e balle : il ne retire qu'une fois fini
             son(f, 2);
             f.cd = f.recharge = RECHARGE;
           }
         }
       } else if (f.cd <= 0 && !cache(o) && Math.abs(o.y - f.y) < o.hh * 0.8) {
-        f.burst = 6; f.burstT = 0; f.horaires = this.horaires(f); f.dir = Math.sign(o.x - f.x) || 1; son(f);
+        f.burst = 6; f.burstT = 0; f.rafale = { touches: 0 }; f.horaires = this.horaires(f); f.dir = Math.sign(o.x - f.x) || 1; son(f);
       }
     }
   },
@@ -823,7 +823,7 @@ function autodestruction(g, f, o) {
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const BOUCLIER_PV = 35, FEU_RAYON = 110, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
-const RECHARGE = 1.2; // rechargement du Cowboy après chaque rafale (secondes)
+const RECHARGE = 2; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
 const FIN = 3.2; // durée de la séquence de fin (secondes réelles)
@@ -930,7 +930,8 @@ function maj(dt) {
           p.dedans = true;
           continue;
         }
-        degats(g, cible, p.dmg, p.x, p.y);
+        // balles d'une même rafale : chaque balle qui touche fait 1 dégât de moins que la précédente
+        degats(g, cible, p.rafale ? Math.max(1, p.dmg - p.rafale.touches++) : p.dmg, p.x, p.y);
         if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
         return false;
       } else p.dedans = false;
@@ -1956,7 +1957,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.4", NOTES = "Myers : 15 dégâts par coup de couteau, 1 s entre deux coups.";
+const VERSION = "1.4.5", NOTES = "McCree : rechargement de 2 s, chaque balle qui touche dans une rafale fait 1 de moins (8, 7, 6…).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

@@ -183,7 +183,7 @@ const CHARS = {
         f.burstT -= dt;
         if (f.burstT <= 0) {
           f.burst--; f.burstT = 0.09; f.muzzle = 0.06;
-          g.proj.push({ kind: "balle", x: f.x + f.dir * f.hw, y: f.y, vx: f.dir * 1200, vy: 0, r: 5, dmg: 4, owner: f, rot: 0 });
+          g.proj.push({ kind: "balle", x: f.x + f.dir * f.hw, y: f.y, vx: f.dir * 1200, vy: 0, r: 5, dmg: 5, owner: f, rot: 0 });
         }
       } else if (f.cd <= 0 && !cache(o) && Math.abs(o.y - f.y) < o.hh * 0.8) {
         f.burst = 6; f.burstT = latenceSon(f); f.dir = Math.sign(o.x - f.x) || 1; f.cd = 1.3; son(f);

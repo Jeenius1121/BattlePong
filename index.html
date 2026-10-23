@@ -95,11 +95,6 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 .small input{position:absolute; inset:0; opacity:0; cursor:pointer; width:100%}
 .small[hidden]{display:none}
 .small.off{opacity:.5; pointer-events:none}
-.micPanel{position:fixed; left:50%; bottom:calc(16px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); width:min(92vw,440px); z-index:20; background:var(--panel); color:var(--ink); border:2px solid var(--ink); border-radius:14px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
-.micPanel[hidden]{display:none}
-.micPanel p{margin:0; font-weight:600}
-.micPanel .actions{margin-top:12px}
-.micPanel .btn[hidden]{display:none}
 .editeur{margin-top:16px; padding:14px; border:2px solid var(--ink); border-radius:14px; background:var(--panel)}
 .editeur[hidden]{display:none}
 .editeur h3{margin:0 0 10px; font-size:1rem}
@@ -142,16 +137,11 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 
   <section class="custom" id="custom" hidden>
     <h2>Images des personnages</h2>
-    <p>Remplace l’image d’un perso par la tienne. Prends de préférence un PNG à fond transparent : la zone de touche suit alors la forme exacte du personnage. L’image est redimensionnée sans être déformée. Les sons (fichier ou micro) démarrent automatiquement là où ta voix commence et sont coupés à 3 secondes. Les sons de Myers peuvent durer jusqu’à 10 secondes : le son 2 (traque) tourne pendant que sa jauge monte, le son normal pendant toute sa furie.</p>
+    <p>Remplace l’image d’un perso par la tienne. Prends de préférence un PNG à fond transparent : la zone de touche suit alors la forme exacte du personnage. L’image est redimensionnée sans être déformée. Les sons démarrent automatiquement là où ta voix commence et sont coupés à 3 secondes. Les sons de Myers peuvent durer jusqu’à 10 secondes : le son 2 (traque) tourne pendant que sa jauge monte, le son normal pendant toute sa furie.</p>
     <p id="statutNuage"></p>
     <div class="cle" id="cleBloc">
       <p>Pour que tout le monde voie tes images et tes sons, colle ici ta clé GitHub (à faire une seule fois sur cet appareil).</p>
       <div class="actions"><input type="password" id="cleGithub" placeholder="github_pat_…" autocomplete="off" aria-label="Clé GitHub"><button class="btn" id="cleOk" type="button">Connecter</button></div>
-    </div>
-    <p id="astuceSon" hidden>Pour enregistrer ta voix : utilise l’appli dictaphone de ton téléphone, puis choisis le fichier avec le bouton « Son » (le micro est bloqué sur les pages publiées).</p>
-    <div class="micPanel" id="micPanel" role="dialog" aria-live="polite" hidden>
-      <p id="micTexte"></p>
-      <div class="actions"><button class="btn ghost" id="micAnnuler" type="button">Fermer</button><button class="btn" id="micStop" type="button">■ Arrêter</button></div>
     </div>
     <div id="customList"></div>
     <div class="editeur" id="editeur" hidden>
@@ -1038,7 +1028,6 @@ function construireUI() {
         <div class="sact">
           <button class="small ecoute" type="button" aria-label="Écouter">▶</button>
           <button class="small change" type="button">Fichier</button>
-          ${i ? "" : '<button class="small micSon" type="button">🎤 Micro</button>'}
           <button class="small danger del" type="button" aria-label="Retirer le son ${i + 1}">✕ Retirer</button>
         </div>
         <input type="file" accept="${AUDIO}" aria-label="Son ${i + 1} de ${c.nom}" ${FICHIER}>
@@ -1077,8 +1066,6 @@ function construireUI() {
         catch (err) { sl.querySelector("small").textContent = "Ce fichier son n’a pas pu être lu. Essaie un MP3."; }
       });
       sl.querySelector(".ecoute").addEventListener("click", () => { contexteAudio(); son({ type: cle, side: 9 }); });
-      const mic = sl.querySelector(".micSon");
-      if (mic) mic.addEventListener("click", () => enregistrerMicro(cle, mic));
       sl.querySelector(".del").addEventListener("click", () => {
         if (!confirm("Retirer le son " + n + " (" + (n > 1 ? c.son2 : c.sonNom || "attaque") + ") de " + c.nom + " ?")) return;
         retirerSon(cle);
@@ -1127,7 +1114,7 @@ function arreterSon(f, n) {
 function arreterBoucles() {
   for (const [cle, src] of Object.entries(enCours)) if (src.loop) { try { src.stop(); } catch (e) {} delete enCours[cle]; }
 }
-// Tout son (MP3, micro…) est converti en WAV mono léger de 3 s max : facile à stocker partout.
+// Tout son (MP3, M4A…) est converti en WAV mono léger de 3 s max : facile à stocker partout.
 // Myers a droit à un son long (10 s) : il dure toute sa furie.
 const SON_MAX = 3, SON_LONG = 10;
 function sonMax(cle) { const c = CHARS[persoDe(cle)]; return c && c.sonLong ? SON_LONG : SON_MAX; }
@@ -1214,65 +1201,6 @@ async function retirerSon(id) {
   try { await bddSet(id, null); } catch (e) {}
   await nuageEcrire("sons/" + id, null);
   majInfoSon(id);
-}
-/* Fenêtre d'enregistrement : toujours visible, avec un message clair à chaque étape */
-let micEnCours = null, micAnnule = false;
-const micPanel = document.getElementById("micPanel"), micTexte = document.getElementById("micTexte"), micStop = document.getElementById("micStop");
-function micAfficher(texte, boutonStop) {
-  micPanel.hidden = false; micTexte.textContent = texte; micStop.hidden = !boutonStop;
-}
-function micFermer() { micPanel.hidden = true; }
-micStop.addEventListener("click", () => { if (micEnCours && micEnCours.state === "recording") micEnCours.stop(); });
-document.getElementById("micAnnuler").addEventListener("click", () => {
-  micAnnule = true;
-  if (micEnCours && micEnCours.state === "recording") micEnCours.stop();
-  micFermer();
-});
-async function enregistrerMicro(id, btn) {
-  if (micEnCours) return;
-  contexteAudio();
-  micAnnule = false;
-  const nom = CHARS[id].nom;
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-    micAfficher("Le micro n’est pas disponible ici. Ouvre la page dans Chrome ou Safari pour enregistrer.", false);
-    return;
-  }
-  micAfficher("Autorise l’accès au micro pour enregistrer le son de " + nom + "…", false);
-  const lent = setTimeout(() => {
-    micAfficher("La demande d’accès au micro ne s’affiche pas ici : l’appli bloque sans doute le micro. Ouvre la page dans Chrome ou Safari pour enregistrer.", false);
-  }, 5000);
-  let flux;
-  try { flux = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-  catch (e) {
-    clearTimeout(lent);
-    micAfficher("Le micro est bloqué pour les pages publiées sur Claude, et on ne peut pas l’activer d’ici. Enregistre ton son avec l’appli dictaphone de ton téléphone, puis choisis le fichier avec le bouton « Son ».", false);
-    return;
-  }
-  clearTimeout(lent);
-  if (micAnnule) { flux.getTracks().forEach(t => t.stop()); return; }
-  const rec = new MediaRecorder(flux), morceaux = [], debut = performance.now();
-  micEnCours = rec;
-  micAfficher("● Enregistrement… 0,0 s sur " + sonMax(id) + " s", true);
-  const tic = setInterval(() => {
-    const t = Math.min(sonMax(id), (performance.now() - debut) / 1000);
-    micTexte.textContent = "● Enregistrement… " + t.toFixed(1).replace(".", ",") + " s sur " + sonMax(id) + " s";
-    if (t >= sonMax(id) && rec.state === "recording") rec.stop();
-  }, 100);
-  rec.ondataavailable = e => { if (e.data && e.data.size) morceaux.push(e.data); };
-  rec.onstop = async () => {
-    clearInterval(tic); flux.getTracks().forEach(t => t.stop());
-    micEnCours = null;
-    if (micAnnule) return;
-    micAfficher("Préparation du son…", false);
-    try {
-      await definirSon(id, new Blob(morceaux, { type: rec.mimeType || "audio/webm" }), "Enregistrement micro");
-      micAfficher("Son enregistré pour " + nom + " !", false);
-      setTimeout(micFermer, 1500);
-    } catch (e) {
-      micAfficher("L’enregistrement n’a pas pu être utilisé. Réessaie.", false);
-    }
-  };
-  rec.start();
 }
 function bdd() {
   return new Promise((ok, ko) => {
@@ -1518,14 +1446,6 @@ async function init() {
   nouveauJeu(false);
   redim();
   brancherNuage();
-  // Si le navigateur indique que le micro est interdit sur cette page, on cache le bouton
-  try {
-    const fp = document.permissionsPolicy || document.featurePolicy;
-    if (fp && typeof fp.allowsFeature === "function" && !fp.allowsFeature("microphone")) {
-      document.querySelectorAll(".micSon").forEach(b => b.hidden = true);
-      document.getElementById("astuceSon").hidden = false;
-    }
-  } catch (e) {}
 }
 /* ===== MODE PROPRIÉTAIRE =====
    Touche le titre 5 fois de suite puis tape le code : la partie pour modifier

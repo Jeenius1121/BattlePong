@@ -130,7 +130,7 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 
   <section class="custom" id="custom" hidden>
     <h2>Images des personnages</h2>
-    <p>Remplace l’image d’un perso par la tienne. Prends de préférence un PNG à fond transparent : la zone de touche suit alors la forme exacte du personnage. L’image est redimensionnée sans être déformée. Les sons (fichier ou micro) démarrent automatiquement là où ta voix commence et sont coupés à 3 secondes. Le son de Myers peut durer jusqu’à 10 secondes : il est joué en boucle pendant toute sa furie.</p>
+    <p>Remplace l’image d’un perso par la tienne. Prends de préférence un PNG à fond transparent : la zone de touche suit alors la forme exacte du personnage. L’image est redimensionnée sans être déformée. Les sons (fichier ou micro) démarrent automatiquement là où ta voix commence et sont coupés à 3 secondes. Les sons de Myers peuvent durer jusqu’à 10 secondes : le son 2 (traque) tourne pendant que sa jauge monte, le son normal pendant toute sa furie.</p>
     <p id="statutNuage"></p>
     <div class="cle" id="cleBloc">
       <p>Pour que tout le monde voie tes images et tes sons, colle ici ta clé GitHub (à faire une seule fois sur cet appareil).</p>
@@ -356,7 +356,7 @@ const CHARS = {
     }
   },
   rodeur: {
-    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], sonLong: true,
+    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], sonLong: true, son2: "traque",
     imageDe: f => f.etat === "furie" ? 2 : 1,
     desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. S’il réapparaît trop près, il se téléporte dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
     svg: `<g ${O}>
@@ -375,6 +375,7 @@ const CHARS = {
     // touché pendant qu'il fixe : il redevient invisible et repart rôder
     quandTouche(f, g) {
       if (f.etat !== "stalk") return;
+      arreterSon(f, 2); // le son de traque se coupe net
       f.etat = "rode"; f.etatT = 2 + Math.random() * 1.5;
       const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f);
       eclats(g, f.x, f.y, "#55555f");
@@ -388,6 +389,7 @@ const CHARS = {
         f.etatT -= dt;
         if (f.etatT <= 0) {
           f.etat = "stalk"; f.vx = 0; f.vy = 0;
+          son(f, 2, true); // son de traque, pendant que la jauge monte
           // trop près en réapparaissant : il se téléporte dans un coin, de préférence le plus éloigné
           if (Math.hypot(o.x - f.x, o.y - f.y) < 260) {
             const coins = [[f.hw, f.hh], [W - f.hw, f.hh], [f.hw, W - f.hh], [W - f.hw, W - f.hh]]
@@ -403,7 +405,7 @@ const CHARS = {
         f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1;
         f.jauge = Math.min(1, f.jauge + dt / 3.5);
         if (f.jauge >= 1) {
-          f.etat = "furie"; son(f, 1, true); // son joué en boucle pendant toute la furie
+          f.etat = "furie"; arreterSon(f, 2); son(f, 1, true); // son joué en boucle pendant toute la furie
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
           f.vx = dx / d; f.vy = dy / d;
         }
@@ -1147,8 +1149,8 @@ function son(f, n, boucle) {
   src.connect(gain); gain.connect(audioCtx.destination);
   src.start(); enCours[cle] = src;
 }
-function arreterSon(f) {
-  const cle = f.type + f.side;
+function arreterSon(f, n) {
+  const cle = (n === 2 ? f.type + "-2" : f.type) + f.side;
   try { enCours[cle] && enCours[cle].stop(); } catch (e) {}
   delete enCours[cle];
 }

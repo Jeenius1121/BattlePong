@@ -35,6 +35,12 @@ body{margin:0; background:var(--bg); color:var(--ink); font-family:"Rubik",syste
 main{max-width:560px; margin:0 auto; padding:20px 16px 32px}
 h1{font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-weight:400; font-size:clamp(2rem,9vw,3rem); line-height:1; margin:0 0 6px; letter-spacing:-.01em; transform:rotate(-2deg); transform-origin:left; user-select:none; -webkit-user-select:none; touch-action:manipulation}
 .intro{margin:0 0 18px; color:var(--muted); max-width:44ch}
+.version{margin:0 0 8px; font-size:.78rem; color:var(--muted)}
+.version b{color:var(--ink)}
+.majDispo{position:fixed; left:50%; top:calc(10px + env(safe-area-inset-top,0px)); transform:translateX(-50%); z-index:30; width:min(92vw,440px); display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; background:var(--ink); color:var(--bg); box-shadow:0 10px 30px rgba(0,0,0,.25); font-weight:700; font-size:.9rem}
+.majDispo[hidden]{display:none}
+.majDispo span{flex:1}
+.majDispo button{font:inherit; font-weight:800; border:0; border-radius:10px; padding:8px 12px; background:var(--bg); color:var(--ink); cursor:pointer}
 
 .picker{display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:start}
 .side h2{font-size:.95rem; font-weight:800; margin:0 0 8px}
@@ -113,7 +119,9 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 <body>
 <main>
   <h1 id="titre">Battle Pong</h1>
+  <p class="version" id="version"></p>
   <p class="intro">Choisis deux combattants, lance le duel et regarde-les rebondir jusqu’au KO.</p>
+  <div class="majDispo" id="majDispo" role="status" hidden><span id="majTexte"></span><button type="button" id="majOk">Mettre à jour</button></div>
 
   <div class="picker">
     <div class="side" data-side="0"><h2>Gauche</h2><div class="choices"></div></div>
@@ -1526,6 +1534,30 @@ document.getElementById("cleOk").addEventListener("click", async () => {
   statut.textContent = "Clé acceptée, envoi de tes images et sons…";
   await brancherNuage();
 });
+
+/* ===== VERSION =====
+   À chaque changement : on monte VERSION ici et dans version.json (même numéro).
+   La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
+const VERSION = "1.0.0", NOTES = "Numéro de version affiché et alerte quand une mise à jour arrive.";
+document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
+const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
+async function verifierVersion() {
+  try {
+    const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return;
+    const v = await r.json();
+    if (!v.version || !plusRecente(v.version, VERSION)) return;
+    document.getElementById("majTexte").textContent = `Version ${v.version} disponible${v.notes ? " : " + v.notes : ""}`;
+    const b = document.getElementById("majDispo");
+    b.hidden = false; b.dataset.version = v.version;
+  } catch (e) {}
+}
+document.getElementById("majOk").addEventListener("click", () => {
+  location.href = location.pathname + "?v=" + document.getElementById("majDispo").dataset.version;
+});
+verifierVersion();
+setInterval(verifierVersion, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) verifierVersion(); });
 
 init();
 </script>

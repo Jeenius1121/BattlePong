@@ -5,3 +5,5 @@ Petit jeu de combat dans une arène : choisis un personnage à gauche et un à d
 Tout le jeu tient dans un seul fichier : `index.html`. Pour jouer en local, il suffit de l'ouvrir dans un navigateur.
 
 Les images et sons personnalisés sont enregistrés dans le dossier `perso/` (un fichier JSON par image ou son), directement depuis le jeu par le propriétaire.
+
+La version du jeu est dans `index.html` (`VERSION`) et dans `version.json` : les deux doivent toujours avoir le même numéro. La page compare sa version avec `version.json` en ligne et affiche un bandeau « Mettre à jour » quand une nouvelle version est publiée.

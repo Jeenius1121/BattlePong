@@ -84,12 +84,30 @@ h1{font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-weight:400; fo
 
 .stage{position:relative; width:90%; margin:0 auto}
 canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-action:manipulation}
-.overlay{position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; background:color-mix(in srgb,var(--bg) 70%,transparent); border-radius:6px; padding:20px}
-.overlay.show{display:flex}
-.overlay p{margin:0; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(1.5rem,7vw,2.3rem); line-height:1.1; transform:rotate(-2deg)}
+/* écran de fin : carte du gagnant qui apparaît par-dessus l'arène */
+.overlay{position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:16px; border-radius:6px; background:color-mix(in srgb,var(--bg) 45%,transparent); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px)}
+.overlay.show{display:flex; animation:fondu .3s ease-out}
+.finCarte{--team:var(--ink); width:min(100%,300px); max-height:100%; overflow:auto; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; padding:16px 16px 14px; border-radius:20px; background:var(--panel); border:3px solid var(--team); box-shadow:0 18px 40px rgba(0,0,0,.3); animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+#finPortrait{flex:none; width:64px; height:64px; border-radius:50%; background:radial-gradient(circle at 50% 40%, color-mix(in srgb,var(--team) 35%,#fff), var(--team)); box-shadow:0 0 0 4px var(--panel), 0 0 0 7px var(--team)}
+.finSur{margin:2px 0 0; font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+#winText{margin:0; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(1.2rem,5.6vw,1.8rem); line-height:1.05; transform:rotate(-2deg); color:var(--ink)}
+.finScore{margin:0 0 4px; font-size:.85rem; color:var(--muted)}
+.finCarte .btn{width:100%; flex:none}
+.finCarte .btn.ghost{padding:8px 12px; font-size:.88rem}
+@keyframes fondu{from{opacity:0}}
+@keyframes pop{from{opacity:0; transform:translateY(18px) scale(.85)}}
+@keyframes lueur{50%{box-shadow:0 6px 0 color-mix(in srgb,var(--team) 55%,#000), 0 0 22px color-mix(in srgb,var(--team) 70%,transparent)}}
 .actions{display:flex; gap:10px; margin-top:14px}
-.btn{flex:1; font:inherit; font-weight:800; font-size:1rem; cursor:pointer; border-radius:12px; padding:12px 16px; border:2px solid var(--ink); background:var(--ink); color:var(--bg)}
-.btn.ghost{background:transparent; color:var(--ink)}
+.btn{flex:1; font:inherit; font-weight:800; font-size:1rem; cursor:pointer; border-radius:14px; padding:12px 16px; border:2px solid var(--ink); background:var(--ink); color:var(--bg); box-shadow:0 4px 0 color-mix(in srgb,var(--ink) 60%,#000); transition:transform .1s, box-shadow .1s, filter .2s}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:translateY(3px); box-shadow:0 1px 0 color-mix(in srgb,var(--ink) 60%,#000)}
+.btn.ghost{background:var(--panel); color:var(--ink); box-shadow:0 4px 0 var(--line)}
+#start{flex:2; white-space:nowrap}
+#speed,#mute{white-space:nowrap; padding-left:8px; padding-right:8px}
+.btn.ghost:active{box-shadow:0 1px 0 var(--line)}
+.btn.revanche{font-size:1.05rem; padding:11px 16px; border-color:transparent; color:#fff; text-shadow:0 1px 0 rgba(0,0,0,.25);
+  background:linear-gradient(180deg, color-mix(in srgb,var(--team) 70%,#fff), var(--team)); box-shadow:0 6px 0 color-mix(in srgb,var(--team) 55%,#000); animation:lueur 1.8s ease-in-out infinite}
+.btn.revanche:active{transform:translateY(5px); box-shadow:0 1px 0 color-mix(in srgb,var(--team) 55%,#000)}
 .desc{font-size:.85rem; color:var(--muted); margin:14px 0 0}
 .desc strong{color:var(--ink)}
 
@@ -157,13 +175,22 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 
   <div class="stage">
     <canvas id="arena" aria-label="Arène du combat"></canvas>
-    <div class="overlay" id="overlay"><p id="winText"></p><button class="btn" id="rematch">Revanche</button></div>
+    <div class="overlay" id="overlay">
+      <div class="finCarte" id="finCarte">
+        <canvas id="finPortrait" width="208" height="208" aria-hidden="true"></canvas>
+        <p class="finSur" id="finSur">Fin du combat</p>
+        <p id="winText"></p>
+        <p class="finScore" id="finScore"></p>
+        <button class="btn revanche" id="rematch" type="button">↻ Revanche</button>
+        <button class="btn ghost" id="changer" type="button">Changer de persos</button>
+      </div>
+    </div>
   </div>
 
   <div class="actions">
-    <button class="btn" id="start">Lancer le combat</button>
-    <button class="btn ghost" id="speed" aria-label="Vitesse du combat">Vitesse ×1</button>
-    <button class="btn ghost" id="mute" type="button" aria-pressed="false">Sons : oui</button>
+    <button class="btn" id="start">▶ Lancer le combat</button>
+    <button class="btn ghost" id="speed" aria-label="Vitesse du combat">⏩ ×1</button>
+    <button class="btn ghost" id="mute" type="button" aria-pressed="false">🔊 Sons</button>
   </div>
   <div id="descs"></div>
 
@@ -835,9 +862,10 @@ function maj(dt) {
   if (g.running && (a.hp <= 0 || b.hp <= 0)) {
     g.running = false; g.fin = FIN; arreterBoucles();
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
-    g.texteFin = gagnant ? `${CHARS[gagnant.type].nom} gagne !` : g.autodestruction ? "Égalité ! Autodestruction" : "Double KO !";
+    g.texteFin = gagnant ? `${CHARS[gagnant.type].nom} gagne !` : g.autodestruction ? "Égalité !" : "Double KO !";
     document.getElementById("winText").textContent = g.texteFin;
     for (const f of g.f) if (f.hp <= 0) exploser(g, f);
+    g.gagnant = gagnant;
     if (gagnant) { g.zoom = gagnant; calmer(gagnant); }
   }
   majHud();
@@ -1089,7 +1117,7 @@ function boucle(t) {
   } else if (jeu.fin > 0) {
     maj(dt * 0.3);
     jeu.fin -= dt;
-    if (jeu.fin <= 0) { document.getElementById("overlay").classList.add("show"); verrouiller(false); }
+    if (jeu.fin <= 0) { montrerFin(); verrouiller(false); }
   }
   dessiner();
   if (jeu.running || jeu.fin > 0) requestAnimationFrame(boucle);
@@ -1100,8 +1128,32 @@ const boutonStart = document.getElementById("start");
 function verrouiller(on) {
   document.querySelectorAll(".tuile,.panneau").forEach(b => b.disabled = on);
   document.querySelectorAll(".small").forEach(b => b.classList.toggle("off", on));
-  boutonStart.textContent = on ? "Recommencer" : "Lancer le combat";
+  boutonStart.textContent = on ? "↻ Recommencer" : "▶ Lancer le combat";
 }
+// carte de fin : portrait du gagnant (ou des deux en cas d'égalité), couleur de son côté
+function montrerFin() {
+  const g = jeu, w = g.gagnant, carte = document.getElementById("finCarte"), cv = document.getElementById("finPortrait"), x = cv.getContext("2d");
+  carte.style.setProperty("--team", w ? (w.side ? "var(--droite)" : "var(--gauche)") : "var(--muted)");
+  document.getElementById("finSur").textContent = w ? "Victoire" : "Fin du combat";
+  document.getElementById("finScore").textContent = w ? `Il lui reste ${Math.ceil(w.hp)} PV` : g.autodestruction ? "Le Robot a tout emporté avec lui" : "Les deux sont tombés en même temps";
+  x.clearRect(0, 0, cv.width, cv.height);
+  const persos = w ? [w] : g.f, part = cv.width / persos.length;
+  persos.forEach((f, i) => {
+    const s = CHARS[f.type].sprite, t = cadreTete(s), k = cv.height / t.S;
+    x.save(); x.beginPath(); x.rect(i * part, 0, part, cv.height); x.clip();
+    x.translate(i * part + part / 2, 0);
+    if (f.side) x.scale(-1, 1);
+    x.drawImage(s.img, -(t.x + t.S / 2) * k, -t.y * k, s.tw * k, s.th * k);
+    x.restore();
+  });
+  const o = document.getElementById("overlay");
+  o.classList.remove("show"); void o.offsetWidth; o.classList.add("show");
+}
+document.getElementById("changer").addEventListener("click", () => {
+  document.getElementById("overlay").classList.remove("show");
+  nouveauJeu(false); dessiner();
+  document.querySelector(".duel").scrollIntoView({ behavior: "smooth", block: "start" });
+});
 function lancer() {
   document.getElementById("overlay").classList.remove("show");
   nouveauJeu(true); verrouiller(true); contexteAudio();
@@ -1114,12 +1166,12 @@ boutonStart.addEventListener("click", () => {
 document.getElementById("rematch").addEventListener("click", lancer);
 document.getElementById("speed").addEventListener("click", e => {
   vitesseJeu = vitesseJeu === 1 ? 2 : vitesseJeu === 2 ? 3 : 1;
-  e.currentTarget.textContent = "Vitesse ×" + vitesseJeu;
+  e.currentTarget.textContent = "⏩ ×" + vitesseJeu;
 });
 
 document.getElementById("mute").addEventListener("click", e => {
   sonsActifs = !sonsActifs;
-  e.currentTarget.textContent = "Sons : " + (sonsActifs ? "oui" : "non");
+  e.currentTarget.textContent = sonsActifs ? "🔊 Sons" : "🔇 Muet";
   e.currentTarget.setAttribute("aria-pressed", !sonsActifs);
 });
 
@@ -1722,7 +1774,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.3.0", NOTES = "Robot : autodestruction à 25 PV, compte à rebours de 5 s puis égalité.";
+const VERSION = "1.3.1", NOTES = "Nouvel écran de fin avec bouton Revanche, boutons plus jolis.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

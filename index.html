@@ -525,7 +525,7 @@ const CHARS = {
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 5 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe.",
+    desc: "Frappe au corps à corps. Toutes les 5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -545,7 +545,7 @@ const CHARS = {
         f.cd -= dt;
         if (f.cd <= 0 && !cache(o) && ecart(f, o) < 8) {
           f.cd = 0.45; f.attT = 0.15; son(f);
-          degats(g, o, 6, (f.x + o.x) / 2, (f.y + o.y) / 2);
+          degats(g, o, 5, (f.x + o.x) / 2, (f.y + o.y) / 2);
         }
         f.langueCd = (f.langueCd ?? 3.5) - dt;
         if (f.langueCd <= 0 && !cache(o)) { // il tire sa langue
@@ -573,8 +573,8 @@ const CHARS = {
         else { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; son(f, 3, true, true); } // musique d'étranglement, reprise là où elle s'était arrêtée
       } else if (L.etat === "etreinte") { // 2 s d'étranglement : la langue serre, l'adversaire perd des PV par à-coups
         L.t -= dt; L.coup -= dt;
-        // 8 à-coups de 4 PV, quelle que soit la durée de l'étranglement
-        if (L.coup <= 0 && (L.n || 0) < 8) { L.n = (L.n || 0) + 1; L.coup = ETREINTE_DUREE / 8; L.serre = 0.18; degats(g, o, 4, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
+        // un à-coup de 4 PV toutes les 0,625 s tant que dure l'étranglement
+        if (L.coup <= 0) { L.coup = ETREINTE_TIC; L.serre = 0.18; degats(g, o, 4, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
         L.serre = Math.max(0, (L.serre || 0) - dt);
         if (L.t <= 0) { // il le relâche un peu plus loin
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -787,7 +787,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== LANGUE DU SMOKER ===== */
-const LANGUE_CD = 5, LANGUE_VITESSE = 750, ETREINTE_DUREE = 5;
+const LANGUE_CD = 5, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625;
 // bouche du Smoker : point réglé sur son image 3 s'il en a une, sinon le haut du perso vers l'avant
 function bouche(f) {
   const c = CHARS[f.type], s3 = c.spr && c.spr[3];
@@ -1992,7 +1992,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.10", NOTES = "Les musiques reprennent là où elles s’étaient arrêtées (furie de Myers, étranglement du Smoker).";
+const VERSION = "1.4.11", NOTES = "Smoker : étranglement de 4 s (mêmes à-coups), coups au corps à corps à 5.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

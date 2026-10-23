@@ -396,7 +396,7 @@ const CHARS = {
           f.vx = dx / d; f.vy = dy / d;
         }
       } else { // furie : couteau sorti, plus rapide, fonce sur l'adversaire
-        f.jauge -= dt / 5;
+        f.jauge -= dt / 6; // la furie dure 6 s
         const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1, k = Math.min(1, dt * 5);
         const n0 = Math.hypot(f.vx, f.vy) || 1;
         let vx = f.vx / n0, vy = f.vy / n0;
@@ -405,9 +405,9 @@ const CHARS = {
         f.vx = vx / n * sp; f.vy = vy / n * sp;
         f.cd -= dt;
         if (f.cd <= 0 && !cache(o) && ecart(f, o) < 30) {
-          f.cd = 0.5; f.coupT = 0.15;
+          f.cd = 0.9; f.coupT = 0.15; // petit temps de recharge entre deux coups de couteau
           const ex = o.x - f.x, ey = o.y - f.y, ed = Math.hypot(ex, ey) || 1;
-          degats(g, o, 14, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
+          degats(g, o, 12, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
         }
         if (f.jauge <= 0) { f.jauge = 0; f.etat = "rode"; arreterSon(f); f.etatT = 2.5 + Math.random() * 1.5; normaliser(f); }
       }

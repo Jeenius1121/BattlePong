@@ -332,7 +332,7 @@ const CHARS = {
     }
   },
   robot: {
-    nom: "Robot", emoji: "🤖", vitesse: 220, images: ["attaque"],
+    nom: "Robot", emoji: "🤖", vitesse: 220, images: ["attaque"], sonNom: "laser", son2: "minuteur",
     imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : 1,
     desc: "Vise, charge, puis tire un gros laser qui reste allumé 2 secondes en suivant le robot et brûle l’adversaire s’il passe dedans. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire avec lui (égalité).",
     svg: `<g ${O}>
@@ -350,6 +350,9 @@ const CHARS = {
       // autodestruction : compte à rebours dès qu'il passe sous le seuil de PV
       if (f.decompte === undefined && f.hp <= AUTODESTRUCTION_PV) f.decompte = AUTODESTRUCTION_DUREE;
       if (f.decompte > 0) {
+        // bip du minuteur à chaque nouveau chiffre affiché (5, 4, 3, 2, 1)
+        const chiffre = Math.ceil(f.decompte);
+        if (chiffre !== f.chiffre) { f.chiffre = chiffre; son(f, 2); }
         f.decompte -= dt;
         if (f.decompte <= 0) { f.decompte = 0; autodestruction(g, f, o); return; }
       }
@@ -1898,7 +1901,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.0", NOTES = "Nouveau perso : le Smoker et sa langue.";
+const VERSION = "1.4.1", NOTES = "Robot : son de minuteur à chaque chiffre du compte à rebours.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

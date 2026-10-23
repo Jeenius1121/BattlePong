@@ -190,36 +190,6 @@ const CHARS = {
       }
     }
   },
-  boxeur: {
-    nom: "Boxeur", emoji: "🥊", vitesse: 270,
-    desc: "Frappe fort au corps à corps et repousse l’adversaire.",
-    svg: `<g ${O}>
-      <rect x='44' y='112' width='13' height='26' fill='#e8a87c'/><rect x='63' y='112' width='13' height='26' fill='#e8a87c'/>
-      <rect x='40' y='134' width='19' height='10' rx='3' fill='#f4f4f4'/><rect x='61' y='134' width='19' height='10' rx='3' fill='#f4f4f4'/>
-      <rect x='30' y='70' width='12' height='22' rx='6' fill='#e8a87c'/><circle cx='34' cy='96' r='12' fill='#b8322a'/>
-      <rect x='40' y='64' width='40' height='40' rx='12' fill='#e8a87c'/>
-      <path d='M38 98h44v20H64l-4-6-4 6H38z' fill='#e0483d'/><rect x='38' y='96' width='44' height='6' fill='#f4f4f4'/>
-      <circle cx='58' cy='42' r='20' fill='#e8a87c'/>
-      <path d='M39 38 Q40 20 58 20 Q76 20 77 36 Q66 28 52 30 Q44 31 39 38Z' fill='#3a2a20'/>
-      <path d='M62 37 l10 3' fill='none'/><circle cx='67' cy='44' r='2.5' fill='#1b2033' stroke='none'/><path d='M64 52 h8' fill='none'/>
-      <rect x='72' y='68' width='22' height='12' rx='6' fill='#e8a87c'/>
-      <circle cx='98' cy='72' r='15' fill='#e0483d'/><path d='M90 66 q8 -4 14 2' fill='none' stroke='#fff' stroke-width='2'/></g>`,
-    attaque(f, o, g, dt) {
-      f.cd -= dt;
-      const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
-      if (f.cd <= 0 && !cache(o) && ecart(f, o) < 30) {
-        f.cd = 0.75; son(f);
-        plusTard(g, latenceSon(f), () => {
-          const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
-          f.punchT = 0.18; f.punchAng = Math.atan2(dy, dx);
-          if (ecart(f, o) < 45) {
-            degats(g, o, 12, o.x - dx / d * o.hw * 0.6, o.y - dy / d * o.hh * 0.6);
-            o.vx = dx / d; o.vy = dy / d; normaliser(o);
-          }
-        });
-      }
-    }
-  },
   alcoolique: {
     nom: "Vieux alcoolique", emoji: "🍺", vitesse: 210,
     desc: "Balance des bouteilles un peu au hasard et titube dans tous les sens.",
@@ -247,48 +217,6 @@ const CHARS = {
         plusTard(g, latenceSon(f), () => {
           const a = Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 0.6;
           g.proj.push({ kind: "bouteille", x: f.x, y: f.y, vx: Math.cos(a) * 430, vy: Math.sin(a) * 430, r: 10, dmg: 10, owner: f, rot: 0 });
-        });
-      }
-    }
-  },
-  ninja: {
-    nom: "Ninja", emoji: "🥷", vitesse: 250,
-    desc: "Lance 3 shurikens en éventail et fonce de temps en temps sur l’adversaire.",
-    svg: `<g ${O}>
-      <g transform='rotate(-35 60 85)'><rect x='57' y='60' width='6' height='60' fill='#c9ced8'/><rect x='53' y='57' width='14' height='5' fill='#1b2033'/><rect x='57' y='38' width='6' height='19' fill='#7a2a2a'/></g>
-      <rect x='44' y='108' width='14' height='30' fill='#2b2d42'/><rect x='62' y='108' width='14' height='30' fill='#2b2d42'/>
-      <rect x='40' y='134' width='19' height='9' rx='3' fill='#1b2033'/><rect x='61' y='134' width='19' height='9' rx='3' fill='#1b2033'/>
-      <rect x='30' y='72' width='12' height='28' rx='6' fill='#2b2d42'/>
-      <rect x='40' y='66' width='40' height='46' rx='10' fill='#2b2d42'/><rect x='40' y='96' width='40' height='7' fill='#c0392b'/>
-      <circle cx='60' cy='44' r='21' fill='#2b2d42'/>
-      <rect x='58' y='38' width='22' height='9' rx='4' fill='#f0c19a'/><circle cx='70' cy='42.5' r='2.5' fill='#1b2033' stroke='none'/>
-      <path d='M40 34 q-14 2 -22 12 M40 34 q-12 -6 -24 -2' fill='none' stroke='#c0392b' stroke-width='5'/>
-      <path d='M39 34 Q60 26 81 32' fill='none' stroke='#c0392b' stroke-width='6'/>
-      <rect x='74' y='72' width='20' height='11' rx='5.5' fill='#2b2d42'/><circle cx='96' cy='77' r='6' fill='#f0c19a'/>
-      <path d='M106 62 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z' fill='#8a93a8' stroke-width='2'/></g>`,
-    attaque(f, o, g, dt) {
-      const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
-      f.dashCd = (f.dashCd ?? 2.5) - dt;
-      if (f.dashT > 0) {
-        f.dashT -= dt;
-        if (!f.dashHit && ecart(f, o) < 6) { f.dashHit = true; degats(g, o, 9, o.x - dx / d * o.hw * 0.6, o.y - dy / d * o.hh * 0.6); }
-        if (f.dashT <= 0) normaliser(f);
-      } else if (f.dashCd <= 0 && !cache(o)) {
-        f.dashCd = 3; son(f);
-        const v = this.vitesse;
-        plusTard(g, latenceSon(f), () => {
-          const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
-          f.dashT = 0.35; f.dashHit = false;
-          f.vx = dx / d * v * 2.3; f.vy = dy / d * v * 2.3;
-        });
-      }
-      f.cd -= dt;
-      if (f.cd <= 0 && !cache(o)) {
-        f.cd = 1.4; son(f);
-        plusTard(g, latenceSon(f), () => {
-          const a = Math.atan2(o.y - f.y, o.x - f.x);
-          for (const k of [-0.25, 0, 0.25])
-            g.proj.push({ kind: "shuriken", x: f.x, y: f.y, vx: Math.cos(a + k) * 520, vy: Math.sin(a + k) * 520, r: 9, dmg: 5, owner: f, rot: 0 });
         });
       }
     }
@@ -537,7 +465,7 @@ function traiter(img) {
 /* ===== MOTEUR ===== */
 const W = 600;
 const canvas = document.getElementById("arena"), ctx = canvas.getContext("2d");
-const choix = ["cowboy", "boxeur"];
+const choix = ["cowboy", "rodeur"];
 let jeu = null, vitesseJeu = 1, dernier = 0, couleurs = {};
 
 function lireCouleurs() {
@@ -619,7 +547,7 @@ function creerCombattant(type, side) {
   const s = CHARS[type].sprite, k = echelle(s), a = angleAleatoire();
   const f = { type, side, k, hw: s.tw * k / 2, hh: s.th * k / 2, x: side ? 440 : 160, y: 300,
     vx: Math.cos(a), vy: Math.sin(a), hp: 100, face: side ? -1 : 1,
-    cd: 0.4 + Math.random() * 0.6, flash: 0, burst: 0, burstT: 0, dir: 1, muzzle: 0, punchT: 0, punchAng: 0, wob: Math.random() * 10 };
+    cd: 0.4 + Math.random() * 0.6, flash: 0, burst: 0, burstT: 0, dir: 1, muzzle: 0, wob: Math.random() * 10 };
   normaliser(f);
   return f;
 }
@@ -686,12 +614,11 @@ function maj(dt) {
       f.vx = Math.cos(ang) * sp; f.vy = Math.sin(ang) * sp;
     }
     if (f.burst > 0) f.face = f.dir;
-    else if (f.punchT > 0) f.face = Math.cos(f.punchAng) >= 0 ? 1 : -1;
     else if (f.charge > 0 || f.tir > 0) f.face = f.laserFace;
     else if (Math.abs(f.vx) > 20) f.face = f.vx > 0 ? 1 : -1;
     // le robot tourne son image vers sa cible tant qu'il charge ou tire
     f.rot = f.charge > 0 || f.tir > 0 ? (f.face > 0 ? f.laserAng : f.laserAng - Math.PI) : 0;
-    f.flash = Math.max(0, f.flash - dt); f.muzzle = Math.max(0, f.muzzle - dt); f.punchT = Math.max(0, f.punchT - dt);
+    f.flash = Math.max(0, f.flash - dt); f.muzzle = Math.max(0, f.muzzle - dt);
   }
   // collision entre les deux persos (rectangles ajustés à l'image)
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -843,12 +770,6 @@ function dessiner() {
       ctx.fillStyle = "#ffcf3f"; ctx.beginPath();
       ctx.arc(f.x + f.dir * (f.hw + 12), f.y, 13, 0, 7); ctx.fill();
     }
-    if (f.punchT > 0) {
-      const dist = bord(f, f.punchAng) + 16 + (1 - f.punchT / 0.18) * 20;
-      ctx.font = "39px system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif";
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText("🥊", f.x + Math.cos(f.punchAng) * dist, f.y + Math.sin(f.punchAng) * dist);
-    }
     if (f.charge > 0 || f.tir > 0) {
       const c0 = canonMonde(f), L = f.tir > 0 ? f.laserLen : 900;
       ctx.save(); ctx.lineCap = "round";
@@ -867,10 +788,6 @@ function dessiner() {
     ctx.save(); ctx.translate(p.x, p.y);
     if (p.kind === "balle") {
       ctx.fillStyle = couleurs.ink; ctx.beginPath(); ctx.arc(0, 0, p.r, 0, 7); ctx.fill();
-    } else if (p.kind === "shuriken") {
-      ctx.rotate(p.rot * 1.5); ctx.fillStyle = "#8a93a8"; ctx.beginPath();
-      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; ctx.lineTo(Math.cos(a) * 12, Math.sin(a) * 12); ctx.lineTo(Math.cos(a + Math.PI / 4) * 4, Math.sin(a + Math.PI / 4) * 4); }
-      ctx.closePath(); ctx.fill();
     } else if (p.kind === "mortier") {
       // boule visqueuse violette avec des coulures qui traînent derrière
       const t = performance.now() / 90, r = p.r;

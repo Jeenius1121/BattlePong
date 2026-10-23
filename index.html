@@ -518,12 +518,12 @@ const CHARS = {
     }
   },
   smoker: {
-    nom: "Smoker", emoji: "👅", vitesse: 215, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement",
+    nom: "Smoker", emoji: "👅", vitesse: 215, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", sonsLongs: [3],
     // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe.",
+    desc: "Frappe au corps à corps. Toutes les 5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 5 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -571,7 +571,8 @@ const CHARS = {
         else { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; son(f, 3, true); } // musique d'étranglement en boucle
       } else if (L.etat === "etreinte") { // 2 s d'étranglement : la langue serre, l'adversaire perd des PV par à-coups
         L.t -= dt; L.coup -= dt;
-        if (L.coup <= 0) { L.coup = 0.5; L.serre = 0.18; degats(g, o, 4, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
+        // 8 à-coups de 4 PV, quelle que soit la durée de l'étranglement
+        if (L.coup <= 0 && (L.n || 0) < 8) { L.n = (L.n || 0) + 1; L.coup = ETREINTE_DUREE / 8; L.serre = 0.18; degats(g, o, 4, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
         L.serre = Math.max(0, (L.serre || 0) - dt);
         if (L.t <= 0) { // il le relâche un peu plus loin
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -784,7 +785,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== LANGUE DU SMOKER ===== */
-const LANGUE_CD = 5, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4;
+const LANGUE_CD = 5, LANGUE_VITESSE = 750, ETREINTE_DUREE = 5;
 // bouche du Smoker : point réglé sur son image 3 s'il en a une, sinon le haut du perso vers l'avant
 function bouche(f) {
   const c = CHARS[f.type], s3 = c.spr && c.spr[3];
@@ -1567,8 +1568,13 @@ function arreterBoucles() {
 }
 // Tout son (MP3, M4A…) est converti en WAV mono léger de 3 s max : facile à stocker partout.
 // Myers a droit à un son long (10 s) : il dure toute sa furie.
-const SON_MAX = 3, SON_LONG = 10;
-function sonMax(cle) { const c = CHARS[persoDe(cle)]; return c && c.sonLong ? SON_LONG : SON_MAX; }
+// sonsLongs : numéros des sons gardés jusqu'à 20 s (ils sont coupés par le jeu à la fin de l'action)
+const SON_MAX = 3, SON_LONG = 10, SON_TRES_LONG = 20;
+function sonMax(cle) {
+  const c = CHARS[persoDe(cle)];
+  if (c && c.sonsLongs && c.sonsLongs.includes(numImage(cle))) return SON_TRES_LONG;
+  return c && c.sonLong ? SON_LONG : SON_MAX;
+}
 async function preparerSon(arrayBuf, max = SON_MAX) {
   const ac = contexteAudio();
   if (!ac) throw new Error("audio indisponible");
@@ -1975,7 +1981,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.8", NOTES = "Smoker : son 3 pendant l’étranglement, étranglement de 4 s (mêmes dégâts au total), langue toutes les 5 s.";
+const VERSION = "1.4.9", NOTES = "Smoker : étranglement de 5 s, son d’étranglement gardé en entier (jusqu’à 20 s) et coupé à la fin.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

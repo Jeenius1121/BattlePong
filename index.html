@@ -207,40 +207,8 @@ const CHARS = {
       }
     }
   },
-  alcoolique: {
-    nom: "Vieux alcoolique", emoji: "🍺", vitesse: 210, images: ["attaque"],
-    imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Balance des bouteilles un peu au hasard et titube dans tous les sens.",
-    svg: `<g ${O} transform='rotate(-7 60 140)'>
-      <rect x='44' y='110' width='13' height='28' fill='#5a4a3a'/><rect x='62' y='110' width='13' height='28' fill='#5a4a3a'/>
-      <rect x='40' y='134' width='19' height='9' rx='3' fill='#2e2620'/><rect x='60' y='134' width='19' height='9' rx='3' fill='#2e2620'/>
-      <rect x='28' y='72' width='12' height='30' rx='6' fill='#7a5a3a'/>
-      <path d='M38 66 h44 l4 52 H34z' fill='#7a5a3a'/>
-      <circle cx='60' cy='82' r='2.5' fill='#f2b134'/><circle cx='60' cy='98' r='2.5' fill='#f2b134'/>
-      <circle cx='58' cy='46' r='21' fill='#e9b996'/>
-      <circle cx='39' cy='42' r='6' fill='#cfcfcf'/><circle cx='41' cy='53' r='6' fill='#cfcfcf'/><circle cx='46' cy='31' r='5' fill='#cfcfcf'/>
-      <path d='M64 42 h7' fill='none'/><circle cx='77' cy='49' r='6' fill='#e0483d'/>
-      <path d='M62 57 q5 3 9 -1' fill='none'/>
-      <g fill='#8a8a8a' stroke='none'><circle cx='58' cy='61' r='1.3'/><circle cx='63' cy='63' r='1.3'/><circle cx='68' cy='62' r='1.3'/><circle cx='72' cy='59' r='1.3'/></g>
-      <g transform='rotate(-30 102 70)'><rect x='96' y='62' width='13' height='26' rx='3' fill='#2f7d3a'/><rect x='99' y='50' width='7' height='14' fill='#2f7d3a'/><rect x='97' y='70' width='11' height='9' fill='#c98a2b' stroke='none'/></g>
-      <rect x='74' y='74' width='22' height='11' rx='5.5' fill='#7a5a3a'/><circle cx='96' cy='80' r='6' fill='#e9b996'/></g>`,
-    attaque(f, o, g, dt) {
-      f.wob += dt;
-      const ang = Math.atan2(f.vy, f.vx) + (Math.random() - 0.5) * 5 * dt + Math.sin(f.wob * 2.3) * 1.4 * dt;
-      const sp = this.vitesse * (0.7 + 0.4 * (0.5 + 0.5 * Math.sin(f.wob * 1.7)));
-      f.vx = Math.cos(ang) * sp; f.vy = Math.sin(ang) * sp;
-      f.cd -= dt;
-      if (f.cd <= 0 && !cache(o)) {
-        f.cd = 1.15 + Math.random() * 0.45; f.attT = 0.45; son(f);
-        plusTard(g, latenceSon(f), () => {
-          const a = Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 0.6;
-          g.proj.push({ kind: "bouteille", x: f.x, y: f.y, vx: Math.cos(a) * 430, vy: Math.sin(a) * 430, r: 10, dmg: 10, owner: f, rot: 0 });
-        });
-      }
-    }
-  },
   sorcier: {
-    nom: "Sorcier", emoji: "🧙", vitesse: 200, images: ["attaque"],
+    nom: "Sorcier", emoji: "🧙", vitesse: 200, images: ["attaque", "en réserve"],
     imageDe: f => f.attT > 0 ? 2 : 1,
     desc: "Lent, mais lance des boules de feu qui suivent l’adversaire.",
     svg: `<g ${O}>
@@ -587,7 +555,7 @@ function creerCombattant(type, side) {
   const s = CHARS[type].sprite, k = echelle(s), a = angleAleatoire();
   const f = { type, side, k, hw: s.tw * k / 2, hh: s.th * k / 2, x: side ? 440 : 160, y: 300,
     vx: Math.cos(a), vy: Math.sin(a), hp: 100, face: side ? -1 : 1,
-    cd: 0.4 + Math.random() * 0.6, flash: 0, burst: 0, burstT: 0, dir: 1, muzzle: 0, wob: Math.random() * 10 };
+    cd: 0.4 + Math.random() * 0.6, flash: 0, burst: 0, burstT: 0, dir: 1, muzzle: 0 };
   normaliser(f);
   return f;
 }
@@ -726,13 +694,11 @@ function maj(dt) {
           continue;
         }
         degats(g, cible, p.dmg, p.x, p.y);
-        if (p.kind === "bouteille") eclats(g, p.x, p.y, "#7fc98a");
-        else if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
+        if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
         return false;
       } else p.dedans = false;
     }
     if (p.x < 0 || p.x > W || p.y > W || (p.y < 0 && p.kind !== "mortier") || p.y < -800) {
-      if (p.kind === "bouteille") eclats(g, Math.min(W, Math.max(0, p.x)), Math.min(W, Math.max(0, p.y)), "#7fc98a");
       if (p.kind === "mortier") {
         // côté touché : le dôme de fumée s'ouvre vers l'intérieur de l'arène
         const ang = p.y > W ? -Math.PI / 2 : p.x < 0 ? 0 : p.x > W ? Math.PI : Math.PI / 2;

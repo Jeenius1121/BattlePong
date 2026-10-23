@@ -220,9 +220,10 @@ const CHARS = {
     }
   },
   sorcier: {
-    nom: "Sorcier", emoji: "🧙", vitesse: 200, images: ["attaque", "en réserve"],
-    imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Lent, mais lance des boules de feu qui suivent l’adversaire.",
+    nom: "Sorcier", emoji: "🧙", vitesse: 200, images: ["attaque", "bouclier"], son2: "bouclier",
+    tailles: { 3: 1.4 }, // l'image du bouclier (cercle de feu) est affichée plus grande
+    imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : 1,
+    desc: "Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes.",
     svg: `<g ${O}>
       <rect x='92' y='34' width='6' height='112' rx='3' fill='#8a5228'/><circle cx='95' cy='30' r='10' fill='#4fc3f7'/>
       <rect x='28' y='72' width='12' height='30' rx='6' fill='#6a4bb5'/>
@@ -234,14 +235,36 @@ const CHARS = {
       <g fill='#f2b134' stroke='none'><circle cx='60' cy='32' r='2.5'/><circle cx='68' cy='40' r='2'/><circle cx='65' cy='18' r='2'/></g>
       <rect x='74' y='74' width='22' height='11' rx='5.5' fill='#6a4bb5'/><circle cx='94' cy='80' r='6' fill='#f0c19a'/></g>`,
     attaque(f, o, g, dt) {
+      // bouclier de feu : prêt 3 s après le début du combat, puis 10 s après chaque explosion
+      f.bouclierCd = (f.bouclierCd ?? 3) - dt;
+      if (!(f.bouclier > 0) && f.bouclierCd <= 0) { f.bouclier = BOUCLIER_PV; son(f, 2); }
+      if (f.bouclier > 0) return; // tant qu'il a son bouclier, il ne lance rien
       f.cd -= dt;
       if (f.cd <= 0 && !cache(o)) {
         f.cd = 2.1; f.attT = 0.5; son(f);
         plusTard(g, latenceSon(f), () => {
-          const a = Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 1.2;
-          g.proj.push({ kind: "feu", homing: true, x: f.x, y: f.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, r: 13, dmg: 14, owner: f, rot: 0 });
+          // part vers l'adversaire et tourne un peu vers lui au début, sans le suivre partout
+          const a = Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 0.5;
+          g.proj.push({ kind: "feu", homing: true, virage: 0.7, guideT: 1, x: f.x, y: f.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, r: 13, dmg: 14, owner: f, rot: 0 });
         });
       }
+    },
+    // les coups vont dans le bouclier ; quand il casse : explosion de feu et zone qui brûle
+    encaisse(f, g, n) {
+      if (!(f.bouclier > 0)) return n;
+      f.bouclier -= n; f.flash = 0.1;
+      if (f.bouclier > 0) return 0;
+      f.bouclier = 0; f.bouclierCd = 10; f.sp = null;
+      const o = g.f.find(x => x !== f);
+      g.boums.push({ x: f.x, y: f.y, t: 0.6 }); g.secousse = 0.35;
+      for (let i = 0; i < 50; i++) {
+        const a = Math.random() * Math.PI * 2, v = 150 + Math.random() * 380;
+        g.parts.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.6 + Math.random() * 0.6, g: 200,
+          forme: i % 2 ? "eclat" : undefined, rot: Math.random() * 6, c: ["#fff3b0", "#ffd23f", "#ff8a2a", "#e0302a"][i % 4] });
+      }
+      g.feux.push({ x: f.x, y: f.y, r: FEU_RAYON, t: FEU_DUREE, owner: f, tic: 0 });
+      if (o && Math.hypot(o.x - f.x, o.y - f.y) < FEU_RAYON + Math.max(o.hw, o.hh) * 0.6) degats(g, o, 18, o.x, o.y - o.hh * 0.3);
+      return 0;
     }
   },
   robot: {
@@ -516,7 +539,8 @@ function majTaille(f) {
   const s = spriteDe(f), c = CHARS[f.type], m = c.sprite;
   if (f.sp === s) return;
   const kDe = x => x === m ? echelle(x) : Math.min(m.th * echelle(m) / x.th, TAILLE_MAX * 1.3 / x.tw);
-  f.sp = s; f.k = kDe(s);
+  const fois = c.tailles && c.imageDe ? c.tailles[c.imageDe(f)] || 1 : 1;
+  f.sp = s; f.k = kDe(s) * (s === m ? 1 : fois);
   f.hw = s.tw * f.k / 2; f.hh = s.th * f.k / 2;
   // image 3+ (ex. « tir » avec l'étincelle) calée sur le dos de l'image 2 : le corps ne bouge pas,
   // seule la partie en plus (l'étincelle) dépasse vers l'avant
@@ -582,11 +606,13 @@ function creerCombattant(type, side) {
 }
 function nouveauJeu(running) {
   arreterBoucles();
-  jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], secousse: 0, running, fin: 0 };
+  jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], feux: [], secousse: 0, running, fin: 0 };
   majHud();
 }
 function degats(g, cible, n, x, y) {
   if (cible.mort) return;
+  const enc = CHARS[cible.type].encaisse;
+  if (enc && cible.bouclier > 0) { n = enc(cible, g, n); if (!n) return; }
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
   const reaction = CHARS[cible.type].quandTouche;
   if (reaction) reaction(cible, g);
@@ -615,6 +641,7 @@ function explosion(g, x, y, cible, dmg, ang) {
   const dx = Math.max(Math.abs(cible.x - x) - cible.hw, 0), dy = Math.max(Math.abs(cible.y - y) - cible.hh, 0);
   if (Math.hypot(dx, dy) < 140) degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3);
 }
+const BOUCLIER_PV = 35, FEU_RAYON = 110, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const RECHARGE = 1.2; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
@@ -690,10 +717,11 @@ function maj(dt) {
   // projectiles (déplacés par petits pas pour ne pas traverser les parties fines)
   g.proj = g.proj.filter(p => {
     const cible = p.owner === a ? b : a;
-    if (p.homing && !cache(cible)) {
+    if (p.guideT !== undefined) p.guideT -= dt;
+    if (p.homing && !cache(cible) && !(p.guideT <= 0)) {
       const cur = Math.atan2(p.vy, p.vx), want = Math.atan2(cible.y - p.y, cible.x - p.x);
       const diff = (((want - cur) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
-      const turn = Math.max(-2.2 * dt, Math.min(2.2 * dt, diff)), sp = Math.hypot(p.vx, p.vy);
+      const v = p.virage || 2.2, turn = Math.max(-v * dt, Math.min(v * dt, diff)), sp = Math.hypot(p.vx, p.vy);
       p.vx = Math.cos(cur + turn) * sp; p.vy = Math.sin(cur + turn) * sp;
     }
     if (p.gravite) p.vy += p.gravite * dt;
@@ -742,6 +770,15 @@ function maj(dt) {
   g.explos = g.explos.filter(e => (e.t -= dt) > 0);
   g.boums = (g.boums || []).filter(e => (e.t -= dt) > 0);
   g.taches = g.taches.filter(e => (e.t -= dt) > 0);
+  // zones de feu du Sorcier : brûlent l'adversaire qui passe dedans
+  g.feux = g.feux.filter(z => {
+    z.t -= dt; z.tic -= dt;
+    const o = g.f.find(x => x !== z.owner);
+    if (g.running && o && z.tic <= 0 && Math.hypot(o.x - z.x, o.y - z.y) < z.r + Math.max(o.hw, o.hh) * 0.4) {
+      z.tic = 0.5; degats(g, o, 3, o.x, o.y - o.hh * 0.3);
+    }
+    return z.t > 0;
+  });
   g.secousse = Math.max(0, g.secousse - dt);
 
   if (g.running && (a.hp <= 0 || b.hp <= 0)) {
@@ -779,6 +816,19 @@ function dessiner() {
   ctx.fillStyle = couleurs.arena; ctx.fillRect(-30, -30, W + 60, W + 60);
   ctx.strokeStyle = couleurs["arena-line"]; ctx.lineWidth = 8; ctx.strokeRect(4, 4, W - 8, W - 8);
 
+  for (const z of g.feux) { // feu au sol laissé par le bouclier du Sorcier
+    const al = Math.min(1, z.t / 0.6), tt = performance.now() / 1000;
+    const gr = ctx.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.r);
+    gr.addColorStop(0, `rgba(255,140,40,${0.65 * al})`); gr.addColorStop(0.7, `rgba(230,70,20,${0.45 * al})`); gr.addColorStop(1, "rgba(200,40,10,0)");
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.fill();
+    for (let i = 0; i < 14; i++) { // petites flammes qui dansent
+      const a = i * 2.39 + tt * 0.3, d = z.r * (0.2 + 0.7 * ((i * 0.37) % 1)), h = 24 + 12 * Math.sin(tt * 9 + i * 1.7);
+      const fx = z.x + Math.cos(a) * d, fy = z.y + Math.sin(a) * d * 0.8;
+      ctx.globalAlpha = al * 0.9; ctx.fillStyle = i % 3 ? "#ff8a2a" : "#ffd23f";
+      ctx.beginPath(); ctx.moveTo(fx - 8, fy); ctx.quadraticCurveTo(fx - 7, fy - h * 0.6, fx, fy - h); ctx.quadraticCurveTo(fx + 7, fy - h * 0.6, fx + 8, fy); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
   for (const tc of g.taches) { // tâches sombres laissées par les explosions
     ctx.globalAlpha = Math.min(0.35, tc.t / 4 * 0.35);
     ctx.fillStyle = "#3a1240"; goutte(ctx, tc.x, tc.y, 55, tc.rot);
@@ -830,6 +880,11 @@ function dessiner() {
       const bw = 76, bx = f.x - bw / 2, by = f.y - f.hh - 18;
       ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(bx - 2, by - 2, bw + 4, 12);
       ctx.fillStyle = f.etat === "furie" ? "#e0302a" : "#ffd23f"; ctx.fillRect(bx, by, bw * f.jauge, 8);
+    }
+    if (f.bouclier > 0) { // solidité du bouclier de feu
+      const bw = 60, bx = f.x - bw / 2, by = f.y - f.hh - 14;
+      ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(bx - 2, by - 2, bw + 4, 10);
+      ctx.fillStyle = "#ff8a2a"; ctx.fillRect(bx, by, bw * f.bouclier / BOUCLIER_PV, 6);
     }
     if (f.recharge > 0 && f.cd > 0 && !f.burst) { // barre de rechargement du Cowboy, qui se vide
       const bw = 60, bx = f.x - bw / 2, by = f.y - f.hh - 14;
@@ -1554,7 +1609,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.0.2", NOTES = "Les persos ne restent plus coincés à aller que tout droit après un choc.";
+const VERSION = "1.1.0", NOTES = "Rework du Sorcier : boules de feu moins téléguidées et bouclier de feu qui explose.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

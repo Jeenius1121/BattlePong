@@ -1,1 +1,1 @@
-{"version": "1.4.12", "notes": "Smoker : son 4 quand sa langue est coupée."}
+{"version": "1.4.13", "notes": "Smoker : correction du perso qui restait figé après une langue coupée, et il lâche prise s’il est touché."}

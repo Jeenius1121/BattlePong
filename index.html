@@ -166,7 +166,14 @@ const CHARS = {
     nom: "Cowboy", emoji: "🤠", vitesse: 230, images: ["visée", "tir"], sonNom: "tirs", son2: "rechargement",
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     imageDe: f => f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Tire une rafale de 6 balles quand l’adversaire passe sur le côté.",
+    desc: "Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge.",
+    // moments des 6 balles : calés sur les 6 coups du son de tir s'il y en a un, sinon rafale rapide
+    horaires(f) {
+      const s = sons.cowboy, lat = latenceSon(f);
+      if (s && s.coups.length >= 6) return s.coups.slice(0, 6).map(t => lat + t);
+      if (s && s.buffer.duration > 0.6) return [0, 1, 2, 3, 4, 5].map(i => lat + i * s.buffer.duration / 6);
+      return [0, 1, 2, 3, 4, 5].map(i => lat + i * 0.09);
+    },
     svg: `<g ${O}>
       <rect x='42' y='106' width='15' height='32' fill='#3b5aa8'/><rect x='62' y='106' width='15' height='32' fill='#3b5aa8'/>
       <path d='M40 134h18v12H34v-4z' fill='#6b3d1f'/><path d='M61 134h18l5 8v4H61z' fill='#6b3d1f'/>
@@ -184,17 +191,21 @@ const CHARS = {
     attaque(f, o, g, dt) {
       f.cd -= dt;
       if (f.burst > 0) {
-        f.burstT -= dt;
-        if (f.burstT <= 0) {
-          f.burst--; f.burstT = 0.09; f.muzzle = 0.06;
+        f.burstT += dt;
+        if (f.burstT >= f.horaires[6 - f.burst]) {
+          f.burst--; f.muzzle = 0.06;
           // la balle part du bout du pistolet de l'image affichée
           f.face = f.dir; majTaille(f);
           const c0 = canonMonde(f);
           g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * 1200, vy: 0, r: 4, dmg: 5, owner: f, rot: 0 });
-          if (f.burst === 0) son(f, 2); // rechargement juste après la 6e balle
+          if (f.burst === 0) { // rechargement juste après la 6e balle : il ne retire qu'une fois fini
+            son(f, 2);
+            const r = sons["cowboy-2"];
+            f.cd = Math.max(0.85, r ? r.buffer.duration : 0);
+          }
         }
       } else if (f.cd <= 0 && !cache(o) && Math.abs(o.y - f.y) < o.hh * 0.8) {
-        f.burst = 6; f.burstT = latenceSon(f); f.dir = Math.sign(o.x - f.x) || 1; f.cd = 1.3; son(f);
+        f.burst = 6; f.burstT = 0; f.horaires = this.horaires(f); f.dir = Math.sign(o.x - f.x) || 1; son(f);
       }
     }
   },
@@ -1149,9 +1160,11 @@ function bornesSon(buf) {
     if (rms[w] > pic) pic = rms[w];
   }
   if (pic < 0.003) return [0, buf.duration];
-  const seuil = Math.max(0.01, pic * 0.12);
+  // début : on coupe tout ce qui est en dessous du vrai départ du son ;
+  // fin : on ne coupe que le vrai silence (les sons qui s'éteignent doucement restent entiers)
+  const seuil = Math.max(0.01, pic * 0.12), seuilFin = Math.max(0.002, pic * 0.01);
   let a = 0; while (a < nb && rms[a] < seuil) a++;
-  let b = nb - 1; while (b > a && rms[b] < seuil) b--;
+  let b = nb - 1; while (b > a && rms[b] < seuilFin) b--;
   return [Math.max(0, (a - 3) * win) / buf.sampleRate, Math.min(n, (b + 8) * win) / buf.sampleRate];
 }
 function versWav(buf) {
@@ -1172,7 +1185,24 @@ function versB64(u8) {
 function depuisB64(b) { const t = atob(b), u = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) u[i] = t.charCodeAt(i); return u; }
 async function chargerSon(id, blob, nom) {
   const buffer = await preparerSon(await blob.arrayBuffer(), sonMax(id));
-  sons[id] = { buffer, nom, wav: versWav(buffer) };
+  sons[id] = { buffer, nom, wav: versWav(buffer), coups: detecterCoups(buffer) };
+}
+// instants (en secondes) où un nouveau bruit fort commence : sert à caler les balles du Cowboy sur son son
+function detecterCoups(buf) {
+  const d = buf.getChannelData(0), win = Math.max(1, Math.round(buf.sampleRate * 0.01)), nb = Math.ceil(d.length / win), rms = [];
+  let pic = 0;
+  for (let w = 0; w < nb; w++) {
+    let s = 0, k = 0;
+    for (let i = w * win; i < Math.min(d.length, (w + 1) * win); i++) { s += d[i] * d[i]; k++; }
+    rms.push(Math.sqrt(s / Math.max(1, k))); pic = Math.max(pic, rms[w]);
+  }
+  const out = [];
+  let arme = true, dernier = -99;
+  for (let w = 0; w < nb; w++) {
+    if (arme && rms[w] >= pic * 0.35 && w - dernier >= 8) { out.push(w * win / buf.sampleRate); dernier = w; arme = false; }
+    else if (rms[w] < pic * 0.15) arme = true;
+  }
+  return out;
 }
 function clesSon(id) { return CHARS[id] && CHARS[id].son2 ? [id, id + "-2"] : [id]; }
 function majInfoSon(cle) {

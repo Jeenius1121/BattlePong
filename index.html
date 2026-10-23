@@ -499,7 +499,13 @@ const CHARS = {
 };
 
 /* ===== IMAGES ===== */
-const TAILLE = 150; // plus grande dimension d'un perso dans l'arène
+// tous les persos ont à peu près la même surface visible : un perso fin est plus grand,
+// un perso large un peu plus petit, sans dépasser TAILLE_MAX dans un sens ou l'autre
+const AIRE = 6500, TAILLE_MAX = 200;
+function echelle(s) {
+  if (!s.aire) s.aire = s.mask.reduce((a, v) => a + v, 0) || s.tw * s.th;
+  return Math.min(TAILLE_MAX / Math.max(s.tw, s.th), Math.sqrt(AIRE / s.aire));
+}
 function svgUrl(inner) {
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
     `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 150' width='240' height='300'>${inner}</svg>`);
@@ -567,7 +573,7 @@ function spriteDe(f) { const c = CHARS[f.type]; return f.etat === "furie" && c.s
 function majTaille(f) {
   const s = spriteDe(f);
   if (f.sp === s) return;
-  f.sp = s; f.k = TAILLE / Math.max(s.tw, s.th); f.hw = s.tw * f.k / 2; f.hh = s.th * f.k / 2;
+  f.sp = s; f.k = echelle(s); f.hw = s.tw * f.k / 2; f.hh = s.th * f.k / 2;
 }
 function persoDe(cle) { return cle.replace(/-2$/, ""); }
 function clesImage(id) { return CHARS[id].img2 ? [id, id + "-2"] : [id]; }
@@ -615,7 +621,7 @@ function angleAleatoire() {
   return a;
 }
 function creerCombattant(type, side) {
-  const s = CHARS[type].sprite, k = TAILLE / Math.max(s.tw, s.th), a = angleAleatoire();
+  const s = CHARS[type].sprite, k = echelle(s), a = angleAleatoire();
   const f = { type, side, k, hw: s.tw * k / 2, hh: s.th * k / 2, x: side ? 440 : 160, y: 300,
     vx: Math.cos(a), vy: Math.sin(a), hp: 100, face: side ? -1 : 1,
     cd: 0.4 + Math.random() * 0.6, flash: 0, burst: 0, burstT: 0, dir: 1, muzzle: 0, punchT: 0, punchAng: 0, wob: Math.random() * 10 };

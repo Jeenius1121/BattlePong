@@ -450,9 +450,9 @@ const CHARS = {
   rodeur: {
     // relâché par le Smoker : sa musique de furie (ou de traque) reprend là où elle s'était coupée
     reprendre(f) { if (f.etat === "furie") son(f, 1, true, true); else if (f.etat === "stalk") son(f, 2, true, true); },
-    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], sonLong: true, son2: "traque", sonNom: "furie",
+    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], reduction: 0.2, sonLong: true, son2: "traque", sonNom: "furie",
     imageDe: f => f.etat === "furie" ? 2 : 1,
-    desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. Il réapparaît toujours dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
+    desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. Pendant la traque et la furie, il prend 20 % de dégâts en moins. Il réapparaît toujours dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
     svg: `<g ${O}>
       <rect x='46' y='118' width='11' height='22' fill='#2b2b30'/><rect x='63' y='118' width='11' height='22' fill='#2b2b30'/>
       <rect x='42' y='136' width='17' height='8' rx='2' fill='#151518'/><rect x='61' y='136' width='17' height='8' rx='2' fill='#151518'/>
@@ -764,6 +764,8 @@ function degats(g, cible, n, x, y) {
   if (cible.mort) return;
   const c = CHARS[cible.type];
   if (c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
+  // Myers encaisse moins pendant sa traque et sa furie (arrondi, 1 dégât minimum)
+  if (c.reduction && (cible.etat === "furie" || cible.etat === "stalk")) n = Math.max(1, Math.round(n * (1 - c.reduction)));
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
   const reaction = CHARS[cible.type].quandTouche;
   if (reaction) reaction(cible, g);
@@ -2007,7 +2009,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.14", NOTES = "Myers : jauge en 3 s et coups toutes les 0,9 s. Sorcier : boules de feu à 12.";
+const VERSION = "1.4.15", NOTES = "Myers prend 20 % de dégâts en moins pendant sa traque et sa furie.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

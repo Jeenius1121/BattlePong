@@ -423,7 +423,7 @@ const CHARS = {
     }
   },
   rodeur: {
-    nom: "Myers", emoji: "🔪", vitesse: 240,
+    nom: "Myers", emoji: "🔪", vitesse: 240, img2: "furie",
     desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. S’il réapparaît trop près, il se téléporte dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
     svg: `<g ${O}>
       <rect x='46' y='118' width='11' height='22' fill='#2b2b30'/><rect x='63' y='118' width='11' height='22' fill='#2b2b30'/>
@@ -561,6 +561,16 @@ function normaliser(f) {
 }
 // l'adversaire est-il invisible (Myers qui rôde) ? Personne ne peut alors le viser
 function cache(o) { return o.etat === "rode"; }
+// image affichée : Myers a une image à part pour la furie (sinon son image normale)
+function spriteDe(f) { const c = CHARS[f.type]; return f.etat === "furie" && c.sprite2 ? c.sprite2 : c.sprite; }
+// adapte la taille et la zone de touche quand l'image affichée change
+function majTaille(f) {
+  const s = spriteDe(f);
+  if (f.sp === s) return;
+  f.sp = s; f.k = TAILLE / Math.max(s.tw, s.th); f.hw = s.tw * f.k / 2; f.hh = s.th * f.k / 2;
+}
+function persoDe(cle) { return cle.replace(/-2$/, ""); }
+function clesImage(id) { return CHARS[id].img2 ? [id, id + "-2"] : [id]; }
 // distance entre les bords des deux personnages (négatif = ils se chevauchent)
 function ecart(a, b) {
   return Math.max(Math.abs(b.x - a.x) - (a.hw + b.hw), Math.abs(b.y - a.y) - (a.hh + b.hh));
@@ -572,7 +582,7 @@ function touche(f, px, py, pr) {
     px = f.x + c * dx + sn * dy; py = f.y - sn * dx + c * dy;
   }
   if (Math.abs(px - f.x) > f.hw + pr || Math.abs(py - f.y) > f.hh + pr) return false;
-  const s = CHARS[f.type].sprite;
+  const s = spriteDe(f);
   for (const [ox, oy] of [[0, 0], [pr, 0], [-pr, 0], [0, pr], [0, -pr]]) {
     let lx = (px + ox - (f.x - f.hw)) / f.k, ly = (py + oy - (f.y - f.hh)) / f.k;
     if (f.face < 0) lx = s.tw - 1 - lx;
@@ -660,6 +670,7 @@ function maj(dt) {
   prets.forEach(fn => fn());
   for (const [f, o] of [[a, b], [b, a]]) {
     CHARS[f.type].attaque(f, o, g, dt);
+    majTaille(f);
     const lenteur = f.lent > 0 ? 0.5 : 1;
     f.lent = Math.max(0, (f.lent || 0) - dt);
     f.x += f.vx * dt * lenteur; f.y += f.vy * dt * lenteur;
@@ -794,7 +805,7 @@ function dessiner() {
     }
   }
   for (const f of g.f) {
-    const s = CHARS[f.type].sprite;
+    const s = spriteDe(f);
     ctx.save(); ctx.translate(f.x, f.y);
     ctx.globalAlpha = 0.55 * (f.vis ?? 1); ctx.fillStyle = f.side ? couleurs.droite : couleurs.gauche;
     ctx.beginPath(); ctx.ellipse(0, f.hh - 4, f.hw * 0.75, 8, 0, 0, 7); ctx.fill();
@@ -810,7 +821,7 @@ function dessiner() {
     if (f.etat === "furie") { ctx.shadowColor = "rgba(220,30,30,.85)"; ctx.shadowBlur = 20; }
     ctx.drawImage(s.img, -f.hw, -f.hh, f.hw * 2, f.hh * 2);
     ctx.shadowBlur = 0;
-    if (f.etat === "furie") { // couteau qui frappe
+    if (f.etat === "furie" && !CHARS[f.type].sprite2) { // couteau qui frappe (sauf si une image de furie est fournie)
       const swing = f.coupT > 0 ? 1.6 * (1 - f.coupT / 0.15) : 0;
       ctx.save(); ctx.translate(f.hw * 0.55, f.hh * 0.1); ctx.rotate(-0.9 + swing);
       ctx.fillStyle = "#3d2f20"; ctx.fillRect(-4, -2, 8, 16);
@@ -973,10 +984,17 @@ function majVignettes(id) {
   if (r) {
     r.querySelector(".reset").hidden = !CHARS[id].perso;
     r.querySelector("small").textContent = CHARS[id].perso ? "Image perso" : "Image par défaut";
+    if (CHARS[id].img2) {
+      r.querySelector(".img2Info").textContent = "Image 2 (" + CHARS[id].img2 + ") : " + (CHARS[id].perso2 ? "perso" : "aucune (image normale)");
+      r.querySelector(".delImg2").hidden = !CHARS[id].perso2;
+    }
   }
 }
-function appliquerSprite(id, sprite, perso) {
-  CHARS[id].sprite = sprite; CHARS[id].perso = perso;
+// cle = id du perso, ou id + "-2" pour sa deuxième image (sprite null = pas de deuxième image)
+function appliquerSprite(cle, sprite, perso) {
+  const id = persoDe(cle), c = CHARS[id];
+  if (cle !== id) { c.sprite2 = sprite; c.perso2 = perso; }
+  else { c.sprite = sprite; c.perso = perso; }
   majVignettes(id);
   if (!jeu || !jeu.running) { document.getElementById("overlay").classList.remove("show"); nouveauJeu(false); dessiner(); }
 }
@@ -1006,10 +1024,11 @@ function construireUI() {
     const r = document.createElement("div");
     r.className = "row"; r.dataset.id = id;
     r.innerHTML = `<img class="thumb" alt="" data-id="${id}" src="${c.sprite.url}">
-      <div class="nm">${c.nom}<small></small><small class="sonInfo">Son : aucun</small>${c.son2 ? '<small class="sonInfo2"></small>' : ""}</div>
+      <div class="nm">${c.nom}<small></small>${c.img2 ? '<small class="img2Info"></small>' : ""}<small class="sonInfo">Son : aucun</small>${c.son2 ? '<small class="sonInfo2"></small>' : ""}</div>
       <div class="btns">
         <button class="small pick" type="button">Image</button>
         <button class="small reset" type="button">Image par défaut</button>
+        ${c.img2 ? `<button class="small pickImg2" type="button">Image 2 (${c.img2})</button><button class="small delImg2" type="button" hidden>Retirer l’image 2</button>` : ""}
         <button class="small pickSon" type="button">Son</button>
         <button class="small micSon" type="button">Micro</button>
         <button class="small delSon" type="button" hidden>Retirer le son</button>
@@ -1017,22 +1036,37 @@ function construireUI() {
       </div>
       <input type="file" class="fSon2" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm" aria-label="Choisir le son 2 de ${c.nom}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
       <input type="file" class="fImg" accept="image/*" aria-label="Changer l’image de ${c.nom}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+      <input type="file" class="fImg2" accept="image/*" aria-label="Changer l’image 2 de ${c.nom}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
       <input type="file" class="fSon" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm" aria-label="Choisir le son de ${c.nom}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">`;
     r.querySelector(".pick").addEventListener("click", () => {
       const inp = r.querySelector(".fImg");
       if (typeof inp.showPicker === "function") { try { inp.showPicker(); return; } catch (err) {} }
       inp.click();
     });
-    r.querySelector(".fImg").addEventListener("change", async e => {
+    const lireImage = cle => async e => {
       const file = e.target.files[0]; e.target.value = "";
       if (!file) return;
       try {
         const url = await new Promise((ok, ko) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = ko; fr.readAsDataURL(file); });
-        ouvrirEditeur(id, await chargerImage(url));
+        ouvrirEditeur(cle, await chargerImage(url));
       } catch (err) {
         r.querySelector("small").textContent = "Ce fichier n’a pas pu être lu. Essaie un PNG ou un JPG.";
       }
-    });
+    };
+    r.querySelector(".fImg").addEventListener("change", lireImage(id));
+    if (c.img2) {
+      const f2 = r.querySelector(".fImg2"), cle2 = id + "-2";
+      r.querySelector(".pickImg2").addEventListener("click", () => {
+        if (typeof f2.showPicker === "function") { try { f2.showPicker(); return; } catch (err) {} }
+        f2.click();
+      });
+      f2.addEventListener("change", lireImage(cle2));
+      r.querySelector(".delImg2").addEventListener("click", () => {
+        try { localStorage.removeItem("duel-img:" + cle2); } catch (err) {}
+        nuageEcrire("images/" + cle2, null);
+        appliquerSprite(cle2, null, false);
+      });
+    }
     r.querySelector(".reset").addEventListener("click", async () => {
       try { localStorage.removeItem("duel-img:" + id); } catch (err) {}
       nuageEcrire("images/" + id, null);
@@ -1346,17 +1380,18 @@ async function brancherNuage() {
   let migre = false, echec = false;
   try { migre = localStorage.getItem("duel-migre") === "1"; } catch (e) {}
   for (const [id, c] of Object.entries(CHARS)) {
-    try {
-      const im = await db.doc("images/" + id).get();
+    for (const k of clesImage(id)) try {
+      const deux = k !== id, perso = deux ? c.perso2 : c.perso;
+      const im = await db.doc("images/" + k).get();
       if (im.exists && im.data().url) {
-        appliquerSprite(id, traiter(await chargerImage(im.data().url)), true);
-        try { localStorage.setItem("duel-img:" + id, im.data().url); } catch (e) {}
-      } else if (nuage && c.perso && !migre) {
-        if (!await nuageEcrire("images/" + id, { url: urlCompacte(c.sprite) })) echec = true;
-      } else if (c.perso && (nuage || !proprio)) {
+        appliquerSprite(k, traiter(await chargerImage(im.data().url)), true);
+        try { localStorage.setItem("duel-img:" + k, im.data().url); } catch (e) {}
+      } else if (nuage && perso && !migre) {
+        if (!await nuageEcrire("images/" + k, { url: urlCompacte(deux ? c.sprite2 : c.sprite) })) echec = true;
+      } else if (perso && (nuage || !proprio)) {
         // l'image a été retirée en ligne : on revient au dessin par défaut
-        try { localStorage.removeItem("duel-img:" + id); } catch (e) {}
-        appliquerSprite(id, traiter(await chargerImage(svgUrl(c.svg))), false);
+        try { localStorage.removeItem("duel-img:" + k); } catch (e) {}
+        appliquerSprite(k, deux ? null : traiter(await chargerImage(svgUrl(c.svg))), false);
       }
     } catch (e) { echec = true; }
     for (const k of clesSon(id)) try {
@@ -1382,7 +1417,7 @@ function enregistrer(id, sprite) {
   let sauve = true;
   try { localStorage.setItem("duel-img:" + id, sprite.url); } catch (err) { sauve = false; }
   appliquerSprite(id, sprite, true);
-  if (!sauve) document.querySelector(`.row[data-id="${id}"] small`).textContent = "Image perso (pour cette session seulement)";
+  if (!sauve) document.querySelector(`.row[data-id="${persoDe(id)}"] small`).textContent = "Image perso (pour cette session seulement)";
 }
 
 /* ===== DÉTOURAGE AUTOMATIQUE =====
@@ -1456,7 +1491,7 @@ function ouvrirEditeur(id, img) {
   const f = couleurFond(ed.orig.data, w, h);
   ed.fond = f.ref; edOn.checked = !f.transparent;
   document.getElementById("edSwatch").style.background = `rgb(${f.ref.map(Math.round).join(",")})`;
-  document.getElementById("edTitre").textContent = "Image de " + CHARS[id].nom;
+  document.getElementById("edTitre").textContent = "Image de " + CHARS[persoDe(id)].nom + (id !== persoDe(id) ? " (" + CHARS[persoDe(id)].img2 + ")" : "");
   edEl.hidden = false;
   rendreEditeur();
   edEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -1482,6 +1517,11 @@ async function init() {
     try { src = localStorage.getItem("duel-img:" + id); } catch (e) {}
     try { c.sprite = traiter(await chargerImage(src || svgUrl(c.svg))); c.perso = !!src; }
     catch (e) { c.sprite = traiter(await chargerImage(svgUrl(c.svg))); c.perso = false; }
+    if (c.img2) {
+      let src2 = null;
+      try { src2 = localStorage.getItem("duel-img:" + id + "-2"); } catch (e) {}
+      try { if (src2) { c.sprite2 = traiter(await chargerImage(src2)); c.perso2 = true; } } catch (e) {}
+    }
   }
   for (const id of Object.keys(CHARS)) for (const k of clesSon(id)) {
     try { const v = await bddGet(k); if (v && v.blob) await chargerSon(k, v.blob, v.nom); } catch (e) {}

@@ -518,12 +518,12 @@ const CHARS = {
     }
   },
   smoker: {
-    nom: "Smoker", emoji: "👅", vitesse: 215, images: ["coup", "langue"], sonNom: "coup", son2: "langue",
+    nom: "Smoker", emoji: "👅", vitesse: 215, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement",
     // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 4 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 2 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe.",
+    desc: "Frappe au corps à corps. Toutes les 5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -545,7 +545,7 @@ const CHARS = {
           f.cd = 0.45; f.attT = 0.15; son(f);
           degats(g, o, 6, (f.x + o.x) / 2, (f.y + o.y) / 2);
         }
-        f.langueCd = (f.langueCd ?? 2.5) - dt;
+        f.langueCd = (f.langueCd ?? 3.5) - dt;
         if (f.langueCd <= 0 && !cache(o)) { // il tire sa langue
           f.face = o.x >= f.x ? 1 : -1;
           const m = bouche(f);
@@ -568,10 +568,10 @@ const CHARS = {
       } else if (L.etat === "attire") { // il ramène l'adversaire contre lui
         const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy) || 1;
         if (ecart(f, o) > 2) { const pas = Math.min(d, 420 * dt); o.x += dx / d * pas; o.y += dy / d * pas; }
-        else { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; }
+        else { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; son(f, 3, true); } // musique d'étranglement en boucle
       } else if (L.etat === "etreinte") { // 2 s d'étranglement : la langue serre, l'adversaire perd des PV par à-coups
         L.t -= dt; L.coup -= dt;
-        if (L.coup <= 0) { L.coup = 0.25; L.serre = 0.18; degats(g, o, 4, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
+        if (L.coup <= 0) { L.coup = 0.5; L.serre = 0.18; degats(g, o, 4, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
         L.serre = Math.max(0, (L.serre || 0) - dt);
         if (L.t <= 0) { // il le relâche un peu plus loin
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -784,7 +784,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== LANGUE DU SMOKER ===== */
-const LANGUE_CD = 4, LANGUE_VITESSE = 750, ETREINTE_DUREE = 2;
+const LANGUE_CD = 5, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4;
 // bouche du Smoker : point réglé sur son image 3 s'il en a une, sinon le haut du perso vers l'avant
 function bouche(f) {
   const c = CHARS[f.type], s3 = c.spr && c.spr[3];
@@ -802,7 +802,7 @@ function boutLangue(f, o) { const L = f.langue; return L.etat === "attire" || L.
 // relâche l'adversaire attrapé, éventuellement en le projetant dans la direction (ux, uy)
 function liberer(o, f, ux, uy) {
   if (o.capture !== f) return;
-  o.capture = null;
+  o.capture = null; arreterSon(f, 3); // fin de la musique d'étranglement
   if (ux !== undefined) { o.recul = 0.35; o.rvx = ux * 700; o.rvy = uy * 700; o.vx = ux; o.vy = uy; }
   normaliser(o); redresser(o);
 }
@@ -1425,7 +1425,7 @@ function construireUI() {
     const sns = clesSon(id).map((cle, i) => `
       <div class="slot" data-son="${cle}">
         <div class="sthumb sicone" aria-hidden="true">🔊</div>
-        <div class="sinfo"><b>Son ${i + 1}</b> · ${i ? c.son2 : c.sonNom || "attaque"}<small></small></div>
+        <div class="sinfo"><b>Son ${numImage(cle)}</b> · ${nomSon(id, numImage(cle))}<small></small></div>
         <div class="sact">
           <button class="small ecoute" type="button" aria-label="Écouter">▶</button>
           <button class="small change" type="button">Fichier</button>
@@ -1458,7 +1458,7 @@ function construireUI() {
       });
     });
     carte.querySelectorAll("[data-son]").forEach(sl => {
-      const cle = sl.dataset.son, inp = sl.querySelector("input"), n = cle === id ? 1 : 2;
+      const cle = sl.dataset.son, inp = sl.querySelector("input"), n = numImage(cle);
       sl.querySelector(".change").addEventListener("click", () => { contexteAudio(); ouvrir(inp); });
       inp.addEventListener("change", async e => {
         const file = e.target.files[0]; e.target.value = "";
@@ -1468,7 +1468,7 @@ function construireUI() {
       });
       sl.querySelector(".ecoute").addEventListener("click", () => { contexteAudio(); son({ type: cle, side: 9 }); });
       sl.querySelector(".del").addEventListener("click", () => {
-        if (!confirm("Retirer le son " + n + " (" + (n > 1 ? c.son2 : c.sonNom || "attaque") + ") de " + c.nom + " ?")) return;
+        if (!confirm("Retirer le son " + n + " (" + nomSon(id, n) + ") de " + c.nom + " ?")) return;
         retirerSon(cle);
       });
     });
@@ -1522,13 +1522,13 @@ function contexteAudio() {
 /* Le haut-parleur a toujours un petit retard (souvent 0,1 à 0,2 s sur téléphone).
    On lance donc le son tout de suite et on fait sortir l'attaque juste après ce retard. */
 function latenceSon(f, n) {
-  if (!sonsActifs || !sons[n === 2 ? f.type + "-2" : f.type] || !audioCtx) return 0;
+  if (!sonsActifs || !sons[cleSon(f.type, n)] || !audioCtx) return 0;
   const l = (audioCtx.baseLatency || 0) + (audioCtx.outputLatency || 0);
   return (l > 0.01 ? l : 0.1) * vitesseJeu;
 }
 function plusTard(g, t, fn) { if (t <= 0) fn(); else g.retards.push({ t, fn }); }
 function son(f, n, boucle) {
-  const k = n === 2 ? f.type + "-2" : f.type, s = sons[k];
+  const k = cleSon(f.type, n), s = sons[k];
   if (!sonsActifs || !s || !audioCtx) return;
   if (audioCtx.state === "suspended") audioCtx.resume();
   const cle = k + f.side;
@@ -1541,7 +1541,7 @@ function son(f, n, boucle) {
   src.start(); enCours[cle] = src;
 }
 // coupe tous les sons en cours d'un perso (attrapé par le Smoker, ou mort)
-function arreterSons(f) { arreterSon(f); arreterSon(f, 2); }
+function arreterSons(f) { arreterSon(f); arreterSon(f, 2); arreterSon(f, 3); }
 // sons communs à tous : un fichier perso s'il y en a un, sinon un son fabriqué par le jeu
 const SONS_GENERAUX = { explosion: "Explosion (perso mort)" };
 function jouerGeneral(cle) {
@@ -1557,7 +1557,7 @@ function jouerGeneral(cle) {
   }
 }
 function arreterSon(f, n) {
-  const cle = (n === 2 ? f.type + "-2" : f.type) + f.side;
+  const cle = cleSon(f.type, n) + f.side;
   try { enCours[cle] && enCours[cle].stop(); } catch (e) {}
   delete enCours[cle];
 }
@@ -1646,7 +1646,10 @@ function detecterCoups(buf) {
   }
   return out;
 }
-function clesSon(id) { return CHARS[id] && CHARS[id].son2 ? [id, id + "-2"] : [id]; }
+// sons d'un perso : le son 1 sous son id, les sons 2 et 3 (son2, son3) sous id + "-2" et id + "-3"
+function clesSon(id) { const c = CHARS[id]; return !c ? [id] : [id, ...(c.son2 ? [id + "-2"] : []), ...(c.son3 ? [id + "-3"] : [])]; }
+function nomSon(id, n) { const c = CHARS[id]; return n === 3 ? c.son3 : n === 2 ? c.son2 : c.sonNom || "attaque"; }
+const cleSon = (type, n) => n > 1 ? type + "-" + n : type;
 function majInfoSon(cle) {
   const sl = document.querySelector(`[data-son="${cle}"]`);
   if (!sl) return;
@@ -1654,7 +1657,7 @@ function majInfoSon(cle) {
   sl.querySelector("small").textContent = sons[cle] ? sons[cle].nom : general ? "Son par défaut" : "Aucun son";
   sl.querySelector(".del").hidden = !sons[cle];
   sl.querySelector(".ecoute").hidden = !sons[cle] && !general;
-  majResume(cle.replace(/-2$/, ""));
+  majResume(persoDe(cle));
 }
 async function definirSon(id, blob, nom) {
   await chargerSon(id, blob, nom);
@@ -1972,7 +1975,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.7", NOTES = "Smoker : la langue part de sa bouche, et il étrangle au lieu de frapper.";
+const VERSION = "1.4.8", NOTES = "Smoker : son 3 pendant l’étranglement, étranglement de 4 s (mêmes dégâts au total), langue toutes les 5 s.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

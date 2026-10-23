@@ -509,9 +509,9 @@ const CHARS = {
         f.vx = vx / n * sp; f.vy = vy / n * sp;
         f.cd -= dt;
         if (f.cd <= 0 && !cache(o) && ecart(f, o) < 30) {
-          f.cd = 0.9; f.coupT = 0.15; // petit temps de recharge entre deux coups de couteau
+          f.cd = 1; f.coupT = 0.15; // petit temps de recharge entre deux coups de couteau
           const ex = o.x - f.x, ey = o.y - f.y, ed = Math.hypot(ex, ey) || 1;
-          degats(g, o, 13, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
+          degats(g, o, 15, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
         }
         if (f.jauge <= 0) { f.jauge = 0; f.etat = "rode"; arreterSon(f); f.etatT = 2.5 + Math.random() * 1.5; normaliser(f); }
       }
@@ -1956,7 +1956,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.3", NOTES = "L’Inconnu : explosion à 22 et tir toutes les 2,5 s. Myers : furie de 7 s à 13 par coup.";
+const VERSION = "1.4.4", NOTES = "Myers : 15 dégâts par coup de couteau, 1 s entre deux coups.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

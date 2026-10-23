@@ -525,7 +525,7 @@ const CHARS = {
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire ou ramène sa langue, il lâche prise.",
+    desc: "Frappe au corps à corps. Toutes les 4 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire ou ramène sa langue, il lâche prise.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -798,7 +798,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== LANGUE DU SMOKER ===== */
-const LANGUE_CD = 5, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625;
+const LANGUE_CD = 4, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625;
 // bouche du Smoker : point réglé sur son image 3 s'il en a une, sinon le haut du perso vers l'avant
 function bouche(f) {
   const c = CHARS[f.type], s3 = c.spr && c.spr[3];
@@ -2011,7 +2011,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.5.1", NOTES = "Myers en furie tranche la langue du Smoker.";
+const VERSION = "1.5.2", NOTES = "Smoker : il tire sa langue toutes les 4 s.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

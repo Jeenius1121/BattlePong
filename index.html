@@ -437,7 +437,7 @@ const CHARS = {
       // tir de mortier : part vers le haut, retombe avec la gravité en passant par l'adversaire
       f.cd -= dt;
       if (f.cd <= 0 && !cache(o)) {
-        f.cd = 2; f.attT = 0.5; son(f);
+        f.cd = 2.5; f.attT = 0.5; son(f);
         plusTard(g, latenceSon(f), () => {
           const G = 900, x0 = f.x, y0 = f.y - f.hh * 0.3;
           const dx = o.x - x0, dy = o.y - y0, T = 0.55 + Math.hypot(dx, dy) / 650;
@@ -500,7 +500,7 @@ const CHARS = {
           f.vx = dx / d; f.vy = dy / d;
         }
       } else { // furie : couteau sorti, plus rapide, fonce sur l'adversaire
-        f.jauge -= dt / 6; // la furie dure 6 s
+        f.jauge -= dt / 7; // la furie dure 7 s
         const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1, k = Math.min(1, dt * 5);
         const n0 = Math.hypot(f.vx, f.vy) || 1;
         let vx = f.vx / n0, vy = f.vy / n0;
@@ -511,7 +511,7 @@ const CHARS = {
         if (f.cd <= 0 && !cache(o) && ecart(f, o) < 30) {
           f.cd = 0.9; f.coupT = 0.15; // petit temps de recharge entre deux coups de couteau
           const ex = o.x - f.x, ey = o.y - f.y, ed = Math.hypot(ex, ey) || 1;
-          degats(g, o, 12, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
+          degats(g, o, 13, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
         }
         if (f.jauge <= 0) { f.jauge = 0; f.etat = "rode"; arreterSon(f); f.etatT = 2.5 + Math.random() * 1.5; normaliser(f); }
       }
@@ -939,7 +939,7 @@ function maj(dt) {
       if (p.kind === "mortier") {
         // côté touché : le dôme de fumée s'ouvre vers l'intérieur de l'arène
         const ang = p.y > W ? -Math.PI / 2 : p.x < 0 ? 0 : p.x > W ? Math.PI : Math.PI / 2;
-        explosion(g, Math.min(W, Math.max(0, p.x)), Math.min(W, Math.max(0, p.y)), cible, 28, ang);
+        explosion(g, Math.min(W, Math.max(0, p.x)), Math.min(W, Math.max(0, p.y)), cible, 22, ang);
       }
       return false;
     }
@@ -1956,7 +1956,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.4.2", NOTES = "Sons coupés quand on est attrapé ou mort, bruit d’explosion à la mort.";
+const VERSION = "1.4.3", NOTES = "L’Inconnu : explosion à 22 et tir toutes les 2,5 s. Myers : furie de 7 s à 13 par coup.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

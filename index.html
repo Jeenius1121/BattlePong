@@ -683,7 +683,7 @@ const CHARS = {
     nom: "Le Titan", emoji: "🛰️", vitesse: 80, pv: 200, taille: 1.2, images: ["tir", "appareil"],
     sonNom: "lancement", son2: "explosion du missile", son3: "appareil détruit",
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Énorme (deux fois plus de PV) mais très lent. Deux petits appareils de 15 PV tournent autour de l’adversaire pour le repérer : tant qu’il en reste un, le Titan fait tomber des missiles du ciel sur lui, d’autant plus précis qu’il a d’appareils. Sans appareil, il ne peut plus attaquer. Un appareil détruit revient au bout de 8 secondes, un par un.",
+    desc: "Énorme (deux fois plus de PV) mais très lent. Deux petits appareils de 25 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Titan fait tomber de gros missiles du ciel sur lui. Sans appareil, il ne peut plus attaquer. Un appareil détruit revient au bout de 8 secondes, un par un.",
     svg: `<g ${O}>
       <rect x='36' y='108' width='20' height='34' rx='4' fill='#4a5160'/><rect x='64' y='108' width='20' height='34' rx='4' fill='#4a5160'/>
       <rect x='30' y='136' width='28' height='9' rx='3' fill='#2a2e38'/><rect x='62' y='136' width='28' height='9' rx='3' fill='#2a2e38'/>
@@ -694,22 +694,20 @@ const CHARS = {
       <rect x='48' y='26' width='24' height='9' rx='4' fill='#1b2033'/><circle cx='60' cy='30' r='3' fill='#ff3b3b' stroke='none'/>
       <path d='M60 16 V6' fill='none'/><circle cx='60' cy='5' r='3' fill='#f2b134'/></g>`,
     attaque(f, o, g, dt) {
-      f.drones ??= [{ a: 0, hp: DRONE_PV }, { a: Math.PI, hp: DRONE_PV }];
-      f.adv = o;
-      for (const d of f.drones) { d.a += dt * 1.6; d.nouveau = Math.max(0, (d.nouveau || 0) - dt); }
+      f.drones ??= [nouvelAppareil(f, 0), nouvelAppareil(f, 1)];
+      for (const d of f.drones) bougerAppareil(f, o, d, dt);
       // un appareil détruit revient au bout de 8 s, un par un
       if (f.drones.length < 2) {
         f.droneT = (f.droneT ?? DRONE_RETOUR) - dt;
-        if (f.droneT <= 0) {
-          f.droneT = DRONE_RETOUR;
-          f.drones.push({ a: f.drones.length ? f.drones[0].a + Math.PI : 0, hp: DRONE_PV, nouveau: 0.6 });
-        }
+        if (f.droneT <= 0) { f.droneT = DRONE_RETOUR; f.drones.push(nouvelAppareil(f, f.drones.length)); }
       } else f.droneT = DRONE_RETOUR;
-      if (!f.drones.length) return; // sans appareil, il est perdu et n'attaque plus
+      // il ne tire que si au moins un appareil a repéré l'adversaire (faisceau rouge)
+      const reperes = f.drones.filter(d => d.repere).length;
       f.cd -= dt;
-      if (f.cd <= 0 && !cache(o, f)) { // missile tiré vers le ciel, qui retombe sur la position de l'adversaire
+      if (reperes && f.cd <= 0) { // missile tiré vers le ciel, qui retombe là où est l'adversaire
         f.cd = MISSILE_CD; f.attT = 0.4; son(f);
-        g.missiles.push({ x: Math.min(W, Math.max(0, o.x + o.vx * MISSILE_DELAI * MISSILE_VISEE * f.drones.length)), y: Math.min(W, Math.max(0, o.y + o.vy * MISSILE_DELAI * MISSILE_VISEE * f.drones.length)), t: MISSILE_DELAI, owner: f });
+        const k = MISSILE_DELAI * MISSILE_VISEE * reperes;
+        g.missiles.push({ x: Math.min(W, Math.max(0, o.x + o.vx * k)), y: Math.min(W, Math.max(0, o.y + o.vy * k)), t: MISSILE_DELAI, owner: f });
       }
     }
   }
@@ -918,12 +916,38 @@ function explosion(g, x, y, cible, dmg, ang) {
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
-const DRONE_PV = 15, DRONE_RETOUR = 8, MISSILE_CD = 1.6, MISSILE_DELAI = 0.8, MISSILE_RAYON = 95, MISSILE_DEGATS = 19, MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil actif (les appareils aident à viser)
-// les appareils tournent autour de l'adversaire du Titan pour le repérer
-function dronePos(f, d) {
-  const c = f.adv && !f.adv.mort ? f.adv : f, R = Math.max(c.hw, c.hh) * 0.85 + 30;
-  return { x: c.x + Math.cos(d.a) * R, y: c.y + Math.sin(d.a) * R * 0.75 - c.hh * 0.2 };
+const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 3.8, MISSILE_DELAI = 1.6, MISSILE_RAYON = 190, MISSILE_DEGATS = 38;
+const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
+// appareils : ils patrouillent au hasard (faisceau bleu) ; quand l'adversaire passe dans leur faisceau,
+// ils le repèrent (faisceau rouge) et volent près de lui en le gardant en visée
+const FAISCEAU_PORTEE = 240, FAISCEAU_ANGLE = 0.45, APPAREIL_VITESSE = 150;
+function nouvelAppareil(f, i) {
+  return { x: f.x, y: f.y - f.hh * 0.5, dir: Math.random() * Math.PI * 2, hp: DRONE_PV, nouveau: 0.6, repere: false, but: null, butT: 0, bob: i * 2 };
 }
+function pointAuHasard() { return { x: 40 + Math.random() * (W - 80), y: 40 + Math.random() * (W - 80) }; }
+function bougerAppareil(f, o, d, dt) {
+  d.nouveau = Math.max(0, (d.nouveau || 0) - dt); d.butT -= dt;
+  const visible = o && !o.mort && !cache(o, f);
+  if (d.repere && !visible) d.repere = false; // l'adversaire a disparu : il repart patrouiller
+  if (!d.repere) { // patrouille au hasard, faisceau bleu devant lui
+    if (!d.but || d.butT <= 0 || Math.hypot(d.but.x - d.x, d.but.y - d.y) < 20) { d.but = pointAuHasard(); d.butT = 3 + Math.random() * 2; }
+    if (visible) {
+      const ang = Math.atan2(o.y - d.y, o.x - d.x), diff = Math.abs(((ang - d.dir) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
+      if (diff < FAISCEAU_ANGLE && Math.hypot(o.x - d.x, o.y - d.y) < FAISCEAU_PORTEE + Math.max(o.hw, o.hh) * 0.5) { d.repere = true; d.butT = 0; }
+    }
+  }
+  if (d.repere) { // reste près de l'adversaire, à une distance qui change de temps en temps
+    if (!d.off || d.butT <= 0) { const a = Math.random() * Math.PI * 2, r = 110 + Math.random() * 60; d.off = { x: Math.cos(a) * r, y: Math.sin(a) * r }; d.butT = 1.5 + Math.random(); }
+    d.but = { x: Math.min(W - 20, Math.max(20, o.x + d.off.x)), y: Math.min(W - 20, Math.max(20, o.y + d.off.y)) };
+  }
+  const dx = d.but.x - d.x, dy = d.but.y - d.y, dist = Math.hypot(dx, dy) || 1, pas = Math.min(dist, APPAREIL_VITESSE * (d.repere ? 1.3 : 1) * dt);
+  d.x += dx / dist * pas; d.y += dy / dist * pas;
+  // orientation : vers l'adversaire repéré, sinon vers là où il va (en tournant doucement)
+  const vise = d.repere ? Math.atan2(o.y - d.y, o.x - d.x) : Math.atan2(dy, dx);
+  const diff = ((vise - d.dir) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+  d.dir += Math.max(-4 * dt, Math.min(4 * dt, diff));
+}
+function dronePos(f, d) { return { x: d.x, y: d.y }; }
 function blesserDrone(g, f, d, n) {
   const p = dronePos(f, d);
   d.hp -= n; g.txt.push({ x: p.x, y: p.y - 14, t: 0.6, s: "-" + n }); eclats(g, p.x, p.y, "#8b93a6");
@@ -1382,18 +1406,29 @@ function dessiner() {
       ctx.restore();
     }
   }
-  for (const f of g.f) { // appareils du Titan qui tournent autour de lui
+  for (const f of g.f) { // appareils du Titan : faisceau bleu quand ils cherchent, rouge quand ils ont repéré
     if (!f.drones || f.mort) continue;
-    const img = spriteImage(f.type + "-3");
+    const img = spriteImage(f.type + "-3"), o = g.f.find(x => x !== f);
     for (const d of f.drones) {
-      const p = dronePos(f, d), bob = Math.sin(performance.now() / 200 + d.a) * 3;
-      ctx.save(); ctx.translate(p.x, p.y + bob); ctx.globalAlpha = 1 - (d.nouveau || 0) / 0.6;
+      const p = dronePos(f, d), bob = Math.sin(performance.now() / 200 + d.bob) * 3;
+      ctx.save(); ctx.globalAlpha = 1 - (d.nouveau || 0) / 0.6;
+      if (d.repere && o) { // faisceau rouge accroché à l'adversaire
+        const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 90);
+        ctx.strokeStyle = `rgba(255,60,50,${0.35 + 0.3 * pulse})`; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(p.x, p.y + bob); ctx.lineTo(o.x, o.y); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,200,190,.8)"; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = `rgba(255,60,50,${0.25 + 0.25 * pulse})`; ctx.beginPath(); ctx.arc(o.x, o.y, 10, 0, 7); ctx.fill();
+      } else { // cône de recherche bleu
+        const gr = ctx.createRadialGradient(p.x, p.y + bob, 0, p.x, p.y + bob, FAISCEAU_PORTEE);
+        gr.addColorStop(0, "rgba(90,170,255,.35)"); gr.addColorStop(1, "rgba(90,170,255,0)");
+        ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(p.x, p.y + bob); ctx.arc(p.x, p.y + bob, FAISCEAU_PORTEE, d.dir - FAISCEAU_ANGLE, d.dir + FAISCEAU_ANGLE); ctx.closePath(); ctx.fill();
+      }
+      ctx.translate(p.x, p.y + bob);
       if (img) { const h = 34, w = h * img.tw / img.th; ctx.drawImage(img.img, -w / 2, -h / 2, w, h); }
       else {
         ctx.strokeStyle = "#1b2033"; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(-16, -9); ctx.lineTo(16, -9); ctx.stroke();
         ctx.fillStyle = "#8b93a6"; ctx.beginPath(); ctx.arc(0, 0, 11, 0, 7); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#ff3b3b"; ctx.beginPath(); ctx.arc(0, 1, 4, 0, 7); ctx.fill();
+        ctx.fillStyle = d.repere ? "#ff3b3b" : "#5aaaff"; ctx.beginPath(); ctx.arc(Math.cos(d.dir) * 4, 1 + Math.sin(d.dir) * 3, 4, 0, 7); ctx.fill();
       }
       ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(-12, 16, 24, 4);
       ctx.fillStyle = "#3fae5a"; ctx.fillRect(-12, 16, 24 * Math.max(0, d.hp) / DRONE_PV, 4);
@@ -2347,7 +2382,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.11.1", NOTES = "Titan : ses appareils tournent autour de l’adversaire et l’aident à viser.";
+const VERSION = "1.12.0", NOTES = "Titan : appareils à 25 PV qui patrouillent et repèrent l’adversaire, missiles deux fois plus lents, plus grands et plus forts.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -683,7 +683,7 @@ const CHARS = {
     nom: "Le Titan", emoji: "🛰️", vitesse: 80, pv: 200, taille: 1.2, images: ["tir", "appareil"],
     sonNom: "lancement", son2: "explosion du missile", son3: "appareil détruit",
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Énorme (deux fois plus de PV) mais très lent. Deux petits appareils de 15 PV tournent autour de lui : tant qu’il en reste un, il fait tomber des missiles du ciel sur la position de l’adversaire. Sans appareil, il ne peut plus attaquer. Un appareil détruit revient au bout de 8 secondes, un par un.",
+    desc: "Énorme (deux fois plus de PV) mais très lent. Deux petits appareils de 15 PV tournent autour de l’adversaire pour le repérer : tant qu’il en reste un, le Titan fait tomber des missiles du ciel sur lui, d’autant plus précis qu’il a d’appareils. Sans appareil, il ne peut plus attaquer. Un appareil détruit revient au bout de 8 secondes, un par un.",
     svg: `<g ${O}>
       <rect x='36' y='108' width='20' height='34' rx='4' fill='#4a5160'/><rect x='64' y='108' width='20' height='34' rx='4' fill='#4a5160'/>
       <rect x='30' y='136' width='28' height='9' rx='3' fill='#2a2e38'/><rect x='62' y='136' width='28' height='9' rx='3' fill='#2a2e38'/>
@@ -695,6 +695,7 @@ const CHARS = {
       <path d='M60 16 V6' fill='none'/><circle cx='60' cy='5' r='3' fill='#f2b134'/></g>`,
     attaque(f, o, g, dt) {
       f.drones ??= [{ a: 0, hp: DRONE_PV }, { a: Math.PI, hp: DRONE_PV }];
+      f.adv = o;
       for (const d of f.drones) { d.a += dt * 1.6; d.nouveau = Math.max(0, (d.nouveau || 0) - dt); }
       // un appareil détruit revient au bout de 8 s, un par un
       if (f.drones.length < 2) {
@@ -708,7 +709,7 @@ const CHARS = {
       f.cd -= dt;
       if (f.cd <= 0 && !cache(o, f)) { // missile tiré vers le ciel, qui retombe sur la position de l'adversaire
         f.cd = MISSILE_CD; f.attT = 0.4; son(f);
-        g.missiles.push({ x: Math.min(W, Math.max(0, o.x + o.vx * MISSILE_DELAI * MISSILE_VISEE)), y: Math.min(W, Math.max(0, o.y + o.vy * MISSILE_DELAI * MISSILE_VISEE)), t: MISSILE_DELAI, owner: f });
+        g.missiles.push({ x: Math.min(W, Math.max(0, o.x + o.vx * MISSILE_DELAI * MISSILE_VISEE * f.drones.length)), y: Math.min(W, Math.max(0, o.y + o.vy * MISSILE_DELAI * MISSILE_VISEE * f.drones.length)), t: MISSILE_DELAI, owner: f });
       }
     }
   }
@@ -917,10 +918,11 @@ function explosion(g, x, y, cible, dmg, ang) {
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
-const DRONE_PV = 15, DRONE_RETOUR = 8, MISSILE_CD = 1.6, MISSILE_DELAI = 0.8, MISSILE_RAYON = 95, MISSILE_DEGATS = 19, MISSILE_VISEE = 0; // MISSILE_VISEE : 0 = vise là où est l'adversaire, 1 = anticipe complètement son déplacement
+const DRONE_PV = 15, DRONE_RETOUR = 8, MISSILE_CD = 1.6, MISSILE_DELAI = 0.8, MISSILE_RAYON = 95, MISSILE_DEGATS = 19, MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil actif (les appareils aident à viser)
+// les appareils tournent autour de l'adversaire du Titan pour le repérer
 function dronePos(f, d) {
-  const R = Math.max(f.hw, f.hh) * 0.75 + 28;
-  return { x: f.x + Math.cos(d.a) * R, y: f.y + Math.sin(d.a) * R * 0.75 - f.hh * 0.2 };
+  const c = f.adv && !f.adv.mort ? f.adv : f, R = Math.max(c.hw, c.hh) * 0.85 + 30;
+  return { x: c.x + Math.cos(d.a) * R, y: c.y + Math.sin(d.a) * R * 0.75 - c.hh * 0.2 };
 }
 function blesserDrone(g, f, d, n) {
   const p = dronePos(f, d);
@@ -2345,7 +2347,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.11.0", NOTES = "Nouveau perso : le Titan, ses appareils et ses missiles.";
+const VERSION = "1.11.1", NOTES = "Titan : ses appareils tournent autour de l’adversaire et l’aident à viser.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

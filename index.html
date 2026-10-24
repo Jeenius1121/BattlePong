@@ -41,7 +41,19 @@ h1{font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-weight:400; fo
 .majDispo{position:fixed; left:50%; top:calc(10px + env(safe-area-inset-top,0px)); transform:translateX(-50%); z-index:30; width:min(92vw,440px); display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; background:var(--ink); color:var(--bg); box-shadow:0 10px 30px rgba(0,0,0,.25); font-weight:700; font-size:.9rem}
 .majDispo[hidden]{display:none}
 /* écran de chargement : cache tout tant que les images et sons en ligne ne sont pas arrivés */
-.chargement{position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; background:var(--bg); color:var(--ink); transition:opacity .35s}
+.chargement{position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; color:#fff; transition:opacity .35s;
+  background:repeating-linear-gradient(115deg, rgba(255,255,255,.06) 0 6px, transparent 6px 26px), radial-gradient(circle at 50% 40%, #3a2a5e, #131726 70%)}
+.chargement .chSur{margin:0; font-weight:800; letter-spacing:.2em; text-transform:uppercase; font-size:.8rem; color:#f2b134}
+.chargement .chTitre{text-shadow:0 4px 0 #e0302a, 0 8px 24px rgba(0,0,0,.5)}
+.chargement #chTexte{color:#c9cfe6}
+.chEntrer{margin-top:10px; font:inherit; font-weight:800; font-size:1.15rem; color:#1b2033; cursor:pointer; border:0; border-radius:16px; padding:16px 26px;
+  background:linear-gradient(180deg,#ffd76a,#f2b134); box-shadow:0 6px 0 #a66c12, 0 0 30px rgba(242,177,52,.45); animation:appel 1.4s ease-in-out infinite}
+.chEntrer:active{transform:translateY(5px); box-shadow:0 1px 0 #a66c12}
+.chEntrer[hidden]{display:none}
+@keyframes appel{50%{transform:scale(1.06)}}
+.chVersion{position:absolute; bottom:calc(14px + env(safe-area-inset-bottom,0px)); margin:0; font-size:.75rem; color:#9aa3c0}
+/* deux écrans séparés : la sélection des persos, puis le combat */
+body.vue-selection [data-vue="combat"], body.vue-combat [data-vue="selection"]{display:none !important}
 .chargement.fini{opacity:0; pointer-events:none}
 .chTitre{margin:0; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(2rem,10vw,3rem); transform:rotate(-2deg)}
 .chRond{width:46px; height:46px; border-radius:50%; border:5px solid var(--line); border-top-color:var(--droite); animation:tourne .8s linear infinite}
@@ -117,6 +129,7 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 .btn.ghost:active{box-shadow:0 1px 0 var(--line)}
 .btn.revanche{font-size:1.05rem; padding:11px 16px; border-color:transparent; color:#fff; text-shadow:0 1px 0 rgba(0,0,0,.25);
   background:linear-gradient(180deg, color-mix(in srgb,var(--team) 70%,#fff), var(--team)); box-shadow:0 6px 0 color-mix(in srgb,var(--team) 55%,#000); animation:lueur 1.8s ease-in-out infinite}
+.btn.go{--team:#e0302a; font-size:1.2rem; padding:16px}
 .btn.revanche:active{transform:translateY(5px); box-shadow:0 1px 0 color-mix(in srgb,var(--team) 55%,#000)}
 .desc{font-size:.85rem; color:var(--muted); margin:14px 0 0}
 .desc strong{color:var(--ink)}
@@ -163,19 +176,23 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 .editeur .actions{margin-top:12px}
 </style>
 </head>
-<body>
+<body class="vue-selection">
 <div class="chargement" id="chargement" role="status" aria-live="polite">
+  <p class="chSur">Bienvenue dans</p>
   <p class="chTitre">Battle Pong</p>
   <div class="chRond" aria-hidden="true"></div>
   <p id="chTexte">Chargement des persos…</p>
   <div class="chBarre"><span id="chBarre"></span></div>
+  <button class="chEntrer" id="entrer" type="button" hidden>▶ Entrer dans l’arène</button>
+  <p class="chVersion" id="chVersion"></p>
 </div>
 <main>
   <h1 id="titre">Battle Pong</h1>
-  <p class="version" id="version"></p>
-  <p class="intro">Choisis deux combattants, lance le duel et regarde-les rebondir jusqu’au KO.</p>
+  <p class="version" id="version" data-vue="selection"></p>
+  <p class="intro" data-vue="selection">Choisis deux combattants, lance le duel et regarde-les rebondir jusqu’au KO.</p>
   <div class="majDispo" id="majDispo" role="status" hidden><span id="majTexte"></span><button type="button" id="majOk">Mettre à jour</button></div>
 
+  <div data-vue="selection">
   <div class="duel">
     <button class="panneau" data-side="0" type="button" aria-label="Choisir le perso de gauche"><span class="joueur">Gauche</span><img class="grand" alt=""><span class="nomGrand"></span></button>
     <div class="vs" aria-hidden="true">VS</div>
@@ -183,7 +200,10 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
   </div>
   <p class="aide" id="aide"></p>
   <div class="roster" id="roster"></div>
+  <div class="actions"><button class="btn revanche go" id="go" type="button">▶ Lancer le combat</button></div>
+  </div>
 
+  <div data-vue="combat">
   <div class="hud">
     <div class="bar-wrap"><div class="name"><span id="n0"></span><span id="h0">100</span></div><div class="bar"><span id="b0"></span></div></div>
     <div class="bar-wrap right"><div class="name"><span id="n1"></span><span id="h1">100</span></div><div class="bar"><span id="b1"></span></div></div>
@@ -204,13 +224,15 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
   </div>
 
   <div class="actions">
-    <button class="btn" id="start">▶ Lancer le combat</button>
+    <button class="btn" id="start">↻ Recommencer</button>
     <button class="btn ghost" id="speed" aria-label="Vitesse du combat">⏩ ×1</button>
     <button class="btn ghost" id="mute" type="button" aria-pressed="false">🔊 Sons</button>
   </div>
-  <div id="descs"></div>
+  <div class="actions"><button class="btn ghost" id="retour" type="button">☰ Sélection des persos</button></div>
+  </div>
+  <div id="descs" data-vue="selection"></div>
 
-  <section class="custom charge" id="custom" hidden>
+  <section class="custom charge" id="custom" data-vue="selection" hidden>
     <h2>Images des personnages</h2>
     <p>Remplace l’image d’un perso par la tienne. Prends de préférence un PNG à fond transparent : la zone de touche suit alors la forme exacte du personnage. L’image est redimensionnée sans être déformée. Les sons démarrent automatiquement là où ta voix commence et sont coupés à 3 secondes. Les sons de Myers peuvent durer jusqu’à 10 secondes : le son 2 (traque) tourne pendant que sa jauge monte, le son normal pendant toute sa furie.</p>
     <p id="statutNuage">⏳ Chargement des images et des sons… attends quelques secondes.</p>
@@ -1336,9 +1358,19 @@ function boucle(t) {
 /* ===== INTERFACE ===== */
 const boutonStart = document.getElementById("start");
 function verrouiller(on) {
-  document.querySelectorAll(".tuile,.panneau").forEach(b => b.disabled = on);
   document.querySelectorAll(".small").forEach(b => b.classList.toggle("off", on));
-  boutonStart.textContent = on ? "↻ Recommencer" : "▶ Lancer le combat";
+}
+// passe d'un écran à l'autre (sélection des persos / combat)
+function afficherVue(v) {
+  document.body.classList.toggle("vue-selection", v === "selection");
+  document.body.classList.toggle("vue-combat", v === "combat");
+  window.scrollTo(0, 0);
+  if (v === "combat") redim();
+}
+function retourSelection() {
+  document.getElementById("overlay").classList.remove("show");
+  if (jeu) { jeu.running = false; jeu.fin = 0; jeu.intro = 0; for (const f of jeu.f) arreterSons(f); }
+  verrouiller(false); nouveauJeu(false); afficherVue("selection"); musiqueSelection();
 }
 // carte de fin : portrait du gagnant (ou des deux en cas d'égalité), couleur de son côté
 function montrerFin() {
@@ -1359,11 +1391,9 @@ function montrerFin() {
   const o = document.getElementById("overlay");
   o.classList.remove("show"); void o.offsetWidth; o.classList.add("show");
 }
-document.getElementById("changer").addEventListener("click", () => {
-  document.getElementById("overlay").classList.remove("show");
-  nouveauJeu(false); dessiner(); musiqueSelection();
-  document.querySelector(".duel").scrollIntoView({ behavior: "smooth", block: "start" });
-});
+document.getElementById("changer").addEventListener("click", retourSelection);
+document.getElementById("retour").addEventListener("click", retourSelection);
+document.getElementById("go").addEventListener("click", () => { afficherVue("combat"); lancer(); });
 // le combat ne démarre pas tout de suite : « Ready » puis « Fight ! », et c'est parti
 const READY_MIN = 0.9, PAUSE_READY = 0.5, FIGHT_DUREE = 0.7; // PAUSE_READY : attente entre « Ready » et « Fight »
 function lancer() {
@@ -1374,9 +1404,9 @@ function lancer() {
   jeu.intro = Math.max(READY_MIN, dReady) + PAUSE_READY + FIGHT_DUREE; jeu.introFight = FIGHT_DUREE; jeu.fightJoue = false;
   dernier = performance.now(); requestAnimationFrame(boucle);
 }
-boutonStart.addEventListener("click", () => {
-  if (jeu && (jeu.running || jeu.fin > 0 || jeu.intro > 0)) { jeu.running = false; jeu.fin = 0; jeu.intro = 0; verrouiller(false); nouveauJeu(false); dessiner(); }
-  else lancer();
+boutonStart.addEventListener("click", () => { // recommence le combat depuis le début
+  if (jeu) { jeu.running = false; jeu.fin = 0; jeu.intro = 0; for (const f of jeu.f) arreterSons(f); }
+  lancer();
 });
 document.getElementById("rematch").addEventListener("click", lancer);
 document.getElementById("speed").addEventListener("click", e => {
@@ -1645,7 +1675,7 @@ function jouerCle(cle, opts = {}) {
 function musiqueSelection() {
   contexteAudio();
   if (enCours._musique || (jeu && (jeu.running || jeu.intro > 0 || jeu.fin > 0))) return;
-  jouerCle("musique", { boucle: true, volume: 0.55 });
+  jouerCle("musique", { boucle: true, volume: 0.35 });
 }
 function arreterMusique() { couper("_musique"); }
 let dernierNom = null;
@@ -1879,11 +1909,19 @@ function majStatutNuage() {
     : "Modifications enregistrées sur cet appareil seulement.";
   document.getElementById("cleBloc").hidden = !!nuage;
 }
+// chargement fini : l'écran titre propose d'entrer ; le bouton lance la musique et ouvre la sélection
 function finChargement() {
-  const ch = document.getElementById("chargement");
-  if (!ch || ch.classList.contains("fini")) return;
-  ch.classList.add("fini"); setTimeout(() => ch.remove(), 400);
+  const ch = document.getElementById("chargement"), b = document.getElementById("entrer");
+  if (!ch || !b.hidden) return;
+  ch.querySelector(".chRond").remove(); ch.querySelector(".chBarre").remove();
+  document.getElementById("chTexte").textContent = "Choisis tes combattants";
+  b.hidden = false; b.focus();
 }
+document.getElementById("entrer").addEventListener("click", () => {
+  const ch = document.getElementById("chargement");
+  contexteAudio(); musiqueSelection();
+  ch.classList.add("fini"); setTimeout(() => ch.remove(), 400);
+});
 setTimeout(finChargement, 20000); // au pire, on ne bloque jamais plus de 20 s
 async function brancherNuage() {
   const custom = document.getElementById("custom");
@@ -2109,8 +2147,9 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.6.1", NOTES = "Une demi-seconde de plus entre Ready et Fight, une seconde de plus avant d’annoncer le gagnant.";
+const VERSION = "1.7.0", NOTES = "Écran titre « Entrer dans l’arène », sélection et combat sur deux écrans séparés, musique moins forte.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
+if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {
   try {

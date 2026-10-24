@@ -295,7 +295,7 @@ const CHARS = {
           // la balle part du bout du pistolet de l'image affichée
           f.face = f.dir; majTaille(f);
           const c0 = canonMonde(f);
-          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * 1200, vy: 0, r: 4, dmg: 8, owner: f, rot: 0, rafale: f.rafale });
+          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * 1200, vy: 0, r: 4, dmg: 9, owner: f, rot: 0, rafale: f.rafale });
           if (f.burst === 0) { // rechargement de 2 s juste après la 6e balle : il ne retire qu'une fois fini
             son(f, 2);
             f.cd = f.recharge = RECHARGE;
@@ -550,7 +550,7 @@ const CHARS = {
         if (f.cd <= 0 && !cache(o) && ecart(f, o) < 30) {
           f.cd = 0.9; f.coupT = 0.15; // petit temps de recharge entre deux coups de couteau
           const ex = o.x - f.x, ey = o.y - f.y, ed = Math.hypot(ex, ey) || 1;
-          degats(g, o, 15, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
+          degats(g, o, 16, o.x - ex / ed * o.hw * 0.6, o.y - ey / ed * o.hh * 0.6);
         }
         if (f.jauge <= 0) { f.jauge = 0; f.etat = "rode"; arreterSon(f); f.etatT = 2 + Math.random() * 1.5; normaliser(f); }
       }
@@ -1066,7 +1066,7 @@ function maj(dt) {
           p.dedans = true;
           continue;
         }
-        // balles d'une même rafale : 8, 8, puis 1 dégât de moins à chaque balle qui touche (8, 8, 7, 6, 5, 4)
+        // balles d'une même rafale : 9, 9, puis 1 dégât de moins à chaque balle qui touche (9, 9, 8, 7, 6, 5)
         degats(g, cible, p.rafale ? Math.max(1, p.dmg - Math.max(0, p.rafale.touches++ - 1)) : p.dmg, p.x, p.y);
         if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
         return false;
@@ -2233,7 +2233,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.10.0", NOTES = "Myers : nouvelle traque (3 coups rapides = autre coin), jauge en 4 s, plus de réduction en furie. Robot : +10 % de dégâts.";
+const VERSION = "1.10.1", NOTES = "Myers : 16 par coup en furie. McCree : balles 9-9-8-7-6-5.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -265,7 +265,7 @@ const CHARS = {
     nom: "McCree", emoji: "🤠", vitesse: 230, images: ["visée", "tir"], sonNom: "tirs", son2: "rechargement", sonFort: true, caler: true,
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     imageDe: f => f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Tire une rafale de 6 balles quand l’adversaire passe sur le côté, au-dessus ou en dessous de lui, puis recharge. Ses balles transpercent les ennemis.",
+    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis et rebondissent deux fois sur les murs.",
     // moments des 6 balles : calés sur les 6 coups du son de tir s'il y en a un, sinon rafale rapide
     horaires(f) {
       const s = sons.cowboy, lat = latenceSon(f);
@@ -297,17 +297,20 @@ const CHARS = {
           // la balle part du bout du pistolet de l'image affichée
           f.face = f.dir; majTaille(f);
           const c0 = canonMonde(f);
-          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: Math.cos(f.tirAng) * BALLE_VITESSE, vy: Math.sin(f.tirAng) * BALLE_VITESSE, r: 4, dmg: 9, owner: f, rot: 0, rafale: f.rafale, transperce: true });
+          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * BALLE_VITESSE, vy: 0, r: 4, dmg: 8, owner: f, rot: 0, rafale: f.rafale, transperce: true, rebonds: 2 });
           if (f.burst === 0) { // rechargement de 2 s juste après la 6e balle : il ne retire qu'une fois fini
             son(f, 2);
             f.cd = f.recharge = RECHARGE;
           }
         }
-      } else if (f.cd <= 0 && (t = cibleDe(f, o)) && (Math.abs(t.y - f.y) < t.hh * 0.8 || Math.abs(t.x - f.x) < t.hw * 0.8)) {
-        // vise à gauche ou à droite si la cible est sur le côté, sinon en haut ou en bas (l'image tourne vers la cible)
-        if (Math.abs(t.y - f.y) < t.hh * 0.8) { f.dir = Math.sign(t.x - f.x) || 1; f.tirAng = f.dir > 0 ? 0 : Math.PI; }
-        else { f.dir = f.face; f.tirAng = t.y < f.y ? -Math.PI / 2 : Math.PI / 2; }
-        f.burst = 6; f.burstT = 0; f.rafale = { touches: 0 }; f.horaires = this.horaires(f); son(f);
+      } else if (f.cd <= 0 && (t = cibleDe(f, o)) && Math.abs(t.y - f.y) < t.hh * 0.8) {
+        f.burst = 6; f.burstT = 0; f.rafale = { touches: 0 }; f.horaires = this.horaires(f); f.dir = Math.sign(t.x - f.x) || 1; son(f);
+      }
+      // il se déplace surtout de haut en bas, pour croiser les ennemis sur ses côtés
+      const sp = Math.hypot(f.vx, f.vy);
+      if (sp > 1 && Math.abs(f.vx) / sp > 0.4) {
+        const c = 0.35 + Math.random() * 0.05, sn = Math.sqrt(1 - c * c);
+        f.vx = Math.sign(f.vx) * c * sp; f.vy = (Math.sign(f.vy) || (Math.random() < 0.5 ? -1 : 1)) * sn * sp;
       }
     }
   },
@@ -383,7 +386,7 @@ const CHARS = {
   robot: {
     nom: "Robot", emoji: "🤖", vitesse: 220, images: ["attaque"], sonNom: "laser", son2: "minuteur",
     imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : 1,
-    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot. Il brûle de plus en plus fort : très peu au début, énormément à la fin. Le rayon ricoche sur les autres ennemis (jusqu’à 3), avec des dégâts divisés par deux à chaque ricochet. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire avec lui (égalité).",
+    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle ce qu’il touche. Chaque nouveau tir fait plus de dégâts que le précédent : plus le combat dure, plus il est dangereux. Le rayon ricoche sur les autres ennemis (jusqu’à 3), avec des dégâts divisés par deux à chaque ricochet. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire avec lui (égalité).",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='26' fill='#8b93a6'/><rect x='64' y='112' width='12' height='26' fill='#8b93a6'/>
       <rect x='40' y='134' width='20' height='10' rx='2' fill='#5d6476'/><rect x='60' y='134' width='20' height='10' rx='2' fill='#5d6476'/>
@@ -447,7 +450,7 @@ const CHARS = {
         if (!f.sonJoue && f.charge <= latenceSon(f)) { f.sonJoue = true; son(f); }
         if (f.charge <= 0) {
           if (!f.sonJoue) { f.sonJoue = true; son(f); }
-          f.tir = LASER_DUREE; f.cd = 3;
+          f.tir = LASER_DUREE; f.cd = 3; f.tirs = (f.tirs || 0) + 1;
           const r = rayon(); f.laserLen = r.len; f.chaine = ricochets(r);
           if (f.chaine.length) { f.brule = LASER_TIC; bruler(f.chaine, degatsLaser(f)); }
         }
@@ -944,8 +947,9 @@ function explosion(g, x, y, cible, dmg, ang) {
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
 // laser du robot : de plus en plus fort, un palier tous les LASER_TIC (très petit, petit, moyen, gros, très gros)
-const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_PALIERS = [6, 11, 17, 25, 35];
-function degatsLaser(f) { return LASER_PALIERS[Math.max(0, Math.min(LASER_PALIERS.length - 1, Math.round((LASER_DUREE - f.tir) / LASER_TIC)))]; }
+const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 8, LASER_HAUSSE = 6;
+// dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
+function degatsLaser(f) { return LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1); }
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
 const PRIORITE_APPAREIL = 0.35; // un appareil est visé s'il est environ 3 fois plus proche que l'adversaire
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
@@ -1154,9 +1158,8 @@ function maj(dt) {
     if (f.burst > 0) f.face = f.dir;
     else if (f.charge > 0 || f.tir > 0) f.face = f.laserFace;
     else if (Math.abs(f.vx) > 20) f.face = f.vx > 0 ? 1 : -1;
-    // le robot tourne son image vers sa cible tant qu'il charge ou tire, McCree pendant une rafale vers le haut ou le bas
-    f.rot = f.charge > 0 || f.tir > 0 ? (f.face > 0 ? f.laserAng : f.laserAng - Math.PI)
-      : f.burst > 0 && f.tirAng !== undefined ? (f.face > 0 ? f.tirAng : f.tirAng - Math.PI) : 0;
+    // le robot tourne son image vers sa cible tant qu'il charge ou tire
+    f.rot = f.charge > 0 || f.tir > 0 ? (f.face > 0 ? f.laserAng : f.laserAng - Math.PI) : 0;
     f.flash = Math.max(0, f.flash - dt); f.muzzle = Math.max(0, f.muzzle - dt); f.attT = Math.max(0, (f.attT || 0) - dt);
   }
   // collision entre les deux persos (rectangles ajustés à l'image)
@@ -1210,12 +1213,28 @@ function maj(dt) {
           p.dedans = true;
           continue;
         }
-        // balles d'une même rafale : 1 dégât de moins à chaque balle qui touche (9, 8, 7, 6, 5, 4)
+        // balles d'une même rafale : 1 dégât de moins à chaque balle qui touche (8, 7, 6, 5…)
         degats(g, cible, p.rafale ? Math.max(1, p.dmg - p.rafale.touches++) : p.dmg, p.x, p.y);
         if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
         if (p.transperce) { p.dejaCible = true; continue; } // la balle traverse et continue sa route
         return false;
       } else p.dedans = false;
+    }
+    if (p.rebonds > 0 && (p.x < 0 || p.x > W || p.y < 0 || p.y > W)) { // balle de McCree qui ricoche sur le mur
+      const sp = Math.hypot(p.vx, p.vy), lat = p.x < 0 || p.x > W; // mur de gauche ou de droite ?
+      p.x = Math.min(W, Math.max(0, p.x)); p.y = Math.min(W, Math.max(0, p.y));
+      let a;
+      if (p.rebonds === 2) { // 1er rebond : repart en diagonale vers un mur du haut ou du bas (au hasard)
+        const sx = lat ? -Math.sign(p.vx) : Math.sign(p.vx) || 1, sy = lat ? (Math.random() < 0.5 ? -1 : 1) : -Math.sign(p.vy);
+        a = Math.atan2(sy, sx);
+      } else { // 2e rebond : direction au hasard, vers l'intérieur de l'arène
+        const n = p.x <= 0 ? 0 : p.x >= W ? Math.PI : p.y <= 0 ? Math.PI / 2 : -Math.PI / 2;
+        a = n + (Math.random() - 0.5) * Math.PI * 0.8;
+      }
+      p.vx = Math.cos(a) * sp; p.vy = Math.sin(a) * sp; p.rebonds--;
+      p.dejaCible = false; p.dejaDrones = null; // après un rebond, elle peut retoucher
+      eclats(g, p.x, p.y, "#f6cf8a");
+      return true;
     }
     if (p.x < 0 || p.x > W || p.y > W || (p.y < 0 && p.kind !== "mortier") || p.y < -800) {
       if (p.kind === "mortier") {
@@ -1454,7 +1473,7 @@ function dessiner() {
       const c0 = canonMonde(f), L = f.tir > 0 ? f.laserLen : 900;
       ctx.save(); ctx.lineCap = "round";
       ctx.strokeStyle = f.tir > 0 ? "#ff3b3b" : "rgba(255,59,59,.5)";
-      const force = f.tir > 0 ? 1 - f.tir / LASER_DUREE : 0; // le rayon grossit à mesure qu'il devient plus fort
+      const force = f.tir > 0 ? Math.min(1, ((f.tirs || 1) - 1) / 5) : 0; // le rayon grossit à chaque nouveau tir
       ctx.lineWidth = f.tir > 0 ? 8 + force * 22 + Math.sin(performance.now() / 40) * 2 : 4;
       if (!(f.tir > 0)) ctx.setLineDash([12, 10]);
       ctx.beginPath();
@@ -2463,7 +2482,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.16.3", NOTES = "Attrapé par la langue du Smoker, on ne peut plus rien faire : Myers ne se téléporte plus, L'Inconnu non plus.";
+const VERSION = "1.17.0", NOTES = "Robot : chaque nouveau tir fait plus de dégâts. McCree : se déplace surtout de haut en bas, ses balles rebondissent deux fois sur les murs, plus de tir vertical.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

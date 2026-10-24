@@ -639,7 +639,7 @@ const CHARS = {
   hurleur: {
     nom: "Steve (pas de Minecraft)", emoji: "😱", vitesse: 265, images: ["cri"], sonNom: "cri", son2: "cri de sortie",
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Crie toutes les 2 secondes : une onde de choc en anneau part de lui et blesse l’adversaire qu’elle traverse. Toutes les 8 secondes, il devient invisible, s’approche doucement, réapparaît en poussant un énorme cri (dégâts doublés) puis s’enfuit.",
+    desc: "Crie toutes les 2 secondes : une onde de choc en anneau part de lui et blesse l’adversaire qu’elle traverse. Toutes les 6 secondes, il devient invisible, s’approche doucement, réapparaît en poussant un énorme cri (18 dégâts) puis s’enfuit.",
     svg: `<g ${O}>
       <rect x='46' y='112' width='11' height='28' fill='#4a4458'/><rect x='63' y='112' width='11' height='28' fill='#4a4458'/>
       <rect x='42' y='136' width='17' height='8' rx='2' fill='#2a2a2e'/><rect x='61' y='136' width='17' height='8' rx='2' fill='#2a2a2e'/>
@@ -659,7 +659,7 @@ const CHARS = {
         f.vx = dx / d * this.vitesse * 0.6; f.vy = dy / d * this.vitesse * 0.6;
         if (d < 150 || f.etatT <= 0) { // il réapparaît et hurle de toutes ses forces
           f.etat = null; f.vis = 1; f.attT = 0.4; son(f, 2);
-          crier(g, f, HURLEUR_DEGATS * 2, 340, 18);
+          crier(g, f, HURLEUR_CRI_SORTIE, 340, 18);
           f.fuite = 1.2; f.criT = 2;
         }
         return;
@@ -883,7 +883,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== CRI DU HURLEUR =====
    Une onde de choc en anneau part de lui et grandit ; elle blesse une fois l'adversaire qu'elle traverse. */
-const HURLEUR_DEGATS = 11, HURLEUR_INVIS_CD = 8, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
+const HURLEUR_DEGATS = 11, HURLEUR_CRI_SORTIE = 18, HURLEUR_INVIS_CD = 6, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
 function crier(g, f, dmg, portee, epais) {
   g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
 }
@@ -2224,7 +2224,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.8.2", NOTES = "Steve : plus rapide, première invisibilité au bout de 3 s, ondes à 11 dégâts.";
+const VERSION = "1.8.3", NOTES = "Steve : invisible toutes les 6 s, cri de sortie à 18 dégâts.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

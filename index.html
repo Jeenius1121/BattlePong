@@ -376,7 +376,7 @@ const CHARS = {
   robot: {
     nom: "Robot", emoji: "🤖", vitesse: 220, images: ["attaque"], sonNom: "laser", son2: "minuteur",
     imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : 1,
-    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle l’adversaire s’il passe dedans. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire avec lui (égalité).",
+    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle l’adversaire s’il passe dedans. Le rayon ricoche sur les autres ennemis (jusqu’à 3), avec des dégâts divisés par deux à chaque ricochet. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire avec lui (égalité).",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='26' fill='#8b93a6'/><rect x='64' y='112' width='12' height='26' fill='#8b93a6'/>
       <rect x='40' y='134' width='20' height='10' rx='2' fill='#5d6476'/><rect x='60' y='134' width='20' height='10' rx='2' fill='#5d6476'/>
@@ -411,11 +411,28 @@ const CHARS = {
         }
         return { len: 900 };
       };
+      // le rayon ricoche sur les autres ennemis (adversaire, appareils) : jusqu'à 3 touchés, dégâts divisés par 2 à chaque fois
+      const ricochets = r => {
+        if (r.px === undefined && !r.drone) return [];
+        const chaine = [r.drone ? { drone: r.drone, ...dronePos(o, r.drone) } : { x: r.px, y: r.py }];
+        while (chaine.length < ROBOT_RICOCHETS) {
+          const der = chaine[chaine.length - 1], libres = [];
+          if (!o.mort && !cache(o) && !chaine.some(c => !c.drone)) libres.push({ x: o.x, y: o.y });
+          for (const d of o.drones || []) if (!chaine.some(c => c.drone === d)) libres.push({ drone: d, ...dronePos(o, d) });
+          if (!libres.length) break;
+          libres.sort((a, b) => Math.hypot(a.x - der.x, a.y - der.y) - Math.hypot(b.x - der.x, b.y - der.y));
+          chaine.push(libres[0]);
+        }
+        return chaine;
+      };
+      const bruler = (chaine, n) => chaine.forEach((c, i) => {
+        const k = Math.max(1, Math.round(n / 2 ** i));
+        if (c.drone) blesserDrone(g, o, c.drone, k); else degats(g, o, k, c.x, c.y);
+      });
       if (f.tir > 0) {
-        const r = rayon(); f.laserLen = r.len;
-        if (r.px !== undefined && f.brule <= 0) { f.brule = 0.35; degats(g, o, 8, r.px, r.py); }
-        if (r.drone && f.brule <= 0) { f.brule = 0.35; blesserDrone(g, o, r.drone, 8); }
-      }
+        const r = rayon(); f.laserLen = r.len; f.chaine = ricochets(r);
+        if (f.chaine.length && f.brule <= 0) { f.brule = 0.35; bruler(f.chaine, 8); }
+      } else f.chaine = null;
       f.cd -= dt;
       if (f.charge > 0) {
         f.charge -= dt;
@@ -424,9 +441,8 @@ const CHARS = {
         if (f.charge <= 0) {
           if (!f.sonJoue) { f.sonJoue = true; son(f); }
           f.tir = 1.15; f.cd = 3;
-          const r = rayon(); f.laserLen = r.len;
-          if (r.px !== undefined) { f.brule = 0.35; degats(g, o, 33, r.px, r.py); }
-          if (r.drone) { f.brule = 0.35; blesserDrone(g, o, r.drone, 33); }
+          const r = rayon(); f.laserLen = r.len; f.chaine = ricochets(r);
+          if (f.chaine.length) { f.brule = 0.35; bruler(f.chaine, 33); }
         }
       } else if (f.cd <= 0 && !cache(o) && f.tir <= 0) {
         // vise depuis le canon : le robot se tourne vers l'adversaire et le rayon part du pistolet
@@ -916,6 +932,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
+const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
 const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 3.8, MISSILE_DELAI = 1.6, MISSILE_RAYON = 190, MISSILE_DEGATS = 38;
 const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
 // appareils : ils patrouillent au hasard (faisceau bleu) ; quand l'adversaire passe dans leur faisceau,
@@ -1403,6 +1420,13 @@ function dessiner() {
       ctx.lineTo(c0.x + Math.cos(f.laserAng) * L, c0.y + Math.sin(f.laserAng) * L);
       ctx.stroke();
       if (f.tir > 0) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 6; ctx.stroke(); }
+      if (f.tir > 0 && f.chaine) for (let i = 1; i < f.chaine.length; i++) { // ricochets, de plus en plus fins
+        const a = f.chaine[i - 1], b = f.chaine[i];
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = "#ff3b3b"; ctx.lineWidth = 20 / 2 ** i; ctx.stroke();
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 6 / 2 ** i; ctx.stroke();
+        ctx.fillStyle = "#ffcf3f"; ctx.beginPath(); ctx.arc(a.x, a.y, 9 / i, 0, 7); ctx.fill();
+      }
       ctx.restore();
     }
   }
@@ -2382,7 +2406,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.12.0", NOTES = "Titan : appareils à 25 PV qui patrouillent et repèrent l’adversaire, missiles deux fois plus lents, plus grands et plus forts.";
+const VERSION = "1.13.0", NOTES = "Robot : le rayon ricoche sur les autres ennemis (jusqu'à 3), dégâts divisés par deux à chaque ricochet (100 %, 50 %, 25 %).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

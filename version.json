@@ -1,1 +1,1 @@
-{"version": "1.12.0", "notes": "Titan : appareils à 25 PV qui patrouillent et repèrent l’adversaire, missiles deux fois plus lents, plus grands et plus forts."}
+{"version": "1.13.0", "notes": "Robot : le rayon ricoche sur les autres ennemis (jusqu'à 3), dégâts divisés par deux à chaque ricochet (100 %, 50 %, 25 %)."}

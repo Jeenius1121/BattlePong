@@ -264,7 +264,7 @@ const CHARS = {
     nom: "McCree", emoji: "🤠", vitesse: 230, images: ["visée", "tir"], sonNom: "tirs", son2: "rechargement", sonFort: true, caler: true,
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     imageDe: f => f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge.",
+    desc: "Tire une rafale de 6 balles quand l’adversaire passe sur le côté, au-dessus ou en dessous de lui, puis recharge. Ses balles transpercent les ennemis.",
     // moments des 6 balles : calés sur les 6 coups du son de tir s'il y en a un, sinon rafale rapide
     horaires(f) {
       const s = sons.cowboy, lat = latenceSon(f);
@@ -296,14 +296,17 @@ const CHARS = {
           // la balle part du bout du pistolet de l'image affichée
           f.face = f.dir; majTaille(f);
           const c0 = canonMonde(f);
-          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * 1200, vy: 0, r: 4, dmg: 9, owner: f, rot: 0, rafale: f.rafale });
+          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: Math.cos(f.tirAng) * 1200, vy: Math.sin(f.tirAng) * 1200, r: 4, dmg: 9, owner: f, rot: 0, rafale: f.rafale, transperce: true });
           if (f.burst === 0) { // rechargement de 2 s juste après la 6e balle : il ne retire qu'une fois fini
             son(f, 2);
             f.cd = f.recharge = RECHARGE;
           }
         }
-      } else if (f.cd <= 0 && (t = cibleDe(f, o)) && Math.abs(t.y - f.y) < t.hh * 0.8) {
-        f.burst = 6; f.burstT = 0; f.rafale = { touches: 0 }; f.horaires = this.horaires(f); f.dir = Math.sign(t.x - f.x) || 1; son(f);
+      } else if (f.cd <= 0 && (t = cibleDe(f, o)) && (Math.abs(t.y - f.y) < t.hh * 0.8 || Math.abs(t.x - f.x) < t.hw * 0.8)) {
+        // vise à gauche ou à droite si la cible est sur le côté, sinon en haut ou en bas (l'image tourne vers la cible)
+        if (Math.abs(t.y - f.y) < t.hh * 0.8) { f.dir = Math.sign(t.x - f.x) || 1; f.tirAng = f.dir > 0 ? 0 : Math.PI; }
+        else { f.dir = f.face; f.tirAng = t.y < f.y ? -Math.PI / 2 : Math.PI / 2; }
+        f.burst = 6; f.burstT = 0; f.rafale = { touches: 0 }; f.horaires = this.horaires(f); son(f);
       }
     }
   },
@@ -1144,8 +1147,9 @@ function maj(dt) {
     if (f.burst > 0) f.face = f.dir;
     else if (f.charge > 0 || f.tir > 0) f.face = f.laserFace;
     else if (Math.abs(f.vx) > 20) f.face = f.vx > 0 ? 1 : -1;
-    // le robot tourne son image vers sa cible tant qu'il charge ou tire
-    f.rot = f.charge > 0 || f.tir > 0 ? (f.face > 0 ? f.laserAng : f.laserAng - Math.PI) : 0;
+    // le robot tourne son image vers sa cible tant qu'il charge ou tire, McCree pendant une rafale vers le haut ou le bas
+    f.rot = f.charge > 0 || f.tir > 0 ? (f.face > 0 ? f.laserAng : f.laserAng - Math.PI)
+      : f.burst > 0 && f.tirAng !== undefined ? (f.face > 0 ? f.tirAng : f.tirAng - Math.PI) : 0;
     f.flash = Math.max(0, f.flash - dt); f.muzzle = Math.max(0, f.muzzle - dt); f.attT = Math.max(0, (f.attT || 0) - dt);
   }
   // collision entre les deux persos (rectangles ajustés à l'image)
@@ -1183,7 +1187,13 @@ function maj(dt) {
     const n = Math.max(1, Math.ceil(Math.hypot(p.vx, p.vy) * dt / 8));
     for (let i = 0; i < n; i++) {
       p.x += p.vx * dt / n; p.y += p.vy * dt / n;
-      if (cible.drones && droneTouche(g, cible, p.x, p.y, p.r * 0.6, p.dmg, p.perce ? (p.dejaDrones ||= new Set()) : null) && !p.perce) return false;
+      const traverse = p.perce || p.transperce;
+      const dmg = p.rafale ? Math.max(1, p.dmg - p.rafale.touches) : p.dmg;
+      if (cible.drones && droneTouche(g, cible, p.x, p.y, p.r * 0.6, dmg, traverse ? (p.dejaDrones ||= new Set()) : null)) {
+        if (p.rafale) p.rafale.touches++;
+        if (!traverse) return false;
+      }
+      if (p.transperce && p.dejaCible) continue;
       if (touche(cible, p.x, p.y, p.r * 0.6)) {
         if (p.perce) { // transperce : refait des dégâts à chaque nouveau passage à travers l'adversaire
           if (!p.dedans && !(p.hitCd > 0)) {
@@ -1196,6 +1206,7 @@ function maj(dt) {
         // balles d'une même rafale : 1 dégât de moins à chaque balle qui touche (9, 8, 7, 6, 5, 4)
         degats(g, cible, p.rafale ? Math.max(1, p.dmg - p.rafale.touches++) : p.dmg, p.x, p.y);
         if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
+        if (p.transperce) { p.dejaCible = true; continue; } // la balle traverse et continue sa route
         return false;
       } else p.dedans = false;
     }
@@ -2435,7 +2446,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.14.0", NOTES = "Titan : les adversaires visent aussi ses appareils (quand ils sont bien plus proches que lui), un missile toutes les 4 s.";
+const VERSION = "1.15.0", NOTES = "McCree : ses balles transpercent les ennemis, et il tire aussi vers le haut et vers le bas.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

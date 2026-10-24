@@ -1097,7 +1097,7 @@ function maj(dt) {
     z.t -= dt; z.tic -= dt;
     const o = g.f.find(x => x !== z.owner);
     if (g.running && o && z.tic <= 0 && Math.hypot(o.x - z.x, o.y - z.y) < z.r + Math.max(o.hw, o.hh) * 0.4) {
-      z.tic = 0.5; degats(g, o, 5, o.x, o.y - o.hh * 0.3);
+      z.tic = 0.5; degats(g, o, 6, o.x, o.y - o.hh * 0.3);
     }
     return z.t > 0;
   });
@@ -2224,7 +2224,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.8.7", NOTES = "L’Inconnu ralentit un peu plus (65 % de la vitesse).";
+const VERSION = "1.8.8", NOTES = "Feu au sol du Sorcier à 6 dégâts par demi-seconde.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

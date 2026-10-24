@@ -339,7 +339,7 @@ const CHARS = {
       }
       f.cd -= dt;
       if (f.cd <= 0 && !cache(o)) {
-        f.cd = 2.1; f.attT = 0.5; son(f);
+        f.cd = 2; f.attT = 0.5; son(f);
         plusTard(g, latenceSon(f), () => {
           // part vers l'adversaire et tourne un peu vers lui au début, sans le suivre partout
           const a = Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 0.5;
@@ -1067,7 +1067,7 @@ function maj(dt) {
       if (p.kind === "mortier") {
         // côté touché : le dôme de fumée s'ouvre vers l'intérieur de l'arène
         const ang = p.y > W ? -Math.PI / 2 : p.x < 0 ? 0 : p.x > W ? Math.PI : Math.PI / 2;
-        explosion(g, Math.min(W, Math.max(0, p.x)), Math.min(W, Math.max(0, p.y)), cible, 22, ang);
+        explosion(g, Math.min(W, Math.max(0, p.x)), Math.min(W, Math.max(0, p.y)), cible, 25, ang);
       }
       return false;
     }
@@ -2224,7 +2224,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.8.4", NOTES = "Smoker : langue toutes les 3,5 s. Robot : impact du laser à 30.";
+const VERSION = "1.8.5", NOTES = "L’Inconnu : explosion à 25. Sorcier : boule de feu toutes les 2 s.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

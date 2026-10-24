@@ -948,7 +948,7 @@ function autodestruction(g, f, o) {
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const BOUCLIER_PV = 35, FEU_RAYON = 110, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
-const RALENTI = 0.7; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
+const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const RECHARGE = 1.8; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
@@ -990,7 +990,7 @@ function maj(dt) {
   prets.forEach(fn => fn());
   for (const [f, o] of [[a, b], [b, a]]) {
     if (f.mort) continue;
-    // ralenti par l'Inconnu : il se déplace et recharge ses attaques à 70 % de sa vitesse
+    // ralenti par l'Inconnu : il se déplace et recharge ses attaques à 65 % de sa vitesse
     if (g.running && !f.capture) CHARS[f.type].attaque(f, o, g, f.lent > 0 ? dt * RALENTI : dt);
     majTaille(f);
     const lenteur = f.lent > 0 ? RALENTI : 1;
@@ -2224,7 +2224,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.8.6", NOTES = "McCree recharge en 1,8 s, Smoker plus rapide, ondes de Steve à 12.";
+const VERSION = "1.8.7", NOTES = "L’Inconnu ralentit un peu plus (65 % de la vitesse).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

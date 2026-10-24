@@ -1,1 +1,1 @@
-{"version": "1.7.5", "notes": "Présentateur (noms, Ready, Fight, Wins) remis au même niveau sonore, un peu plus fort."}
+{"version": "1.7.6", "notes": "Fin de combat : seuls le bouton son et la carte de fin restent, et la carte attend la fin de l’annonce du gagnant."}

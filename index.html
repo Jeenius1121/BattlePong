@@ -696,7 +696,7 @@ const CHARS = {
     }
   },
   titan: {
-    nom: "Le Titan", emoji: "🛰️", vitesse: 80, pv: 200, taille: 1.2, images: ["tir", "appareil"],
+    nom: "Le Titan", emoji: "🛰️", vitesse: 80, pv: 200, taille: 1.5, portrait: "entier", images: ["tir", "appareil"],
     sonNom: "lancement", son2: "explosion du missile", son3: "appareil détruit",
     imageDe: f => f.attT > 0 ? 2 : 1,
     desc: "Énorme (deux fois plus de PV) mais très lent. Deux petits appareils de 25 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Titan fait tomber de gros missiles du ciel sur lui. Sans appareil, il ne peut plus attaquer. Un appareil détruit revient au bout de 8 secondes, un par un.",
@@ -1637,7 +1637,7 @@ function montrerFin() {
   x.clearRect(0, 0, cv.width, cv.height);
   const persos = w ? [w] : g.f, part = cv.width / persos.length;
   persos.forEach((f, i) => {
-    const s = CHARS[f.type].sprite, t = cadreTete(s), k = cv.height / t.S;
+    const s = CHARS[f.type].sprite, t = cadreTete(s, CHARS[f.type].portrait === "entier"), k = cv.height / t.S;
     x.save(); x.beginPath(); x.rect(i * part, 0, part, cv.height); x.clip();
     x.translate(i * part + part / 2, 0);
     if (f.side) x.scale(-1, 1);
@@ -1724,9 +1724,11 @@ function majSelection(change) {
   aide.style.setProperty("--team", coteActif ? "var(--droite)" : "var(--gauche)");
   aide.innerHTML = `Touche un perso pour le mettre à <b>${coteActif ? "droite" : "gauche"}</b>`;
 }
-// portrait automatique : on cadre le haut du perso (sa tête) à partir de la partie visible de l'image
-function cadreTete(s) {
+// portrait automatique : on cadre le haut du perso (sa tête) à partir de la partie visible de l'image ;
+// portrait « entier » : tout le perso, centré (pour ceux qui n'ont pas de tête, comme le Titan)
+function cadreTete(s, entier) {
   if (s.tete) return s.tete;
+  if (entier) { const S = Math.max(s.th * 1.02, s.tw * 0.85); return (s.tete = { x: (s.tw - S) / 2, y: (s.th - S) / 2, S }); }
   let y0 = 0;
   while (y0 < s.th - 1 && !s.mask.subarray(y0 * s.tw, (y0 + 1) * s.tw).some(v => v)) y0++;
   const S = Math.max(24, Math.min(s.th * 0.42, s.tw * 1.1));
@@ -1738,7 +1740,7 @@ function cadreTete(s) {
 function dessinerTuile(id) {
   const cv = document.querySelector(`.tuile[data-id="${id}"] canvas`);
   if (!cv) return;
-  const s = CHARS[id].sprite, t = cadreTete(s), x = cv.getContext("2d"), k = cv.width / t.S;
+  const s = CHARS[id].sprite, t = cadreTete(s, CHARS[id].portrait === "entier"), x = cv.getContext("2d"), k = cv.width / t.S;
   x.clearRect(0, 0, cv.width, cv.height);
   x.drawImage(s.img, -t.x * k, -t.y * k, s.tw * k, s.th * k);
 }
@@ -2411,7 +2413,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.13.1", NOTES = "Titan : un missile toutes les 3,6 s ; nouvelles images, les faisceaux sortent du bas des appareils.";
+const VERSION = "1.13.2", NOTES = "Titan : portrait recadré sur tout le perso, plus grand en combat (zone de touche agrandie avec).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -347,6 +347,7 @@ const CHARS = {
       if (t) {
         f.cd = 2; f.attT = 0.5; son(f);
         plusTard(g, latenceSon(f), () => {
+          if (f.capture) return; // attrapé par le Smoker entre-temps : il ne peut plus rien faire
           // part vers sa cible et tourne un peu vers elle au début, sans la suivre partout
           const c = t.drone || o, a = Math.atan2(c.y - f.y, c.x - f.x) + (Math.random() - 0.5) * 0.5;
           g.proj.push({ kind: "feu", homing: true, virage: 0.7, guideT: 1, x: f.x, y: f.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, r: 13, dmg: 14, owner: f, rot: 0, drone: t.drone });
@@ -493,7 +494,7 @@ const CHARS = {
           f.teleEnCours = true; son(f, 2);
           plusTard(g, latenceSon(f, 2), () => {
             f.teleEnCours = false;
-            if (!f.copies.length) return;
+            if (!f.copies.length || f.capture) return; // pas de téléportation dans la langue du Smoker
             const c = f.copies.splice(Math.floor(Math.random() * f.copies.length), 1)[0];
             eclats(g, f.x, f.y, "#7a5cff");
             f.x = c.x; f.y = c.y;
@@ -507,6 +508,7 @@ const CHARS = {
       if (t) {
         f.cd = 2.5; f.attT = 0.5; son(f);
         plusTard(g, latenceSon(f), () => {
+          if (f.capture) return;
           const G = 900, x0 = f.x, y0 = f.y - f.hh * 0.3, c = t.drone || o;
           const dx = c.x - x0, dy = c.y - y0, T = 0.55 + Math.hypot(dx, dy) / 650;
           g.proj.push({ kind: "mortier", x: x0, y: y0, vx: dx / T, vy: dy / T - 0.5 * G * T, gravite: G,
@@ -912,7 +914,7 @@ function degats(g, cible, n, x, y) {
   if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction)));
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
   const reaction = CHARS[cible.type].quandTouche;
-  if (reaction) reaction(cible, g);
+  if (reaction && !cible.capture) reaction(cible, g); // attrapé par le Smoker : aucune réaction (Myers ne file pas dans un coin)
   g.txt.push({ x, y, t: 0.8, s: "-" + n });
   eclats(g, x, y, "#e0483d");
 }
@@ -2461,7 +2463,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.16.2", NOTES = "Les noms longs (Bombardier) tiennent en entier dans les grands panneaux.";
+const VERSION = "1.16.3", NOTES = "Attrapé par la langue du Smoker, on ne peut plus rien faire : Myers ne se téléporte plus, L'Inconnu non plus.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

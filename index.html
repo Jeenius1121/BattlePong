@@ -559,7 +559,7 @@ const CHARS = {
     }
   },
   smoker: {
-    nom: "Smoker", emoji: "👅", vitesse: 215, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
+    nom: "Smoker", emoji: "👅", vitesse: 230, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
     // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
@@ -883,7 +883,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
 /* ===== CRI DU HURLEUR =====
    Une onde de choc en anneau part de lui et grandit ; elle blesse une fois l'adversaire qu'elle traverse. */
-const HURLEUR_DEGATS = 11, HURLEUR_CRI_SORTIE = 18, HURLEUR_INVIS_CD = 6, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
+const HURLEUR_DEGATS = 12, HURLEUR_CRI_SORTIE = 18, HURLEUR_INVIS_CD = 6, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
 function crier(g, f, dmg, portee, epais) {
   g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
 }
@@ -949,7 +949,7 @@ function autodestruction(g, f, o) {
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const BOUCLIER_PV = 35, FEU_RAYON = 110, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const RALENTI = 0.7; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
-const RECHARGE = 2; // rechargement du Cowboy après chaque rafale (secondes)
+const RECHARGE = 1.8; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
 const FIN = 3.2, ANNONCE_DELAI = 1; // durée de la séquence de fin, attente avant d'annoncer le gagnant (secondes réelles)
@@ -2224,7 +2224,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.8.5", NOTES = "L’Inconnu : explosion à 25. Sorcier : boule de feu toutes les 2 s.";
+const VERSION = "1.8.6", NOTES = "McCree recharge en 1,8 s, Smoker plus rapide, ondes de Steve à 12.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -87,6 +87,7 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{display:
 .tuile:active{transform:scale(.95)}
 .tuile canvas{display:block; width:100%; height:100%}
 .tnom{position:absolute; left:0; right:0; bottom:0; padding:12px 3px 3px; font-size:.66rem; font-weight:800; color:#fff; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:linear-gradient(transparent, rgba(0,0,0,.7))}
+.tnom.long{font-size:.58rem; letter-spacing:-.02em}
 .badge{position:absolute; top:4px; display:none; font-size:.58rem; font-weight:800; color:#fff; padding:2px 5px; border-radius:6px}
 .badge.bg{left:4px; background:var(--gauche)}
 .badge.bd{right:4px; background:var(--droite)}
@@ -195,9 +196,9 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 
   <div data-vue="selection">
   <div class="duel">
-    <button class="panneau" data-side="0" type="button" aria-label="Choisir le perso de gauche"><span class="joueur">Gauche</span><img class="grand" alt=""><span class="nomGrand"></span></button>
+    <button class="panneau" data-side="0" type="button" aria-label="Choisir le perso du joueur 1"><span class="joueur">Joueur 1</span><img class="grand" alt=""><span class="nomGrand"></span></button>
     <div class="vs" aria-hidden="true">VS</div>
-    <button class="panneau" data-side="1" type="button" aria-label="Choisir le perso de droite"><span class="joueur">Droite</span><img class="grand" alt=""><span class="nomGrand"></span></button>
+    <button class="panneau" data-side="1" type="button" aria-label="Choisir le perso du joueur 2"><span class="joueur">Joueur 2</span><img class="grand" alt=""><span class="nomGrand"></span></button>
   </div>
   <p class="aide" id="aide"></p>
   <div class="roster" id="roster"></div>
@@ -1761,7 +1762,7 @@ function majSelection(change) {
   });
   const aide = document.getElementById("aide");
   aide.style.setProperty("--team", coteActif ? "var(--droite)" : "var(--gauche)");
-  aide.innerHTML = `Touche un perso pour le mettre à <b>${coteActif ? "droite" : "gauche"}</b>`;
+  aide.innerHTML = `Touche un perso pour le donner au <b>${coteActif ? "joueur 2" : "joueur 1"}</b>`;
 }
 // portrait automatique : on cadre le haut du perso (sa tête) à partir de la partie visible de l'image ;
 // portrait « entier » : tout le perso, centré (pour ceux qui n'ont pas de tête, comme le Titan)
@@ -1789,7 +1790,7 @@ function construireUI() {
   for (const [id, c] of Object.entries(CHARS)) {
     const b = document.createElement("button");
     b.className = "tuile"; b.type = "button"; b.dataset.id = id; b.setAttribute("aria-label", c.nom);
-    b.innerHTML = `<canvas width="128" height="128"></canvas><span class="tnom">${c.nom}</span><span class="badge bg">G</span><span class="badge bd">D</span>`;
+    b.innerHTML = `<canvas width="128" height="128"></canvas><span class="tnom${c.nom.length > 9 ? " long" : ""}">${c.nom}</span><span class="badge bg">J1</span><span class="badge bd">J2</span>`;
     b.addEventListener("click", () => {
       choix[coteActif] = id; coteActif = 1 - coteActif;
       annoncerNom(id); musiqueSelection();
@@ -2452,7 +2453,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.16.0", NOTES = "Robot : le laser brûle de plus en plus fort (6, 11, 17, 25, 35) et grossit au fil du tir.";
+const VERSION = "1.16.1", NOTES = "« Gauche » et « Droite » deviennent « Joueur 1 » et « Joueur 2 ».";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

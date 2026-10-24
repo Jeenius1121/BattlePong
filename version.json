@@ -1,1 +1,1 @@
-{"version": "1.16.1", "notes": "« Gauche » et « Droite » deviennent « Joueur 1 » et « Joueur 2 »."}
+{"version": "1.16.2", "notes": "Les noms longs (Bombardier) tiennent en entier dans les grands panneaux."}

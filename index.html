@@ -78,7 +78,7 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{display:
 @keyframes entree{from{opacity:0; translate:0 14px} to{opacity:1; translate:0 0}}
 .joueur{position:absolute; top:8px; left:10px; font-weight:800; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; background:rgba(0,0,0,.35); padding:3px 8px; border-radius:999px}
 .panneau[data-side="1"] .joueur{left:auto; right:10px}
-.nomGrand{position:absolute; left:0; right:0; bottom:0; padding:22px 8px 10px; text-align:center; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(1rem,5.4vw,1.55rem); line-height:1; background:linear-gradient(transparent, rgba(0,0,0,.6)); text-shadow:0 2px 0 rgba(0,0,0,.45)}
+.nomGrand{position:absolute; left:0; right:0; bottom:0; padding:22px 8px 10px; white-space:nowrap; overflow:hidden; text-align:center; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(1rem,5.4vw,1.55rem); line-height:1; background:linear-gradient(transparent, rgba(0,0,0,.6)); text-shadow:0 2px 0 rgba(0,0,0,.45)}
 .duel .vs{font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(1.5rem,7vw,2.3rem); transform:rotate(-8deg)}
 .aide{margin:10px 0 8px; text-align:center; font-size:.85rem; color:var(--muted)}
 .aide b{color:var(--team)}
@@ -1749,11 +1749,19 @@ function appliquerSprite(cle, sprite, perso) {
 }
 
 let coteActif = 0;
+// nom du grand panneau : rapetisse jusqu'à tenir en entier sur la largeur (ex. « Bombardier »)
+function ajusterNom(el) {
+  el.style.fontSize = "";
+  let t = parseFloat(getComputedStyle(el).fontSize);
+  while (el.scrollWidth > el.clientWidth && t > 10) { t -= 1; el.style.fontSize = t + "px"; }
+}
+addEventListener("resize", () => document.querySelectorAll(".nomGrand").forEach(ajusterNom));
+if (document.fonts) document.fonts.ready.then(() => document.querySelectorAll(".nomGrand").forEach(ajusterNom)); // police chargée après coup
 // met à jour les grands panneaux, les badges G/D et le texte d'aide ; anime le panneau qui vient de changer
 function majSelection(change) {
   document.querySelectorAll(".panneau").forEach(p => {
     const i = +p.dataset.side, c = CHARS[choix[i]], img = p.querySelector(".grand");
-    img.src = c.sprite.url; p.querySelector(".nomGrand").textContent = c.nom;
+    img.src = c.sprite.url; p.querySelector(".nomGrand").textContent = c.nom; ajusterNom(p.querySelector(".nomGrand"));
     p.classList.toggle("actif", i === coteActif);
     if (i === change) { img.classList.remove("entre"); void img.offsetWidth; img.classList.add("entre"); }
   });
@@ -2453,7 +2461,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.16.1", NOTES = "« Gauche » et « Droite » deviennent « Joueur 1 » et « Joueur 2 ».";
+const VERSION = "1.16.2", NOTES = "Les noms longs (Bombardier) tiennent en entier dans les grands panneaux.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

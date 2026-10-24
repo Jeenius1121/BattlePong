@@ -412,7 +412,7 @@ const CHARS = {
       };
       if (f.tir > 0) {
         const r = rayon(); f.laserLen = r.len;
-        if (r.px !== undefined && f.brule <= 0) { f.brule = 0.35; degats(g, o, 7, r.px, r.py); }
+        if (r.px !== undefined && f.brule <= 0) { f.brule = 0.35; degats(g, o, 8, r.px, r.py); }
       }
       f.cd -= dt;
       if (f.charge > 0) {
@@ -423,7 +423,7 @@ const CHARS = {
           if (!f.sonJoue) { f.sonJoue = true; son(f); }
           f.tir = 1.15; f.cd = 3;
           const r = rayon(); f.laserLen = r.len;
-          if (r.px !== undefined) { f.brule = 0.35; degats(g, o, 30, r.px, r.py); }
+          if (r.px !== undefined) { f.brule = 0.35; degats(g, o, 33, r.px, r.py); }
         }
       } else if (f.cd <= 0 && !cache(o) && f.tir <= 0) {
         // vise depuis le canon : le robot se tourne vers l'adversaire et le rayon part du pistolet
@@ -492,9 +492,9 @@ const CHARS = {
   rodeur: {
     // relâché par le Smoker : sa musique de furie (ou de traque) reprend là où elle s'était coupée
     reprendre(f) { if (f.etat === "furie") son(f, 1, true, true); else if (f.etat === "stalk") son(f, 2, true, true); },
-    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], reduction: 0.2, sonLong: true, son2: "traque", sonNom: "furie",
+    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], reduction: 0, sonLong: true, son2: "traque", sonNom: "furie",
     imageDe: f => f.etat === "furie" ? 2 : 1,
-    desc: "Rôde invisible, puis se fige pour fixer l’adversaire et remplir sa jauge. Pendant la furie, il prend 20 % de dégâts en moins et tranche la langue du Smoker. Il réapparaît toujours dans un coin, le plus souvent le plus éloigné. Touché pendant qu’il fixe, il redisparaît. Jauge pleine : il sort son couteau et fonce sur l’adversaire.",
+    desc: "Rôde invisible, réapparaît dans un coin (le plus souvent le plus éloigné), puis se fige pour fixer l’adversaire et remplir sa jauge. Les coups ne l’interrompent pas, mais 3 coups en moins d’une seconde le font filer dans un autre coin, sans perdre sa jauge. Jauge pleine : il sort son couteau et fonce sur l’adversaire. En furie, il tranche la langue du Smoker.",
     svg: `<g ${O}>
       <rect x='46' y='118' width='11' height='22' fill='#2b2b30'/><rect x='63' y='118' width='11' height='22' fill='#2b2b30'/>
       <rect x='42' y='136' width='17' height='8' rx='2' fill='#151518'/><rect x='61' y='136' width='17' height='8' rx='2' fill='#151518'/>
@@ -509,14 +509,15 @@ const CHARS = {
       <path d='M30 26 Q60 34 90 26 Q86 32 60 34 Q34 32 30 26Z' fill='#1f1f24'/>
       <rect x='74' y='66' width='11' height='40' rx='5' fill='#5a4632'/><circle cx='80' cy='108' r='5' fill='#2a2a2e'/></g>`,
     // touché pendant qu'il fixe : il redevient invisible et repart rôder
+    // touché pendant la traque : il encaisse et continue ; après 3 coups en moins d'une seconde,
+    // il file dans un autre coin et continue sa traque (sa jauge est gardée)
     quandTouche(f, g) {
       if (f.etat !== "stalk") return;
-      arreterSon(f, 2); // le son de traque se coupe net
-      f.etat = "rode"; f.etatT = 1.5 + Math.random() * 1.5;
-      const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f);
-      eclats(g, f.x, f.y, "#55555f");
+      f.coups = (f.coups || []).filter(t => f.horloge - t < 1); f.coups.push(f.horloge);
+      if (f.coups.length >= MYERS_COUPS) { f.coups = []; myersCoin(g, f, g.f.find(x => x !== f), true); }
     },
     attaque(f, o, g, dt) {
+      f.horloge = (f.horloge || 0) + dt;
       if (!f.etat) { f.etat = "rode"; f.etatT = 1.5 + Math.random() * 1.5; f.jauge = 0; }
       const visCible = f.etat === "rode" ? 0.12 : 1;
       f.vis = (f.vis ?? 1) + (visCible - (f.vis ?? 1)) * Math.min(1, dt * 6);
@@ -527,17 +528,11 @@ const CHARS = {
           f.etat = "stalk"; f.vx = 0; f.vy = 0;
           son(f, 2, true); // son de traque, pendant que la jauge monte
           // en réapparaissant, il se téléporte toujours dans un coin, de préférence le plus éloigné
-          const coins = [[f.hw, f.hh], [W - f.hw, f.hh], [f.hw, W - f.hh], [W - f.hw, W - f.hh]]
-            .map(([x, y]) => ({ x, y, p: Math.hypot(o.x - x, o.y - y) ** 4 }));
-          let t = Math.random() * coins.reduce((s, c) => s + c.p, 0), c = coins[0];
-          for (c of coins) if ((t -= c.p) <= 0) break;
-          eclats(g, f.x, f.y, "#55555f");
-          f.x = c.x; f.y = c.y; f.vis = 0;
-          eclats(g, f.x, f.y, "#55555f");
+          myersCoin(g, f, o, false);
         }
       } else if (f.etat === "stalk") { // immobile, fixe l'adversaire, la jauge monte
         f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1;
-        f.jauge = Math.min(1, f.jauge + dt / 3); // jauge pleine en 3 s
+        f.jauge = Math.min(1, f.jauge + dt / 4); // jauge pleine en 4 s
         if (f.jauge >= 1) {
           f.etat = "furie"; arreterSon(f, 2); son(f, 1, true); // son joué en boucle pendant toute la furie
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -942,6 +937,17 @@ function couperLangue(f, o, g, x, y) {
   liberer(o, f);
   son(f, 4); // « aïe ! »
   const L = f.langue; L.etat = "rentre"; L.x = coupe.x; L.y = coupe.y;
+}
+const MYERS_COUPS = 3; // coups reçus en moins d'une seconde pendant la traque avant de changer de coin
+// Myers file dans un coin, de préférence loin de l'adversaire (autre = jamais le coin où il est déjà)
+function myersCoin(g, f, o, autre) {
+  const coins = [[f.hw, f.hh], [W - f.hw, f.hh], [f.hw, W - f.hh], [W - f.hw, W - f.hh]]
+    .map(([x, y]) => ({ x, y, p: Math.hypot(o.x - x, o.y - y) ** 4 * (autre && Math.hypot(f.x - x, f.y - y) < 60 ? 0 : 1) }));
+  let t = Math.random() * coins.reduce((s, c) => s + c.p, 0), c = coins[0];
+  for (c of coins) if ((t -= c.p) <= 0) break;
+  eclats(g, f.x, f.y, "#55555f");
+  f.x = c.x; f.y = c.y; f.vis = 0;
+  eclats(g, f.x, f.y, "#55555f");
 }
 const AUTODESTRUCTION_PV = 25, AUTODESTRUCTION_DUREE = 5; // Robot
 // le Robot explose et emporte l'adversaire : les deux tombent à 0, c'est une égalité
@@ -2227,7 +2233,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.9.1", NOTES = "Myers fonce 5 % plus vite en furie.";
+const VERSION = "1.10.0", NOTES = "Myers : nouvelle traque (3 coups rapides = autre coin), jauge en 4 s, plus de réduction en furie. Robot : +10 % de dégâts.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

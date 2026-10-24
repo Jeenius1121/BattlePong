@@ -406,6 +406,7 @@ const CHARS = {
         for (let t = 0; t < 900; t += 6) {
           const px = c0.x + ca * t, py = c0.y + sa * t;
           if (px < 0 || px > W || py < 0 || py > W) return { len: t };
+          if (o.drones) for (const d of o.drones) { const q = dronePos(o, d); if (Math.hypot(q.x - px, q.y - py) < 16) return { len: t, drone: d }; }
           if (touche(o, px, py, 10)) return { len: t, px, py };
         }
         return { len: 900 };
@@ -413,6 +414,7 @@ const CHARS = {
       if (f.tir > 0) {
         const r = rayon(); f.laserLen = r.len;
         if (r.px !== undefined && f.brule <= 0) { f.brule = 0.35; degats(g, o, 8, r.px, r.py); }
+        if (r.drone && f.brule <= 0) { f.brule = 0.35; blesserDrone(g, o, r.drone, 8); }
       }
       f.cd -= dt;
       if (f.charge > 0) {
@@ -424,6 +426,7 @@ const CHARS = {
           f.tir = 1.15; f.cd = 3;
           const r = rayon(); f.laserLen = r.len;
           if (r.px !== undefined) { f.brule = 0.35; degats(g, o, 33, r.px, r.py); }
+          if (r.drone) { f.brule = 0.35; blesserDrone(g, o, r.drone, 33); }
         }
       } else if (f.cd <= 0 && !cache(o) && f.tir <= 0) {
         // vise depuis le canon : le robot se tourne vers l'adversaire et le rayon part du pistolet
@@ -675,6 +678,39 @@ const CHARS = {
       }
       if (f.criT <= 0) { f.criT = 2; f.attT = 0.3; son(f); crier(g, f, HURLEUR_DEGATS, 320, 12); }
     }
+  },
+  titan: {
+    nom: "Le Titan", emoji: "🛰️", vitesse: 80, pv: 200, taille: 1.2, images: ["tir", "appareil"],
+    sonNom: "lancement", son2: "explosion du missile", son3: "appareil détruit",
+    imageDe: f => f.attT > 0 ? 2 : 1,
+    desc: "Énorme (deux fois plus de PV) mais très lent. Deux petits appareils de 15 PV tournent autour de lui : tant qu’il en reste un, il fait tomber des missiles du ciel sur la position de l’adversaire. Sans appareil, il ne peut plus attaquer. Un appareil détruit revient au bout de 8 secondes, un par un.",
+    svg: `<g ${O}>
+      <rect x='36' y='108' width='20' height='34' rx='4' fill='#4a5160'/><rect x='64' y='108' width='20' height='34' rx='4' fill='#4a5160'/>
+      <rect x='30' y='136' width='28' height='9' rx='3' fill='#2a2e38'/><rect x='62' y='136' width='28' height='9' rx='3' fill='#2a2e38'/>
+      <rect x='14' y='56' width='18' height='46' rx='8' fill='#6c7586'/><rect x='88' y='56' width='18' height='46' rx='8' fill='#6c7586'/>
+      <rect x='26' y='46' width='68' height='66' rx='14' fill='#8b93a6'/>
+      <rect x='40' y='62' width='40' height='28' rx='6' fill='#5d6476'/><circle cx='60' cy='76' r='8' fill='#f2b134'/>
+      <rect x='42' y='16' width='36' height='32' rx='10' fill='#8b93a6'/>
+      <rect x='48' y='26' width='24' height='9' rx='4' fill='#1b2033'/><circle cx='60' cy='30' r='3' fill='#ff3b3b' stroke='none'/>
+      <path d='M60 16 V6' fill='none'/><circle cx='60' cy='5' r='3' fill='#f2b134'/></g>`,
+    attaque(f, o, g, dt) {
+      f.drones ??= [{ a: 0, hp: DRONE_PV }, { a: Math.PI, hp: DRONE_PV }];
+      for (const d of f.drones) { d.a += dt * 1.6; d.nouveau = Math.max(0, (d.nouveau || 0) - dt); }
+      // un appareil détruit revient au bout de 8 s, un par un
+      if (f.drones.length < 2) {
+        f.droneT = (f.droneT ?? DRONE_RETOUR) - dt;
+        if (f.droneT <= 0) {
+          f.droneT = DRONE_RETOUR;
+          f.drones.push({ a: f.drones.length ? f.drones[0].a + Math.PI : 0, hp: DRONE_PV, nouveau: 0.6 });
+        }
+      } else f.droneT = DRONE_RETOUR;
+      if (!f.drones.length) return; // sans appareil, il est perdu et n'attaque plus
+      f.cd -= dt;
+      if (f.cd <= 0 && !cache(o, f)) { // missile tiré vers le ciel, qui retombe sur la position de l'adversaire
+        f.cd = MISSILE_CD; f.attT = 0.4; son(f);
+        g.missiles.push({ x: Math.min(W, Math.max(0, o.x + o.vx * MISSILE_DELAI * MISSILE_VISEE)), y: Math.min(W, Math.max(0, o.y + o.vy * MISSILE_DELAI * MISSILE_VISEE)), t: MISSILE_DELAI, owner: f });
+      }
+    }
   }
 };
 
@@ -834,14 +870,14 @@ function angleAleatoire() {
 function creerCombattant(type, side) {
   const s = CHARS[type].sprite, k = echelle(s) * (CHARS[type].taille || 1), a = angleAleatoire();
   const f = { type, side, k, hw: s.tw * k / 2, hh: s.th * k / 2, x: side ? 440 : 160, y: 300,
-    vx: Math.cos(a), vy: Math.sin(a), hp: 100, face: side ? -1 : 1,
+    vx: Math.cos(a), vy: Math.sin(a), hp: CHARS[type].pv || 100, hpMax: CHARS[type].pv || 100, face: side ? -1 : 1,
     cd: 0.4 + Math.random() * 0.6, flash: 0, burst: 0, burstT: 0, dir: 1, muzzle: 0 };
   normaliser(f);
   return f;
 }
 function nouveauJeu(running) {
   arreterBoucles();
-  jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], feux: [], ondes: [], secousse: 0, running, fin: 0 };
+  jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], feux: [], ondes: [], missiles: [], secousse: 0, running, fin: 0 };
   majHud();
 }
 function degats(g, cible, n, x, y) {
@@ -877,8 +913,33 @@ function explosion(g, x, y, cible, dmg, ang) {
   }
   const dx = Math.max(Math.abs(cible.x - x) - cible.hw, 0), dy = Math.max(Math.abs(cible.y - y) - cible.hh, 0);
   if (Math.hypot(dx, dy) < 140) degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3);
+  for (const d of [...(cible.drones || [])]) { const p = dronePos(cible, d); if (Math.hypot(p.x - x, p.y - y) < 150) blesserDrone(g, cible, d, dmg); }
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
+/* ===== APPAREILS ET MISSILES DU TITAN ===== */
+const DRONE_PV = 15, DRONE_RETOUR = 8, MISSILE_CD = 1.6, MISSILE_DELAI = 0.8, MISSILE_RAYON = 95, MISSILE_DEGATS = 19, MISSILE_VISEE = 0; // MISSILE_VISEE : 0 = vise là où est l'adversaire, 1 = anticipe complètement son déplacement
+function dronePos(f, d) {
+  const R = Math.max(f.hw, f.hh) * 0.75 + 28;
+  return { x: f.x + Math.cos(d.a) * R, y: f.y + Math.sin(d.a) * R * 0.75 - f.hh * 0.2 };
+}
+function blesserDrone(g, f, d, n) {
+  const p = dronePos(f, d);
+  d.hp -= n; g.txt.push({ x: p.x, y: p.y - 14, t: 0.6, s: "-" + n }); eclats(g, p.x, p.y, "#8b93a6");
+  if (d.hp <= 0) { // appareil détruit
+    f.drones = f.drones.filter(x => x !== d); son(f, 3);
+    for (let i = 0; i < 14; i++) g.parts.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.5) * 260 - 60, t: 0.6, g: 500, forme: "eclat", rot: Math.random() * 6, c: i % 2 ? "#8b93a6" : "#f2b134" });
+  }
+}
+// un tir passe-t-il sur un appareil de f ? (deja : appareils déjà touchés par ce tir, à ignorer)
+function droneTouche(g, f, x, y, rad, n, deja) {
+  if (!f.drones || f.mort) return false;
+  for (const d of f.drones) {
+    if (deja && deja.has(d)) continue;
+    const p = dronePos(f, d);
+    if (Math.hypot(p.x - x, p.y - y) < rad + 13) { if (deja) deja.add(d); blesserDrone(g, f, d, n); return true; }
+  }
+  return false;
+}
 /* ===== CRI DU HURLEUR =====
    Une onde de choc en anneau part de lui et grandit ; elle blesse une fois l'adversaire qu'elle traverse. */
 const HURLEUR_DEGATS = 12, HURLEUR_CRI_SORTIE = 18, HURLEUR_INVIS_CD = 6, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
@@ -1057,6 +1118,7 @@ function maj(dt) {
     const n = Math.max(1, Math.ceil(Math.hypot(p.vx, p.vy) * dt / 8));
     for (let i = 0; i < n; i++) {
       p.x += p.vx * dt / n; p.y += p.vy * dt / n;
+      if (cible.drones && droneTouche(g, cible, p.x, p.y, p.r * 0.6, p.dmg, p.perce ? (p.dejaDrones ||= new Set()) : null) && !p.perce) return false;
       if (touche(cible, p.x, p.y, p.r * 0.6)) {
         if (p.perce) { // transperce : refait des dégâts à chaque nouveau passage à travers l'adversaire
           if (!p.dedans && !(p.hitCd > 0)) {
@@ -1100,13 +1162,31 @@ function maj(dt) {
     if (g.running && o && !w.touche && Math.abs(Math.hypot(o.x - w.x, o.y - w.y) - w.r) < Math.max(o.hw, o.hh) * 0.6 + w.epais) {
       w.touche = true; degats(g, o, w.dmg, o.x, o.y - o.hh * 0.3);
     }
+    for (const d of [...(o && o.drones || [])]) {
+      const p = dronePos(o, d); w.drones ||= new Set();
+      if (!w.drones.has(d) && Math.abs(Math.hypot(p.x - w.x, p.y - w.y) - w.r) < w.epais + 12) { w.drones.add(d); blesserDrone(g, o, d, w.dmg); }
+    }
     return w.r < w.max;
+  });
+  g.missiles = g.missiles.filter(m => {
+    m.t -= dt;
+    if (m.t > 0) return true;
+    const o = g.f.find(x => x !== m.owner);
+    g.boums.push({ x: m.x, y: m.y, t: 0.6 }); g.secousse = Math.max(g.secousse, 0.15); son(m.owner, 2);
+    for (let i = 0; i < 24; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 260; g.parts.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, t: 0.6, g: 400, c: ["#ffd23f", "#ff8a2a", "#5b5b66"][i % 3] }); }
+    if (g.running && o && Math.hypot(o.x - m.x, o.y - m.y) < MISSILE_RAYON + Math.max(o.hw, o.hh) * 0.4) degats(g, o, MISSILE_DEGATS, o.x, o.y - o.hh * 0.3);
+    return false;
   });
   g.feux = g.feux.filter(z => {
     z.t -= dt; z.tic -= dt;
     const o = g.f.find(x => x !== z.owner);
     if (g.running && o && z.tic <= 0 && Math.hypot(o.x - z.x, o.y - z.y) < z.r + Math.max(o.hw, o.hh) * 0.4) {
       z.tic = 0.5; degats(g, o, 6, o.x, o.y - o.hh * 0.3);
+    }
+    if (g.running && o && o.drones && z.ticD === undefined) z.ticD = 0;
+    if (o && o.drones && (z.ticD -= dt) <= 0) {
+      z.ticD = 0.5;
+      for (const d of [...o.drones]) { const p = dronePos(o, d); if (Math.hypot(p.x - z.x, p.y - z.y) < z.r) blesserDrone(g, o, d, 6); }
     }
     return z.t > 0;
   });
@@ -1136,8 +1216,8 @@ function majHud() {
     document.getElementById("n" + i).textContent = CHARS[f.type].nom;
     document.getElementById("h" + i).textContent = Math.ceil(f.hp);
     const bar = document.getElementById("b" + i);
-    bar.style.width = f.hp + "%";
-    bar.style.background = f.hp < 30 ? "var(--hp-low)" : "var(--hp)";
+    bar.style.width = f.hp / f.hpMax * 100 + "%";
+    bar.style.background = f.hp < f.hpMax * 0.3 ? "var(--hp-low)" : "var(--hp)";
   });
 }
 
@@ -1155,6 +1235,20 @@ function dessiner() {
   ctx.fillStyle = couleurs.arena; ctx.fillRect(-30, -30, W + 60, W + 60);
   ctx.strokeStyle = couleurs["arena-line"]; ctx.lineWidth = 8; ctx.strokeRect(4, 4, W - 8, W - 8);
 
+  for (const m of g.missiles) { // cible au sol du missile du Titan, puis le missile qui tombe
+    const k = 1 - m.t / MISSILE_DELAI, pulse = 0.5 + 0.5 * Math.sin(performance.now() / 70);
+    ctx.save();
+    ctx.fillStyle = `rgba(224,48,42,${0.12 + 0.18 * k})`; ctx.beginPath(); ctx.arc(m.x, m.y, MISSILE_RAYON * k, 0, 7); ctx.fill();
+    ctx.strokeStyle = `rgba(255,90,70,${0.5 + 0.4 * pulse})`; ctx.lineWidth = 3; ctx.setLineDash([10, 8]);
+    ctx.beginPath(); ctx.arc(m.x, m.y, MISSILE_RAYON, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(m.x - 14, m.y); ctx.lineTo(m.x + 14, m.y); ctx.moveTo(m.x, m.y - 14); ctx.lineTo(m.x, m.y + 14); ctx.stroke();
+    if (m.t < 0.35) { // le missile tombe du ciel
+      const y = m.y - m.t / 0.35 * 320;
+      ctx.fillStyle = "#5d6476"; ctx.beginPath(); ctx.moveTo(m.x, y + 16); ctx.lineTo(m.x - 6, y); ctx.lineTo(m.x - 6, y - 26); ctx.lineTo(m.x + 6, y - 26); ctx.lineTo(m.x + 6, y); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ff8a2a"; ctx.beginPath(); ctx.moveTo(m.x - 5, y - 26); ctx.lineTo(m.x, y - 40 - Math.random() * 10); ctx.lineTo(m.x + 5, y - 26); ctx.fill();
+    }
+    ctx.restore();
+  }
   for (const w of g.ondes) { // ondes de choc du Hurleur : anneaux qui grandissent et s'effacent
     const al = Math.max(0, 1 - (w.r / w.max) ** 2); // reste bien visible puis s'efface vite à la fin
     ctx.save(); ctx.globalAlpha = al;
@@ -1283,6 +1377,24 @@ function dessiner() {
       ctx.lineTo(c0.x + Math.cos(f.laserAng) * L, c0.y + Math.sin(f.laserAng) * L);
       ctx.stroke();
       if (f.tir > 0) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 6; ctx.stroke(); }
+      ctx.restore();
+    }
+  }
+  for (const f of g.f) { // appareils du Titan qui tournent autour de lui
+    if (!f.drones || f.mort) continue;
+    const img = spriteImage(f.type + "-3");
+    for (const d of f.drones) {
+      const p = dronePos(f, d), bob = Math.sin(performance.now() / 200 + d.a) * 3;
+      ctx.save(); ctx.translate(p.x, p.y + bob); ctx.globalAlpha = 1 - (d.nouveau || 0) / 0.6;
+      if (img) { const h = 34, w = h * img.tw / img.th; ctx.drawImage(img.img, -w / 2, -h / 2, w, h); }
+      else {
+        ctx.strokeStyle = "#1b2033"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(-16, -9); ctx.lineTo(16, -9); ctx.stroke();
+        ctx.fillStyle = "#8b93a6"; ctx.beginPath(); ctx.arc(0, 0, 11, 0, 7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#ff3b3b"; ctx.beginPath(); ctx.arc(0, 1, 4, 0, 7); ctx.fill();
+      }
+      ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(-12, 16, 24, 4);
+      ctx.fillStyle = "#3fae5a"; ctx.fillRect(-12, 16, 24 * Math.max(0, d.hp) / DRONE_PV, 4);
       ctx.restore();
     }
   }
@@ -2233,7 +2345,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.10.5", NOTES = "McCree recharge en 1,9 s.";
+const VERSION = "1.11.0", NOTES = "Nouveau perso : le Titan, ses appareils et ses missiles.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

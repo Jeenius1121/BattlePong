@@ -635,6 +635,48 @@ const CHARS = {
         if (d < 8) { f.langue = null; f.langueCd = LANGUE_CD; const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); }
       }
     }
+  },
+  hurleur: {
+    nom: "Le Hurleur", emoji: "😱", vitesse: 220, images: ["cri"], sonNom: "cri", son2: "cri de sortie",
+    imageDe: f => f.attT > 0 ? 2 : 1,
+    desc: "Crie toutes les 2 secondes : une onde de choc en anneau part de lui et blesse l’adversaire qu’elle traverse. Toutes les 8 secondes, il devient invisible, s’approche doucement, réapparaît en poussant un énorme cri (dégâts doublés) puis s’enfuit.",
+    svg: `<g ${O}>
+      <rect x='46' y='112' width='11' height='28' fill='#4a4458'/><rect x='63' y='112' width='11' height='28' fill='#4a4458'/>
+      <rect x='42' y='136' width='17' height='8' rx='2' fill='#2a2a2e'/><rect x='61' y='136' width='17' height='8' rx='2' fill='#2a2a2e'/>
+      <path d='M38 62 Q60 54 82 62 L86 116 H34Z' fill='#6b6380'/>
+      <path d='M36 66 Q20 50 18 30' fill='none' stroke='#c9c3d6' stroke-width='10'/><path d='M84 66 Q100 50 102 30' fill='none' stroke='#c9c3d6' stroke-width='10'/>
+      <ellipse cx='60' cy='38' rx='20' ry='24' fill='#d8d2e4'/>
+      <ellipse cx='52' cy='30' rx='4' ry='5' fill='#1b2033' stroke='none'/><ellipse cx='68' cy='30' rx='4' ry='5' fill='#1b2033' stroke='none'/>
+      <ellipse cx='60' cy='48' rx='8' ry='11' fill='#2a1020'/>
+      <path d='M44 16 Q60 4 76 16' fill='none' stroke='#8d86a0' stroke-width='5'/></g>`,
+    attaque(f, o, g, dt) {
+      f.criT = (f.criT ?? 1) - dt;
+      f.invisCd = (f.invisCd ?? HURLEUR_INVIS_CD) - dt;
+      if (f.etat === "rode") { // invisible : il s'approche doucement de l'adversaire
+        f.vis = Math.max(0.12, (f.vis ?? 1) - dt * 4);
+        f.etatT -= dt;
+        const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
+        f.vx = dx / d * this.vitesse * 0.6; f.vy = dy / d * this.vitesse * 0.6;
+        if (d < 150 || f.etatT <= 0) { // il réapparaît et hurle de toutes ses forces
+          f.etat = null; f.vis = 1; f.attT = 0.4; son(f, 2);
+          crier(g, f, HURLEUR_DEGATS * 2, 340, 18);
+          f.fuite = 1.2; f.criT = 2;
+        }
+        return;
+      }
+      f.vis = Math.min(1, (f.vis ?? 1) + dt * 4);
+      if (f.fuite > 0) { // il s'enfuit loin de l'adversaire
+        f.fuite -= dt;
+        const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy) || 1;
+        f.vx = dx / d * this.vitesse * 1.5; f.vy = dy / d * this.vitesse * 1.5;
+        if (f.fuite <= 0) { normaliser(f); redresser(f); f.invisCd = HURLEUR_INVIS_CD; } // le compte à rebours repart ici
+      } else if (f.invisCd <= 0) { // il disparaît
+        f.etat = "rode"; f.etatT = 4;
+        eclats(g, f.x, f.y, "#8d86a0");
+        return;
+      }
+      if (f.criT <= 0) { f.criT = 2; f.attT = 0.3; son(f); crier(g, f, HURLEUR_DEGATS, 320, 12); }
+    }
   }
 };
 
@@ -801,7 +843,7 @@ function creerCombattant(type, side) {
 }
 function nouveauJeu(running) {
   arreterBoucles();
-  jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], feux: [], secousse: 0, running, fin: 0 };
+  jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], feux: [], ondes: [], secousse: 0, running, fin: 0 };
   majHud();
 }
 function degats(g, cible, n, x, y) {
@@ -839,6 +881,12 @@ function explosion(g, x, y, cible, dmg, ang) {
   if (Math.hypot(dx, dy) < 140) degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3);
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (35 → 7 s max)
+/* ===== CRI DU HURLEUR =====
+   Une onde de choc en anneau part de lui et grandit ; elle blesse une fois l'adversaire qu'elle traverse. */
+const HURLEUR_DEGATS = 12, HURLEUR_INVIS_CD = 8, ONDE_VITESSE = 460;
+function crier(g, f, dmg, portee, epais) {
+  g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
+}
 /* ===== LANGUE DU SMOKER ===== */
 const LANGUE_CD = 4, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625;
 // bouche du Smoker : point réglé sur son image 3 s'il en a une, sinon le haut du perso vers l'avant
@@ -878,6 +926,7 @@ function langueCoupee(f, o, g) {
       if (distSeg(x, y, c.x, c.y, c.x + Math.cos(o.laserAng) * o.laserLen, c.y + Math.sin(o.laserAng) * o.laserLen) < 14) coupe = { x, y };
     }
     for (const z of g.feux) if (z.owner === o && Math.hypot(x - z.x, y - z.y) < z.r) coupe = { x, y };
+    for (const w of g.ondes) if (w.owner === o && Math.abs(Math.hypot(x - w.x, y - w.y) - w.r) < w.epais) coupe = { x, y };
   }
   if (!coupe) return false;
   couperLangue(f, o, g, coupe.x, coupe.y);
@@ -1036,6 +1085,14 @@ function maj(dt) {
   g.boums = (g.boums || []).filter(e => (e.t -= dt) > 0);
   g.taches = g.taches.filter(e => (e.t -= dt) > 0);
   // zones de feu du Sorcier : brûlent l'adversaire qui passe dedans
+  g.ondes = g.ondes.filter(w => {
+    w.r += ONDE_VITESSE * dt;
+    const o = g.f.find(x => x !== w.owner);
+    if (g.running && o && !w.touche && Math.abs(Math.hypot(o.x - w.x, o.y - w.y) - w.r) < Math.max(o.hw, o.hh) * 0.6 + w.epais) {
+      w.touche = true; degats(g, o, w.dmg, o.x, o.y - o.hh * 0.3);
+    }
+    return w.r < w.max;
+  });
   g.feux = g.feux.filter(z => {
     z.t -= dt; z.tic -= dt;
     const o = g.f.find(x => x !== z.owner);
@@ -1089,6 +1146,14 @@ function dessiner() {
   ctx.fillStyle = couleurs.arena; ctx.fillRect(-30, -30, W + 60, W + 60);
   ctx.strokeStyle = couleurs["arena-line"]; ctx.lineWidth = 8; ctx.strokeRect(4, 4, W - 8, W - 8);
 
+  for (const w of g.ondes) { // ondes de choc du Hurleur : anneaux qui grandissent et s'effacent
+    const al = Math.max(0, 1 - (w.r / w.max) ** 2); // reste bien visible puis s'efface vite à la fin
+    ctx.save(); ctx.globalAlpha = al;
+    ctx.strokeStyle = "rgba(200,190,255,.35)"; ctx.lineWidth = w.epais * 2.2; ctx.beginPath(); ctx.arc(w.x, w.y, w.r, 0, 7); ctx.stroke();
+    ctx.strokeStyle = "#e9e4ff"; ctx.lineWidth = w.epais * 0.6; ctx.beginPath(); ctx.arc(w.x, w.y, w.r, 0, 7); ctx.stroke();
+    ctx.strokeStyle = "rgba(233,228,255,.5)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(w.x, w.y, Math.max(1, w.r - w.epais * 1.6), 0, 7); ctx.stroke();
+    ctx.restore();
+  }
   for (const z of g.feux) { // feu au sol laissé par le bouclier du Sorcier
     const al = Math.min(1, z.t / 0.6), tt = performance.now() / 1000;
     const gr = ctx.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.r);
@@ -2159,7 +2224,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.7.6", NOTES = "Fin de combat : seuls le bouton son et la carte de fin restent, et la carte attend la fin de l’annonce du gagnant.";
+const VERSION = "1.8.0", NOTES = "Nouveau perso : le Hurleur, ses ondes de choc et son cri surprise.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -637,7 +637,7 @@ const CHARS = {
     }
   },
   hurleur: {
-    nom: "Le Hurleur", emoji: "😱", vitesse: 220, images: ["cri"], sonNom: "cri", son2: "cri de sortie",
+    nom: "Steve (pas de Minecraft)", emoji: "😱", vitesse: 220, images: ["cri"], sonNom: "cri", son2: "cri de sortie",
     imageDe: f => f.attT > 0 ? 2 : 1,
     desc: "Crie toutes les 2 secondes : une onde de choc en anneau part de lui et blesse l’adversaire qu’elle traverse. Toutes les 8 secondes, il devient invisible, s’approche doucement, réapparaît en poussant un énorme cri (dégâts doublés) puis s’enfuit.",
     svg: `<g ${O}>
@@ -2224,7 +2224,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.8.0", NOTES = "Nouveau perso : le Hurleur, ses ondes de choc et son cri surprise.";
+const VERSION = "1.8.1", NOTES = "Le Hurleur s’appelle maintenant Steve (pas de Minecraft).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

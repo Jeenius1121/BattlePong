@@ -549,7 +549,7 @@ const CHARS = {
         const n0 = Math.hypot(f.vx, f.vy) || 1;
         let vx = f.vx / n0, vy = f.vy / n0;
         vx += (dx / d - vx) * k; vy += (dy / d - vy) * k;
-        const n = Math.hypot(vx, vy) || 1, sp = this.vitesse * 1.8;
+        const n = Math.hypot(vx, vy) || 1, sp = this.vitesse * 1.89; // vitesse en furie
         f.vx = vx / n * sp; f.vy = vy / n * sp;
         f.cd -= dt;
         if (f.cd <= 0 && !cache(o) && ecart(f, o) < 30) {
@@ -2227,7 +2227,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.9.0", NOTES = "Le Sorcier voit les persos invisibles ; son bouclier lui fait subir 10 % des coups reçus.";
+const VERSION = "1.9.1", NOTES = "Myers fonce 5 % plus vite en furie.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

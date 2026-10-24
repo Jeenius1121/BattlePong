@@ -557,7 +557,7 @@ const CHARS = {
         }
       } else if (f.etat === "stalk") { // immobile, fixe l'adversaire, la jauge monte
         f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1;
-        f.jauge = Math.min(1, f.jauge + dt / 4); // jauge pleine en 4 s
+        f.jauge = Math.min(1, f.jauge + dt / 3.7); // jauge pleine en 3,7 s
         if (f.jauge >= 1) {
           f.etat = "furie"; arreterSon(f, 2); son(f, 1, true); // son joué en boucle pendant toute la furie
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -662,7 +662,7 @@ const CHARS = {
     }
   },
   hurleur: {
-    nom: "Steve", emoji: "😱", vitesse: 262, taille: 0.95, images: ["cri"], sonNom: "cri", son2: "cri de sortie",
+    nom: "Steve", emoji: "😱", vitesse: 265, taille: 0.95, images: ["cri"], sonNom: "cri", son2: "cri de sortie",
     imageDe: f => f.attT > 0 ? 2 : 1,
     desc: "Crie toutes les 2 secondes : une onde de choc en anneau part de lui et blesse l’adversaire qu’elle traverse. Toutes les 6 secondes, il devient invisible, s’approche doucement, réapparaît en poussant un énorme cri (18 dégâts) puis s’enfuit.",
     svg: `<g ${O}>
@@ -2446,7 +2446,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.15.1", NOTES = "Robot : impact du laser 33 → 34. Sorcier : boule de feu 13 → 14. Titan : un missile toutes les 3,8 s. Steve : un poil plus lent.";
+const VERSION = "1.15.2", NOTES = "Myers : jauge de traque remplie en 3,7 s. Steve : retour à sa vitesse d'avant.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

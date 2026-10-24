@@ -712,10 +712,10 @@ const CHARS = {
     }
   },
   titan: {
-    nom: "Bombardier", emoji: "🛰️", vitesse: 80, pv: 200, taille: 1.5, portrait: "entier", images: ["tir", "appareil"],
+    nom: "Bombardier", emoji: "🛰️", vitesse: 80, pv: 250, taille: 1.5, portrait: "entier", images: ["tir", "appareil"],
     sonNom: "lancement", son2: "explosion du missile", son3: "appareil détruit", son4: "sifflement du missile",
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Énorme (deux fois plus de PV) mais très lent. Deux petits appareils de 25 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Bombardier fait tomber de gros missiles du ciel sur lui. Sans appareil, il ne peut plus attaquer. Un appareil détruit revient au bout de 8 secondes, un par un. Les adversaires peuvent viser les appareils quand ils sont bien plus proches que le Bombardier.",
+    desc: "Énorme (250 PV au lieu de 150) mais très lent. Deux petits appareils de 25 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Bombardier fait tomber de gros missiles du ciel sur lui. Sans appareil, il ne peut plus attaquer. Un appareil détruit revient au bout de 8 secondes, un par un. Les adversaires peuvent viser les appareils quand ils sont bien plus proches que le Bombardier.",
     svg: `<g ${O}>
       <rect x='36' y='108' width='20' height='34' rx='4' fill='#4a5160'/><rect x='64' y='108' width='20' height='34' rx='4' fill='#4a5160'/>
       <rect x='30' y='136' width='28' height='9' rx='3' fill='#2a2e38'/><rect x='62' y='136' width='28' height='9' rx='3' fill='#2a2e38'/>
@@ -904,7 +904,7 @@ function angleAleatoire() {
 function creerCombattant(type, side) {
   const s = CHARS[type].sprite, k = echelle(s) * (CHARS[type].taille || 1), a = angleAleatoire();
   const f = { type, side, k, hw: s.tw * k / 2, hh: s.th * k / 2, x: side ? 440 : 160, y: 300,
-    vx: Math.cos(a), vy: Math.sin(a), hp: CHARS[type].pv || 100, hpMax: CHARS[type].pv || 100, face: side ? -1 : 1,
+    vx: Math.cos(a), vy: Math.sin(a), hp: CHARS[type].pv || PV_BASE, hpMax: CHARS[type].pv || PV_BASE, face: side ? -1 : 1,
     cd: 0.4 + Math.random() * 0.6, flash: 0, burst: 0, burstT: 0, dir: 1, muzzle: 0 };
   normaliser(f);
   return f;
@@ -1105,7 +1105,8 @@ function autodestruction(g, f, o) {
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const FEU_BONUS = 5; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
-const BOUCLIER_PV = 35, FEU_RAYON = 110, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
+const PV_BASE = 150; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
+const BOUCLIER_PV = 35, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
 const RECHARGE = 1.7; // rechargement du Cowboy après chaque rafale (secondes)
@@ -2490,7 +2491,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.18.1", NOTES = "McCree : ses balles ne rebondissent plus qu'une fois, à moitié de dégâts après le rebond ; balles directes à 9, rechargement 1,7 s.";
+const VERSION = "1.19.0", NOTES = "Grosse mise à jour : +50 PV pour tout le monde (150, Bombardier 250). Sorcier : flaque de feu plus grande.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

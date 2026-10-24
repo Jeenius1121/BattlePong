@@ -1675,7 +1675,7 @@ function jouerCle(cle, opts = {}) {
 function musiqueSelection() {
   contexteAudio();
   if (enCours._musique || (jeu && (jeu.running || jeu.intro > 0 || jeu.fin > 0))) return;
-  jouerCle("musique", { boucle: true, volume: 0.35 });
+  jouerCle("musique", { boucle: true, volume: 0.3 });
 }
 function arreterMusique() { couper("_musique"); }
 let dernierNom = null;
@@ -2147,7 +2147,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.7.0", NOTES = "Écran titre « Entrer dans l’arène », sélection et combat sur deux écrans séparés, musique moins forte.";
+const VERSION = "1.7.1", NOTES = "Musique de sélection à 30 % du volume.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -339,7 +339,7 @@ const CHARS = {
       }
       f.cd -= dt;
       if (f.cd <= 0 && !cache(o, f)) {
-        f.cd = 1.85; f.attT = 0.5; son(f);
+        f.cd = 2; f.attT = 0.5; son(f);
         plusTard(g, latenceSon(f), () => {
           // part vers l'adversaire et tourne un peu vers lui au début, sans le suivre partout
           const a = Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 0.5;
@@ -2233,7 +2233,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.10.3", NOTES = "Steve s’appelle simplement Steve.";
+const VERSION = "1.10.4", NOTES = "Sorcier : retour à une boule de feu toutes les 2 s.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

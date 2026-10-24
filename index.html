@@ -1688,6 +1688,7 @@ const READY_MIN = 0.9, PAUSE_READY = 0.5, FIGHT_DUREE = 0.7; // PAUSE_READY : at
 function lancer() {
   document.getElementById("overlay").classList.remove("show");
   contexteAudio(); arreterMusique(); document.body.classList.remove("fin-combat");
+  if (dernierNom) couper("_" + dernierNom); // le nom annoncé à la sélection se tait pour laisser place à « Ready »
   nouveauJeu(false); verrouiller(true);
   const dReady = jouerCle("ready", { volume: volumePresentateur("ready") });
   jeu.intro = Math.max(READY_MIN, dReady) + PAUSE_READY + FIGHT_DUREE; jeu.introFight = FIGHT_DUREE; jeu.fightJoue = false;
@@ -2446,7 +2447,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.15.3", NOTES = "Le Titan s'appelle maintenant Bombardier.";
+const VERSION = "1.15.4", NOTES = "Les noms annoncés à la sélection se coupent dès qu'on lance le combat.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

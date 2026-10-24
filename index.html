@@ -1056,7 +1056,7 @@ function maj(dt) {
       g.zoom = gagnant; calmer(gagnant);
       // après l'explosion, une seconde de silence, puis « McCree… » et « Wins ! »
       const d = annoncerNom(gagnant.type, ANNONCE_DELAI);
-      jouerCle("wins", { delai: ANNONCE_DELAI + d + 0.1 });
+      jouerCle("wins", { delai: ANNONCE_DELAI + d + 0.1, volume: volumePresentateur("wins") });
     }
   }
   majHud();
@@ -1340,7 +1340,7 @@ function boucle(t) {
   const dt = Math.min(0.033, (t - dernier) / 1000); dernier = t;
   if (jeu.intro > 0) { // Ready… Fight !
     jeu.intro -= dt;
-    if (!jeu.fightJoue && jeu.intro <= jeu.introFight) { jeu.fightJoue = true; jouerCle("fight"); }
+    if (!jeu.fightJoue && jeu.intro <= jeu.introFight) { jeu.fightJoue = true; jouerCle("fight", { volume: volumePresentateur("fight") }); }
     if (jeu.intro <= 0) { jeu.intro = 0; jeu.running = true; }
     dessiner(); requestAnimationFrame(boucle); return;
   }
@@ -1400,7 +1400,7 @@ function lancer() {
   document.getElementById("overlay").classList.remove("show");
   contexteAudio(); arreterMusique();
   nouveauJeu(false); verrouiller(true);
-  const dReady = jouerCle("ready");
+  const dReady = jouerCle("ready", { volume: volumePresentateur("ready") });
   jeu.intro = Math.max(READY_MIN, dReady) + PAUSE_READY + FIGHT_DUREE; jeu.introFight = FIGHT_DUREE; jeu.fightJoue = false;
   dernier = performance.now(); requestAnimationFrame(boucle);
 }
@@ -1683,11 +1683,14 @@ document.addEventListener("visibilitychange", () => {
   if (!audioCtx) return;
   if (document.hidden) audioCtx.suspend(); else audioCtx.resume();
 });
+// présentateur (noms, Ready, Fight, Wins) : chaque fichier est remis au même niveau sonore
+const PRESENTATEUR_NIVEAU = 0.25;
+function volumePresentateur(cle) { const s = sons[cle]; return s && s.pic ? Math.min(4, PRESENTATEUR_NIVEAU / s.pic) : 1; }
 let dernierNom = null;
 function annoncerNom(id, delai = 0) {
   contexteAudio();
   if (dernierNom) couper("_" + dernierNom);
-  dernierNom = id + "-5"; return jouerCle(dernierNom, { delai, volume: 0.96 }); // 20 % plus fort que les autres sons
+  dernierNom = id + "-5"; return jouerCle(dernierNom, { delai, volume: volumePresentateur(dernierNom) });
 }
 function jouerGeneral(cle) {
   if (sons[cle]) return son({ type: cle, side: 8 });
@@ -2152,7 +2155,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.7.4", NOTES = "Sons des noms des persos 20 % plus forts.";
+const VERSION = "1.7.5", NOTES = "Présentateur (noms, Ready, Fight, Wins) remis au même niveau sonore, un peu plus fort.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -265,7 +265,7 @@ const CHARS = {
     nom: "McCree", emoji: "🤠", vitesse: 230, images: ["visée", "tir"], sonNom: "tirs", son2: "rechargement", sonFort: true, caler: true,
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     imageDe: f => f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis et rebondissent deux fois sur les murs.",
+    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis et rebondissent une fois sur les murs (moitié de dégâts après le rebond).",
     // moments des 6 balles : calés sur les 6 coups du son de tir s'il y en a un, sinon rafale rapide
     horaires(f) {
       const s = sons.cowboy, lat = latenceSon(f);
@@ -297,7 +297,7 @@ const CHARS = {
           // la balle part du bout du pistolet de l'image affichée
           f.face = f.dir; majTaille(f);
           const c0 = canonMonde(f);
-          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * BALLE_VITESSE, vy: 0, r: 4, dmg: 8, owner: f, rot: 0, rafale: f.rafale, transperce: true, rebonds: 2 });
+          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * BALLE_VITESSE, vy: 0, r: 4, dmg: 9, owner: f, rot: 0, rafale: f.rafale, transperce: true, rebonds: 1 });
           if (f.burst === 0) { // rechargement de 2 s juste après la 6e balle : il ne retire qu'une fois fini
             son(f, 2);
             f.cd = f.recharge = RECHARGE;
@@ -1004,6 +1004,11 @@ function cibleDe(f, o) {
 }
 // frappe la cible choisie : l'adversaire ou un appareil
 function frapper(g, o, t, n, x, y) { if (t.drone) blesserDrone(g, o, t.drone, n); else degats(g, o, n, x, y); }
+// dégâts d'un projectile : balles d'une rafale de McCree 1 de moins à chaque touche, moitié après un rebond
+function degatsProj(p) {
+  const n = p.rafale ? Math.max(1, p.dmg - p.rafale.touches) : p.dmg;
+  return p.rebondie ? Math.max(1, Math.round(n / 2)) : n;
+}
 function blesserDrone(g, f, d, n) {
   const p = dronePos(f, d);
   d.hp -= n; g.txt.push({ x: p.x, y: p.y - 14, t: 0.6, s: "-" + n }); eclats(g, p.x, p.y, "#8b93a6");
@@ -1103,7 +1108,7 @@ const FEU_BONUS = 5; // dégâts en plus d'une boule de feu lancée depuis sa fl
 const BOUCLIER_PV = 35, FEU_RAYON = 110, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
-const RECHARGE = 1.9; // rechargement du Cowboy après chaque rafale (secondes)
+const RECHARGE = 1.7; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
 const FIN = 3.2, ANNONCE_DELAI = 1; // durée de la séquence de fin, attente avant d'annoncer le gagnant (secondes réelles)
@@ -1204,7 +1209,7 @@ function maj(dt) {
     for (let i = 0; i < n; i++) {
       p.x += p.vx * dt / n; p.y += p.vy * dt / n;
       const traverse = p.perce || p.transperce;
-      const dmg = p.rafale ? Math.max(1, p.dmg - p.rafale.touches) : p.dmg;
+      const dmg = degatsProj(p);
       if (cible.drones && droneTouche(g, cible, p.x, p.y, p.r * 0.6, dmg, traverse ? (p.dejaDrones ||= new Set()) : null)) {
         if (p.rafale) p.rafale.touches++;
         if (!traverse) return false;
@@ -1219,8 +1224,8 @@ function maj(dt) {
           p.dedans = true;
           continue;
         }
-        // balles d'une même rafale : 1 dégât de moins à chaque balle qui touche (8, 7, 6, 5…)
-        degats(g, cible, p.rafale ? Math.max(1, p.dmg - p.rafale.touches++) : p.dmg, p.x, p.y);
+        // balles d'une même rafale : 1 dégât de moins à chaque balle qui touche (9, 8, 7, 6…)
+        degats(g, cible, degatsProj(p), p.x, p.y); if (p.rafale) p.rafale.touches++;
         if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
         if (p.transperce) { p.dejaCible = true; continue; } // la balle traverse et continue sa route
         return false;
@@ -1229,15 +1234,10 @@ function maj(dt) {
     if (p.rebonds > 0 && (p.x < 0 || p.x > W || p.y < 0 || p.y > W)) { // balle de McCree qui ricoche sur le mur
       const sp = Math.hypot(p.vx, p.vy), lat = p.x < 0 || p.x > W; // mur de gauche ou de droite ?
       p.x = Math.min(W, Math.max(0, p.x)); p.y = Math.min(W, Math.max(0, p.y));
-      let a;
-      if (p.rebonds === 2) { // 1er rebond : repart en diagonale vers un mur du haut ou du bas (au hasard)
-        const sx = lat ? -Math.sign(p.vx) : Math.sign(p.vx) || 1, sy = lat ? (Math.random() < 0.5 ? -1 : 1) : -Math.sign(p.vy);
-        a = Math.atan2(sy, sx);
-      } else { // 2e rebond : direction au hasard, vers l'intérieur de l'arène
-        const n = p.x <= 0 ? 0 : p.x >= W ? Math.PI : p.y <= 0 ? Math.PI / 2 : -Math.PI / 2;
-        a = n + (Math.random() - 0.5) * Math.PI * 0.8;
-      }
-      p.vx = Math.cos(a) * sp; p.vy = Math.sin(a) * sp; p.rebonds--;
+      // un seul rebond : repart en diagonale vers un mur du haut ou du bas (au hasard), à moitié de dégâts
+      const sx = lat ? -Math.sign(p.vx) : Math.sign(p.vx) || 1, sy = lat ? (Math.random() < 0.5 ? -1 : 1) : -Math.sign(p.vy);
+      const a = Math.atan2(sy, sx);
+      p.vx = Math.cos(a) * sp; p.vy = Math.sin(a) * sp; p.rebonds--; p.rebondie = true;
       p.dejaCible = false; p.dejaDrones = null; // après un rebond, elle peut retoucher
       eclats(g, p.x, p.y, "#f6cf8a");
       return true;
@@ -2490,7 +2490,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.18.0", NOTES = "Bombardier : nouveaux sons (lancement, sifflement du missile qui tombe, explosion, appareil détruit). Sorcier : boule de feu +5 si lancée depuis sa flaque de feu.";
+const VERSION = "1.18.1", NOTES = "McCree : ses balles ne rebondissent plus qu'une fois, à moitié de dégâts après le rebond ; balles directes à 9, rechargement 1,7 s.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

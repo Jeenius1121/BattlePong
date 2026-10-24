@@ -880,7 +880,7 @@ const RALENTI = 0.7; // vitesse (déplacement et recharges) d'un perso ralenti p
 const RECHARGE = 2; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
-const FIN = 3.2; // durée de la séquence de fin (secondes réelles)
+const FIN = 3.2, ANNONCE_DELAI = 1; // durée de la séquence de fin, attente avant d'annoncer le gagnant (secondes réelles)
 function exploser(g, f) {
   f.mort = true; f.copies = [];
   arreterSons(f); jouerGeneral("explosion");
@@ -1032,8 +1032,9 @@ function maj(dt) {
     g.gagnant = gagnant;
     if (gagnant) {
       g.zoom = gagnant; calmer(gagnant);
-      const d = annoncerNom(gagnant.type); // « McCree… » puis « Wins ! »
-      jouerCle("wins", { delai: d + 0.1 });
+      // après l'explosion, une seconde de silence, puis « McCree… » et « Wins ! »
+      const d = annoncerNom(gagnant.type, ANNONCE_DELAI);
+      jouerCle("wins", { delai: ANNONCE_DELAI + d + 0.1 });
     }
   }
   majHud();
@@ -1364,13 +1365,13 @@ document.getElementById("changer").addEventListener("click", () => {
   document.querySelector(".duel").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 // le combat ne démarre pas tout de suite : « Ready » puis « Fight ! », et c'est parti
-const READY_MIN = 0.9, FIGHT_DUREE = 0.7;
+const READY_MIN = 0.9, PAUSE_READY = 0.5, FIGHT_DUREE = 0.7; // PAUSE_READY : attente entre « Ready » et « Fight »
 function lancer() {
   document.getElementById("overlay").classList.remove("show");
   contexteAudio(); arreterMusique();
   nouveauJeu(false); verrouiller(true);
   const dReady = jouerCle("ready");
-  jeu.intro = Math.max(READY_MIN, dReady) + FIGHT_DUREE; jeu.introFight = FIGHT_DUREE; jeu.fightJoue = false;
+  jeu.intro = Math.max(READY_MIN, dReady) + PAUSE_READY + FIGHT_DUREE; jeu.introFight = FIGHT_DUREE; jeu.fightJoue = false;
   dernier = performance.now(); requestAnimationFrame(boucle);
 }
 boutonStart.addEventListener("click", () => {
@@ -1648,10 +1649,10 @@ function musiqueSelection() {
 }
 function arreterMusique() { couper("_musique"); }
 let dernierNom = null;
-function annoncerNom(id) {
+function annoncerNom(id, delai = 0) {
   contexteAudio();
   if (dernierNom) couper("_" + dernierNom);
-  dernierNom = id + "-5"; return jouerCle(dernierNom);
+  dernierNom = id + "-5"; return jouerCle(dernierNom, { delai });
 }
 function jouerGeneral(cle) {
   if (sons[cle]) return son({ type: cle, side: 8 });
@@ -2108,7 +2109,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.6.0", NOTES = "Sons de nom des persos, musique de sélection, Ready / Fight au début et « Nom… Wins » à la fin.";
+const VERSION = "1.6.1", NOTES = "Une demi-seconde de plus entre Ready et Fight, une seconde de plus avant d’annoncer le gagnant.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

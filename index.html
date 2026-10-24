@@ -1030,7 +1030,11 @@ function maj(dt) {
     document.getElementById("winText").textContent = g.texteFin;
     for (const f of g.f) if (f.hp <= 0) exploser(g, f);
     g.gagnant = gagnant;
-    if (gagnant) { g.zoom = gagnant; calmer(gagnant); }
+    if (gagnant) {
+      g.zoom = gagnant; calmer(gagnant);
+      const d = annoncerNom(gagnant.type); // « McCree… » puis « Wins ! »
+      jouerCle("wins", { delai: d + 0.1 });
+    }
   }
   majHud();
 }
@@ -1287,6 +1291,17 @@ function dessiner() {
   }
   ctx.globalAlpha = 1;
   ctx.restore();
+  if (g.intro > 0) { // « READY » puis « FIGHT ! » au milieu de l'arène
+    const fight = g.intro <= g.introFight, t = fight ? 1 - g.intro / g.introFight : 0, txt = fight ? "FIGHT !" : "READY";
+    ctx.save(); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    const taille = fight ? 74 + 20 * Math.min(1, t * 4) : 60 + 4 * Math.sin(performance.now() / 120);
+    ctx.font = `400 ${taille}px "Bowlby One", "Arial Black", sans-serif`;
+    ctx.globalAlpha = fight ? Math.min(1, (1 - t) * 3) : 1;
+    ctx.translate(W / 2, W / 2); ctx.rotate(-0.06);
+    ctx.lineWidth = 12; ctx.strokeStyle = "#1b2033"; ctx.strokeText(txt, 0, 0);
+    ctx.fillStyle = fight ? "#ff8a2a" : "#ffd23f"; ctx.fillText(txt, 0, 0);
+    ctx.restore();
+  }
   if (g.texteFin && g.fin > 0) { // « Untel gagne ! » pendant le zoom
     const p = Math.min(1, Math.max(0, (FIN - g.fin - 0.35) / 0.4));
     ctx.save(); ctx.globalAlpha = p;
@@ -1300,6 +1315,12 @@ function dessiner() {
 
 function boucle(t) {
   const dt = Math.min(0.033, (t - dernier) / 1000); dernier = t;
+  if (jeu.intro > 0) { // Ready… Fight !
+    jeu.intro -= dt;
+    if (!jeu.fightJoue && jeu.intro <= jeu.introFight) { jeu.fightJoue = true; jouerCle("fight"); }
+    if (jeu.intro <= 0) { jeu.intro = 0; jeu.running = true; }
+    dessiner(); requestAnimationFrame(boucle); return;
+  }
   if (jeu.running) {
     for (let i = 0; i < vitesseJeu; i++) maj(dt);
   } else if (jeu.fin > 0) {
@@ -1339,16 +1360,21 @@ function montrerFin() {
 }
 document.getElementById("changer").addEventListener("click", () => {
   document.getElementById("overlay").classList.remove("show");
-  nouveauJeu(false); dessiner();
+  nouveauJeu(false); dessiner(); musiqueSelection();
   document.querySelector(".duel").scrollIntoView({ behavior: "smooth", block: "start" });
 });
+// le combat ne démarre pas tout de suite : « Ready » puis « Fight ! », et c'est parti
+const READY_MIN = 0.9, FIGHT_DUREE = 0.7;
 function lancer() {
   document.getElementById("overlay").classList.remove("show");
-  nouveauJeu(true); verrouiller(true); contexteAudio();
+  contexteAudio(); arreterMusique();
+  nouveauJeu(false); verrouiller(true);
+  const dReady = jouerCle("ready");
+  jeu.intro = Math.max(READY_MIN, dReady) + FIGHT_DUREE; jeu.introFight = FIGHT_DUREE; jeu.fightJoue = false;
   dernier = performance.now(); requestAnimationFrame(boucle);
 }
 boutonStart.addEventListener("click", () => {
-  if (jeu && (jeu.running || jeu.fin > 0)) { jeu.running = false; jeu.fin = 0; verrouiller(false); nouveauJeu(false); dessiner(); }
+  if (jeu && (jeu.running || jeu.fin > 0 || jeu.intro > 0)) { jeu.running = false; jeu.fin = 0; jeu.intro = 0; verrouiller(false); nouveauJeu(false); dessiner(); }
   else lancer();
 });
 document.getElementById("rematch").addEventListener("click", lancer);
@@ -1359,6 +1385,7 @@ document.getElementById("speed").addEventListener("click", e => {
 
 document.getElementById("mute").addEventListener("click", e => {
   sonsActifs = !sonsActifs;
+  if (!sonsActifs) { arreterMusique(); if (dernierNom) couper("_" + dernierNom); }
   e.currentTarget.textContent = sonsActifs ? "🔊 Sons" : "🔇 Muet";
   e.currentTarget.setAttribute("aria-pressed", !sonsActifs);
 });
@@ -1437,13 +1464,14 @@ function construireUI() {
     b.innerHTML = `<canvas width="128" height="128"></canvas><span class="tnom">${c.nom}</span><span class="badge bg">G</span><span class="badge bd">D</span>`;
     b.addEventListener("click", () => {
       choix[coteActif] = id; coteActif = 1 - coteActif;
+      annoncerNom(id); musiqueSelection();
       document.getElementById("overlay").classList.remove("show");
       nouveauJeu(false); dessiner(); majSelection(1 - coteActif);
     });
     roster.appendChild(b);
     dessinerTuile(id);
   }
-  document.querySelectorAll(".panneau").forEach(p => p.addEventListener("click", () => { coteActif = +p.dataset.side; majSelection(); }));
+  document.querySelectorAll(".panneau").forEach(p => p.addEventListener("click", () => { coteActif = +p.dataset.side; majSelection(); musiqueSelection(); }));
   majSelection();
   document.getElementById("descs").innerHTML = Object.values(CHARS)
     .map(c => `<p class="desc">${c.emoji} <strong>${c.nom}</strong> : ${c.desc}</p>`).join("");
@@ -1469,7 +1497,7 @@ function construireUI() {
     const sns = clesSon(id).map((cle, i) => `
       <div class="slot" data-son="${cle}">
         <div class="sthumb sicone" aria-hidden="true">🔊</div>
-        <div class="sinfo"><b>Son ${numImage(cle)}</b> · ${nomSon(id, numImage(cle))}<small></small></div>
+        <div class="sinfo"><b>${numImage(cle) === 5 ? "Nom" : "Son " + numImage(cle)}</b> · ${nomSon(id, numImage(cle))}<small></small></div>
         <div class="sact">
           <button class="small ecoute" type="button" aria-label="Écouter">▶</button>
           <button class="small change" type="button">Fichier</button>
@@ -1599,7 +1627,32 @@ function couper(cle) {
 // coupe tous les sons en cours d'un perso (attrapé par le Smoker, ou mort)
 function arreterSons(f) { for (let n = 1; n <= 4; n++) arreterSon(f, n); }
 // sons communs à tous : un fichier perso s'il y en a un, sinon un son fabriqué par le jeu
-const SONS_GENERAUX = { explosion: "Explosion (perso mort)" };
+const SONS_GENERAUX = { musique: "Musique de sélection (en boucle)", ready: "Ready", fight: "Fight", wins: "Wins (après le nom du gagnant)", explosion: "Explosion (perso mort)" };
+// joue un son « libre » (nom, musique, annonces), sur sa propre piste
+function jouerCle(cle, opts = {}) {
+  const s = sons[cle];
+  if (!sonsActifs || !s || !audioCtx) return 0;
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  couper("_" + cle);
+  const src = audioCtx.createBufferSource(), gain = audioCtx.createGain();
+  src.buffer = s.buffer; src.loop = !!opts.boucle; gain.gain.value = opts.volume ?? 0.8;
+  src.connect(gain); gain.connect(audioCtx.destination);
+  src.start(audioCtx.currentTime + (opts.delai || 0)); enCours["_" + cle] = src;
+  return s.buffer.duration;
+}
+// musique de l'écran de sélection : tourne tant qu'aucun combat n'est lancé
+function musiqueSelection() {
+  contexteAudio();
+  if (enCours._musique || (jeu && (jeu.running || jeu.intro > 0 || jeu.fin > 0))) return;
+  jouerCle("musique", { boucle: true, volume: 0.55 });
+}
+function arreterMusique() { couper("_musique"); }
+let dernierNom = null;
+function annoncerNom(id) {
+  contexteAudio();
+  if (dernierNom) couper("_" + dernierNom);
+  dernierNom = id + "-5"; return jouerCle(dernierNom);
+}
 function jouerGeneral(cle) {
   if (sons[cle]) return son({ type: cle, side: 8 });
   if (!sonsActifs || !audioCtx) return;
@@ -1615,13 +1668,16 @@ function jouerGeneral(cle) {
 function arreterSon(f, n) { couper(cleSon(f.type, n) + f.side); }
 // coupe les sons qui tournent en boucle (furie de Myers) à la fin du combat
 function arreterBoucles() {
-  for (const [cle, src] of Object.entries(enCours)) if (src.loop) couper(cle);
+  for (const [cle, src] of Object.entries(enCours)) if (src.loop && cle[0] !== "_") couper(cle); // la musique de sélection n'est pas concernée
 }
 // Tout son (MP3, M4A…) est converti en WAV mono léger de 3 s max : facile à stocker partout.
 // Myers a droit à un son long (10 s) : il dure toute sa furie.
 // sonsLongs : numéros des sons gardés jusqu'à 20 s (ils sont coupés par le jeu à la fin de l'action)
 const SON_MAX = 3, SON_LONG = 10, SON_TRES_LONG = 20;
+// noms des persos et sons généraux (musique…) : gardés en entier, jusqu'à 5 minutes
+const SON_ENTIER = 300;
 function sonMax(cle) {
+  if (cle in SONS_GENERAUX || numImage(cle) === 5) return SON_ENTIER;
   const c = CHARS[persoDe(cle)];
   if (c && c.sonsLongs && c.sonsLongs.includes(numImage(cle))) return SON_TRES_LONG;
   return c && c.sonLong ? SON_LONG : SON_MAX;
@@ -1704,8 +1760,9 @@ function detecterCoups(buf) {
   return out;
 }
 // sons d'un perso : le son 1 sous son id, les sons 2 à 4 (son2, son3, son4) sous id + "-2", "-3", "-4"
-function clesSon(id) { const c = CHARS[id]; return !c ? [id] : [id, ...[2, 3, 4].filter(n => c["son" + n]).map(n => id + "-" + n)]; }
-function nomSon(id, n) { const c = CHARS[id]; return n > 1 ? c["son" + n] : c.sonNom || "attaque"; }
+// chaque perso a aussi un son de nom (clé id + "-5"), joué quand on le choisit et quand il gagne
+function clesSon(id) { const c = CHARS[id]; return !c ? [id] : [id, ...[2, 3, 4].filter(n => c["son" + n]).map(n => id + "-" + n), id + "-5"]; }
+function nomSon(id, n) { const c = CHARS[id]; return n === 5 ? "nom (sélection et victoire)" : n > 1 ? c["son" + n] : c.sonNom || "attaque"; }
 const cleSon = (type, n) => n > 1 ? type + "-" + n : type;
 function majInfoSon(cle) {
   const sl = document.querySelector(`[data-son="${cle}"]`);
@@ -2051,7 +2108,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.5.4", NOTES = "Écran de chargement au démarrage, chargement plus rapide, arène toujours sombre sur tous les navigateurs.";
+const VERSION = "1.6.0", NOTES = "Sons de nom des persos, musique de sélection, Ready / Fight au début et « Nom… Wins » à la fin.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function verifierVersion() {

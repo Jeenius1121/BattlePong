@@ -420,7 +420,7 @@ const CHARS = {
           if (!f.sonJoue) { f.sonJoue = true; son(f); }
           f.tir = 1.15; f.cd = 3;
           const r = rayon(); f.laserLen = r.len;
-          if (r.px !== undefined) { f.brule = 0.35; degats(g, o, 24, r.px, r.py); }
+          if (r.px !== undefined) { f.brule = 0.35; degats(g, o, 30, r.px, r.py); }
         }
       } else if (f.cd <= 0 && !cache(o) && f.tir <= 0) {
         // vise depuis le canon : le robot se tourne vers l'adversaire et le rayon part du pistolet
@@ -564,7 +564,7 @@ const CHARS = {
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 4 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire ou ramène sa langue, il lâche prise.",
+    desc: "Frappe au corps à corps. Toutes les 3,5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire ou ramène sa langue, il lâche prise.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -888,7 +888,7 @@ function crier(g, f, dmg, portee, epais) {
   g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
 }
 /* ===== LANGUE DU SMOKER ===== */
-const LANGUE_CD = 4, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625;
+const LANGUE_CD = 3.5, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625;
 // bouche du Smoker : point réglé sur son image 3 s'il en a une, sinon le haut du perso vers l'avant
 function bouche(f) {
   const c = CHARS[f.type], s3 = c.spr && c.spr[3];
@@ -2224,7 +2224,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.8.3", NOTES = "Steve : invisible toutes les 6 s, cri de sortie à 18 dégâts.";
+const VERSION = "1.8.4", NOTES = "Smoker : langue toutes les 3,5 s. Robot : impact du laser à 30.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

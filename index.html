@@ -1687,7 +1687,7 @@ let dernierNom = null;
 function annoncerNom(id, delai = 0) {
   contexteAudio();
   if (dernierNom) couper("_" + dernierNom);
-  dernierNom = id + "-5"; return jouerCle(dernierNom, { delai });
+  dernierNom = id + "-5"; return jouerCle(dernierNom, { delai, volume: 0.96 }); // 20 % plus fort que les autres sons
 }
 function jouerGeneral(cle) {
   if (sons[cle]) return son({ type: cle, side: 8 });
@@ -2152,7 +2152,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.7.3", NOTES = "La musique et les sons se mettent en pause quand on quitte l’onglet.";
+const VERSION = "1.7.4", NOTES = "Sons des noms des persos 20 % plus forts.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

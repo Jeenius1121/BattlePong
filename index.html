@@ -859,7 +859,7 @@ const CHARS = {
     nom: "Jeune beau et plein d’avenir", emoji: "⛵", vitesse: 70, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
     taille: 1.15, images: ["poisson"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", sonsLongs: [4, 7],
     imageDe: () => 1,
-    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit pile dans son bateau, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand un laser se prépare (ou parfois quand un missile va lui tomber dessus), il plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 20 secondes, l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
+    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand un laser se prépare (ou parfois quand un missile va lui tomber dessus), il plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 20 secondes, l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
     svg: `<g ${O}>
       <path d='M8 96 H112 Q104 128 60 130 Q16 128 8 96Z' fill='#6b3d1f'/><path d='M8 96 H112' stroke='#f2b134' stroke-width='5'/>
       <path d='M30 92 V14' stroke='#8a5228' stroke-width='6'/><path d='M34 18 Q58 30 54 86 H34Z' fill='#c4232f'/>
@@ -936,8 +936,8 @@ const CHARS = {
         if (P.phase === "monte") { const k = Math.min(1, P.t / POISSON_MONTEE); P.y = bas + (haut - bas) * (1 - (1 - k) ** 2); if (k >= 1) { P.phase = "pause"; P.t = 0; } }
         else if (P.phase === "pause") { P.y = haut + Math.sin(P.t * 6) * 4; if (P.t >= POISSON_PAUSE) { P.phase = "chute"; P.t = 0; } }
         else { const k = Math.min(1, P.t / POISSON_CHUTE); P.y = haut + (bas - haut) * k * k; if (k >= 1) { M.poisson = null; this.eclabousser(g, P.x, merSurface(g, P.x)); jouerEffet("marin-8", 0.8); } }
-        // le poisson jaillit pile dans le bateau : le Marin l'attrape et le mange, il regagne des PV
-        if (M.poisson && P.phase === "monte" && !f.mort && !(f.plongee > 0) && Math.abs(P.x - f.x) < f.hw * 0.6 && Math.abs(P.y - f.y) < f.hh * 0.6) {
+        // le poisson jaillit dans le bateau, ou y retombe : le Marin l'attrape et le mange, il regagne des PV
+        if (M.poisson && P.phase !== "pause" && !f.mort && !(f.plongee > 0) && Math.abs(P.x - f.x) < f.hw * 0.6 && Math.abs(P.y - f.y) < f.hh * 0.6) {
           M.poisson = null; son(f, 3); this.eclabousser(g, P.x, P.y);
           const soin = Math.min(POISSON_SOIN, f.hpMax - f.hp);
           if (soin > 0) { f.hp += soin; g.txt.push({ x: f.x, y: f.y - f.hh - 10, t: 0.9, s: "+" + soin, soin: true }); }
@@ -1182,7 +1182,7 @@ const CRUSHER_CD = 3.5, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 9, CRUSHER_SONNE
 const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 3;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
 const POISSON_CD = [3.5, 5], POISSON_MONTEE = 1.4, POISSON_PAUSE = 1, POISSON_CHUTE = 0.8, POISSON_HAUT = 70, POISSON_RAYON = 42;
-const POISSON_SOIN = 10; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
+const POISSON_SOIN = 7; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
 const CROQUE_DEGATS = 26, POISSON_CONTACT = 12, POISSON_ECART = 150;
 // hauteur de l'eau (depuis le bas) à la position x : niveau de base, petites ondulations et vagues de la tempête
 function merHauteur(g, x) {
@@ -2879,7 +2879,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.28.2", NOTES = "Jeune beau et plein d’avenir : si le poisson jaillit pile dans son bateau, il le mange et regagne 10 PV.";
+const VERSION = "1.28.3", NOTES = "Jeune beau et plein d’avenir : il mange aussi le poisson qui retombe dans son bateau (+7 PV).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

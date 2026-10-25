@@ -2098,6 +2098,15 @@ function construireUI() {
    Un son par perso, joué à chaque attaque. Stocké dans le navigateur (IndexedDB). */
 let audioCtx = null, sonsActifs = true;
 const sons = {}, enCours = {};
+// volume général de tous les sons (musique, voix, effets) : 1,1 = 10 % plus fort
+const VOLUME_GENERAL = 1.1;
+let sortieAudio = null;
+function sortie() {
+  if (!sortieAudio || sortieAudio.context !== audioCtx) {
+    sortieAudio = audioCtx.createGain(); sortieAudio.gain.value = VOLUME_GENERAL; sortieAudio.connect(audioCtx.destination);
+  }
+  return sortieAudio;
+}
 function contexteAudio() {
   if (!audioCtx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) audioCtx = new AC(); }
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
@@ -2122,7 +2131,7 @@ function son(f, n, boucle, reprise) {
   // sonFort : ses sons (trop faibles) sont remontés au niveau des autres
   const fort = CHARS[persoDe(k)] && CHARS[persoDe(k)].sonFort;
   src.buffer = s.buffer; src.loop = !!boucle; gain.gain.value = fort ? 0.8 * Math.min(30, 0.9 / (s.pic || 0.9)) : 0.8;
-  src.connect(gain); gain.connect(audioCtx.destination);
+  src.connect(gain); gain.connect(sortie());
   const debut = reprise ? (positions[k] || 0) % s.buffer.duration : 0;
   src.start(0, debut); src.debut = audioCtx.currentTime - debut; src.cleSon = k;
   enCours[cle] = src;
@@ -2148,7 +2157,7 @@ function jouerCle(cle, opts = {}) {
   couper("_" + cle);
   const src = audioCtx.createBufferSource(), gain = audioCtx.createGain();
   src.buffer = s.buffer; src.loop = !!opts.boucle; gain.gain.value = opts.volume ?? 0.8;
-  src.connect(gain); gain.connect(audioCtx.destination);
+  src.connect(gain); gain.connect(sortie());
   src.start(audioCtx.currentTime + (opts.delai || 0)); enCours["_" + cle] = src;
   return s.buffer.duration;
 }
@@ -2182,7 +2191,7 @@ function jouerGeneral(cle) {
     const src = ac.createBufferSource(), filtre = ac.createBiquadFilter(), gain = ac.createGain();
     filtre.type = "lowpass"; filtre.frequency.setValueAtTime(1800, ac.currentTime); filtre.frequency.exponentialRampToValueAtTime(120, ac.currentTime + d);
     gain.gain.value = 1.4; src.buffer = buf;
-    src.connect(filtre); filtre.connect(gain); gain.connect(ac.destination); src.start();
+    src.connect(filtre); filtre.connect(gain); gain.connect(sortie()); src.start();
   }
 }
 function arreterSon(f, n) { couper(cleSon(f.type, n) + f.side); }
@@ -2636,7 +2645,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.22.3", NOTES = "L'Inconnu : regagne 4 PV (au lieu de 5) à chaque téléportation.";
+const VERSION = "1.22.4", NOTES = "Tous les sons 10 % plus forts (musique, voix, effets).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

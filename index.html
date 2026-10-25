@@ -780,7 +780,7 @@ const CHARS = {
         return;
       }
       if (f.stomp) { // Head Stomp : monte, suit l'adversaire depuis le ciel, retombe sur lui
-        const S = f.stomp, montee = 0.25, chute = 0.3;
+        const S = f.stomp, montee = 0.15, chute = 0.3;
         S.t += dt; f.vx = 0; f.vy = 0;
         f.enLair = S.t >= montee; // touchable pendant qu'on le voit monter, intouchable une fois disparu et en retombant
         if (S.t < montee) { f.haut = S.t / montee * 320; f.vis = 1 - S.t / montee; }
@@ -2647,7 +2647,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.22.6", NOTES = "Smoker : touchable pendant qu'il ramène l'adversaire (ça coupe sa langue), mais intouchable une fois l'adversaire étranglé contre lui.";
+const VERSION = "1.22.7", NOTES = "Bison : montée plus rapide au début du Head Stomp (0,15 s).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

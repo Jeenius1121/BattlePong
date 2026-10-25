@@ -857,7 +857,7 @@ const CHARS = {
   },
   marin: {
     nom: "Jeune beau et plein d’avenir", emoji: "⛵", vitesse: 70, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
-    taille: 1.15, images: ["poisson"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", sonsLongs: [4, 7],
+    taille: 1.15, images: ["poisson"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", son9: "victoire sur l’île (à la place de « Wins »)", sonsLongs: [4, 7, 9],
     imageDe: () => 1,
     desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand un laser se prépare (ou parfois quand un missile va lui tomber dessus), il plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 20 secondes, l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
     svg: `<g ${O}>
@@ -887,9 +887,17 @@ const CHARS = {
       const I = g.mer.ile;
       if (I && I.monte >= 1) { // il met le cap sur l'île de la tortue
         f.vx = Math.sign(I.x - f.x || 1) * ILE_VITESSE;
-        if (Math.abs(f.x - I.x) < ILE_LARGEUR * 0.35 && g.running) { g.ile = true; o.hp = 0; f.vx = 0; } // arrivé chez lui : il gagne
+        if (Math.abs(f.x - I.x) < ILE_LARGEUR * 0.35 && g.running) { g.ile = true; o.hp = 0; f.surIle = true; } // arrivé chez lui : il gagne
       }
-      // la coque trempe juste un peu dans l'eau ; en plongée, tout le bateau passe sous la surface
+      this.flotter(f, g);
+    },
+    // la coque trempe juste un peu dans l'eau (en plongée, tout le bateau passe dessous) ; arrivé sur l'île, il y reste posé
+    flotter(f, g) {
+      if (f.surIle) {
+        const I = g.mer.ile; f.x = I.x; f.vx = 0; f.vy = 0; f.penche = 0;
+        f.y = W * (1 - MER_NIVEAU) + 6 - ILE_HAUTEUR * 0.64 - f.hh * 0.75;
+        return;
+      }
       const enfonce = f.plongee > 0 ? Math.min(1, (PLONGEE_DUREE - f.plongee) / 0.2, f.plongee / 0.2) : 0;
       f.y = merSurface(g, f.x) - f.hh * (0.72 - 1.5 * enfonce);
       if (f.plongee > 0 && Math.random() < 0.4) g.parts.push({ x: f.x + (Math.random() - 0.5) * f.hw, y: merSurface(g, f.x), vx: 0, vy: -40 - Math.random() * 40, t: 0.4, c: "#cfefff" }); // bulles
@@ -908,6 +916,9 @@ const CHARS = {
         jouerEffet("marin-7", 1); // pile au moment où l'île sort de l'eau
       }
       if (M.ile) M.ile.monte = Math.min(1, M.ile.monte + dt / 1.5);
+      if (!g.running && !f.mort) { // combat fini (victoire normale ou sur l'île) : il continue de flotter tranquillement
+        f.vy = 0; f.vx = f.surIle ? 0 : (Math.sign(f.vx) || 1) * this.vitesse; this.flotter(f, g);
+      }
       // tempête : pendant quelques secondes, des vagues de toutes tailles traversent de gauche à droite
       M.tempeteCd -= dt;
       if (M.tempete > 0) {
@@ -1583,16 +1594,16 @@ function maj(dt) {
     g.running = false; g.fin = FIN; arreterBoucles(); couper("_marin-4");
     document.body.classList.add("fin-combat"); // plus de « Recommencer » ni de retour : on attend la carte de fin
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
-    g.texteFin = gagnant ? `${CHARS[gagnant.type].nom} gagne !` : "Double KO !";
+    g.texteFin = g.ile ? `${CHARS.marin.nom} est rentré chez lui ! 🐢` : gagnant ? `${CHARS[gagnant.type].nom} gagne !` : "Double KO !";
     document.getElementById("winText").textContent = g.texteFin;
-    if (g.ile) g.texteFin = `${CHARS.marin.nom} est rentré chez lui !`;
     for (const f of g.f) if (f.hp <= 0 && !g.ile) exploser(g, f);
     g.gagnant = gagnant;
     if (gagnant) {
       g.zoom = gagnant; calmer(gagnant);
       // après l'explosion, une seconde de silence, puis « McCree… » et « Wins ! »
       const d = annoncerNom(gagnant.type, ANNONCE_DELAI);
-      const dw = jouerCle("wins", { delai: ANNONCE_DELAI + d + 0.1, volume: volumePresentateur("wins") });
+      const cleWins = g.ile && sons["marin-9"] ? "marin-9" : "wins"; // retour sur l'île : son spécial à la place de « Wins »
+      const dw = jouerCle(cleWins, { delai: ANNONCE_DELAI + d + 0.1, volume: volumePresentateur(cleWins) });
       if (d || dw) g.finVoix = ANNONCE_DELAI + d + 0.1 + dw + 0.3;
     }
   }
@@ -1626,7 +1637,6 @@ function dessinerMer(g) {
     for (let i = 0; i < 45; i++) { const x = Math.random() * W, y = Math.random() * W; ctx.moveTo(x, y); ctx.lineTo(x + 6, y + 18); }
     ctx.stroke();
   }
-  if (M.ile) dessinerIle(g, M.ile);
   if (!M.ile && g.f.some(f => f.type === "marin" && !f.mort)) { // compte à rebours avant l'île
     ctx.font = "800 15px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "rgba(200,235,255,.8)";
     ctx.fillText(`🐢 Île de la tortue dans ${Math.max(0, Math.ceil(ILE_DELAI - (M.combat || 0)))} s`, W / 2, 30);
@@ -1700,6 +1710,7 @@ function dessiner() {
   }
   ctx.fillStyle = couleurs.arena; ctx.fillRect(-30, -30, W + 60, W + 60);
   ctx.strokeStyle = couleurs["arena-line"]; ctx.lineWidth = 8; ctx.strokeRect(4, 4, W - 8, W - 8);
+  if (g.mer && g.mer.ile) dessinerIle(g, g.mer.ile); // derrière les persos : le bateau peut s'y poser
   if (g.mer && g.mer.tempete > 0) { ctx.fillStyle = `rgba(8,10,25,${0.35 * Math.min(1, g.mer.tempete, TEMPETE_DUREE - g.mer.tempete + 0.3)})`; ctx.fillRect(0, 0, W, W); }
 
   for (const m of g.missiles) { // cible au sol du missile du Titan, puis le missile qui tombe
@@ -2067,7 +2078,7 @@ function retourSelection() {
 function montrerFin() {
   const g = jeu, w = g.gagnant, carte = document.getElementById("finCarte"), cv = document.getElementById("finPortrait"), x = cv.getContext("2d");
   carte.style.setProperty("--team", w ? (w.side ? "var(--droite)" : "var(--gauche)") : "var(--muted)");
-  document.getElementById("finSur").textContent = w ? "Victoire" : "Fin du combat";
+  document.getElementById("finSur").textContent = w && g.ile ? "Retour à la maison" : w ? "Victoire" : "Fin du combat";
   document.getElementById("finScore").textContent = w && g.ile ? "Arrivé sur l’île de la tortue" : w && g.autodestruction ? "Autodestruction réussie !" : w ? `Il lui reste ${Math.ceil(w.hp)} PV` : "Les deux sont tombés en même temps";
   x.clearRect(0, 0, cv.width, cv.height);
   const persos = w ? [w] : g.f, part = cv.width / persos.length;
@@ -2879,7 +2890,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.28.3", NOTES = "Jeune beau et plein d’avenir : il mange aussi le poisson qui retombe dans son bateau (+7 PV).";
+const VERSION = "1.28.4", NOTES = "Jeune beau et plein d’avenir : il reste posé sur l'île de la tortue une fois arrivé, son spécial à la place de « Wins » (son 9, à remplacer), et il reste sur l'eau après une victoire normale.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

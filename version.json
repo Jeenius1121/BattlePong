@@ -1,1 +1,1 @@
-{"version": "1.22.0", "notes": "Bombardier : perd 6 % de ses PV quand un appareil est détruit (compensé : 230 PV, missile toutes les 3,3 s). Smoker : intouchable tant qu'il tient quelqu'un dans sa langue (vitesse 245). Bison renvoie plus de boules de feu. McCree peut couper le Psycho Crusher."}
+{"version": "1.22.1", "notes": "McCree : 5 % plus rapide, et chaque balle qui touche donne 2 % de chance d'enchaîner une rafale sans recharger."}

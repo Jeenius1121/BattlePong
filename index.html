@@ -262,10 +262,10 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 const O = "stroke='#1b2033' stroke-width='3' stroke-linejoin='round' stroke-linecap='round'";
 const CHARS = {
   cowboy: {
-    nom: "McCree", emoji: "🤠", vitesse: 230, images: ["visée", "tir"], sonNom: "tirs", son2: "rechargement", sonFort: true, caler: true,
+    nom: "McCree", emoji: "🤠", vitesse: 242, images: ["visée", "tir"], sonNom: "tirs", son2: "rechargement", sonFort: true, caler: true,
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     imageDe: f => f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis et rebondissent une fois sur les murs (moitié de dégâts après le rebond).",
+    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis et rebondissent une fois sur les murs (moitié de dégâts après le rebond). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
     // moments des 6 balles : calés sur les 6 coups du son de tir s'il y en a un, sinon rafale rapide
     horaires(f) {
       const s = sons.cowboy, lat = latenceSon(f);
@@ -298,9 +298,9 @@ const CHARS = {
           f.face = f.dir; majTaille(f);
           const c0 = canonMonde(f);
           g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * BALLE_VITESSE, vy: 0, r: 4, dmg: 9, owner: f, rot: 0, rafale: f.rafale, transperce: true, rebonds: 1 });
-          if (f.burst === 0) { // rechargement de 2 s juste après la 6e balle : il ne retire qu'une fois fini
-            son(f, 2);
-            f.cd = f.recharge = RECHARGE;
+          if (f.burst === 0) { // rechargement juste après la 6e balle : il ne retire qu'une fois fini
+            if (f.rafale.enchaine) f.cd = 0; // coup de chance : il enchaîne directement une autre rafale
+            else { son(f, 2); f.cd = f.recharge = RECHARGE; }
           }
         }
       } else if (f.cd <= 0 && (t = cibleDe(f, o)) && Math.abs(t.y - f.y) < t.hh * 0.8) {
@@ -1112,6 +1112,14 @@ function cibleDe(f, o) {
 }
 // frappe la cible choisie : l'adversaire ou un appareil
 function frapper(g, o, t, n, x, y) { if (t.drone) blesserDrone(g, o, t.drone, n); else degats(g, o, n, x, y); }
+// McCree : chaque balle d'une rafale qui touche l'adversaire a une petite chance d'éviter le prochain rechargement
+function enchainer(g, f, rafale) {
+  if (f.rafale !== rafale || f.mort) return; // balle d'une ancienne rafale
+  if (f.burst > 0) rafale.enchaine = true; // la rafale n'est pas finie : pas de rechargement à la fin
+  else if (f.cd > 0) { f.cd = 0; f.recharge = 0; arreterSon(f, 2); } // déjà en train de recharger : il s'arrête net
+  else return;
+  g.txt.push({ x: f.x, y: f.y - f.hh - 18, t: 0.9, s: "Enchaîne !" });
+}
 // Psycho Reflect : le projectile repart vers celui qui l'a lancé, à moitié de dégâts
 function renvoyer(g, p, f) {
   p.dmg = Math.max(1, Math.round(degatsProj(p) / 2)); p.owner = f; p.renvoye = true;
@@ -1227,6 +1235,7 @@ const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, com
 const BOUCLIER_PV = 35, FEU_RAYON = 120, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
+const ENCHAINE_CHANCE = 0.02; // chance par balle qui touche de ne pas recharger (McCree)
 const RECHARGE = 1.6; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
@@ -1349,6 +1358,7 @@ function maj(dt) {
         }
         // balles d'une même rafale : 1 dégât de moins à chaque balle qui touche (9, 8, 7, 6…)
         degats(g, cible, degatsProj(p), p.x, p.y); if (p.rafale) p.rafale.touches++;
+        if (p.rafale && Math.random() < ENCHAINE_CHANCE) enchainer(g, p.owner, p.rafale);
         if (p.kind === "balle" && cible.crusher) { cible.crusher = null; cible.sonne = CRUSHER_SONNE; eclats(g, p.x, p.y, "#b04cff"); } // McCree coupe le Psycho Crusher
         if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
         if (p.transperce) { p.dejaCible = true; continue; } // la balle traverse et continue sa route
@@ -2622,7 +2632,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.22.0", NOTES = "Bombardier : perd 6 % de ses PV quand un appareil est détruit (compensé : 230 PV, missile toutes les 3,3 s). Smoker : intouchable tant qu'il tient quelqu'un dans sa langue (vitesse 245). Bison renvoie plus de boules de feu. McCree peut couper le Psycho Crusher.";
+const VERSION = "1.22.1", NOTES = "McCree : 5 % plus rapide, et chaque balle qui touche donne 2 % de chance d'enchaîner une rafale sans recharger.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

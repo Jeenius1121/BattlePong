@@ -757,10 +757,10 @@ const CHARS = {
   },
   bison: {
     nom: "Bison", emoji: "👊", vitesse: 220, taille: 1.15, tailles: { 2: 0.55 }, images: ["psycho crusher", "head stomp", "coup de genou"],
-    sonNom: "psycho crusher", son2: "head stomp", son3: "renvoi", son4: "coup de genou",
+    sonNom: "psycho crusher", son2: "head stomp", son3: "absorption", son4: "coup de genou",
     // image 4 pendant les coups de genou (seulement si elle est fournie, sinon l'image normale)
     imageDe: f => f.crusher ? 2 : f.stomp ? 3 : f.attT > 0 && CHARS.bison.spr && CHARS.bison.spr[4] ? 4 : 1,
-    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (touchable pendant qu’il monte, intouchable une fois disparu et en retombant). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Reflect : renvoie les projectiles à moitié de dégâts (6 boules de feu sur 10, 1 mortier sur 4, 1 balle sur 20). Une balle de McCree qui le touche en plein Psycho Crusher l’arrête net. Attrapé par la langue du Smoker, il s’en arrache avec son Head Stomp après 2 secondes, s’il est prêt.",
+    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (touchable pendant qu’il monte, intouchable une fois disparu et en retombant). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Absorption : absorbe certains projectiles (6 boules de feu sur 10, 1 mortier sur 4, 1 balle sur 20) au lieu de les subir, et regagne des PV. Une balle de McCree qui le touche en plein Psycho Crusher l’arrête net. Attrapé par la langue du Smoker, il s’en arrache avec son Head Stomp après 2 secondes, s’il est prêt.",
     svg: `<g ${O}>
       <path d='M30 64 Q18 104 22 146 L98 146 Q102 104 90 64Z' fill='#7a1020'/>
       <rect x='44' y='108' width='13' height='28' fill='#b3202c'/><rect x='63' y='108' width='13' height='28' fill='#b3202c'/>
@@ -1211,8 +1211,9 @@ const ILE_DELAI = 20, ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
 const STOMP_CD = 5, STOMP_DUREE = 1.2, STOMP_DEGATS = 11, GENOU_CD = 2, GENOU_DEGATS = 4;
-// Psycho Reflect : chance de renvoyer un projectile (à moitié de dégâts), plus faible pour les balles de McCree
+// Psycho Absorption : chance d'absorber un projectile (plus faible pour les balles de McCree) ; il regagne une part de ses dégâts
 const REFLET_CHANCE = { balle: 0.05, feu: 0.6, mortier: 0.25 };
+const ABSORPTION_SOIN = 0.5;
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
 const DRONE_LIEN = 0.04; // part des PV max du Bombardier perdue quand un de ses appareils est détruit
@@ -1270,13 +1271,13 @@ function enchainer(g, f, rafale) {
   else return;
   g.txt.push({ x: f.x, y: f.y - f.hh - 18, t: 0.9, s: "Enchaîne !" });
 }
-// Psycho Reflect : le projectile repart vers celui qui l'a lancé, à moitié de dégâts
-function renvoyer(g, p, f) {
-  p.dmg = Math.max(1, Math.round(degatsProj(p) / 2)); p.owner = f; p.renvoye = true;
-  p.vx = -p.vx; p.vy = -p.vy; p.rafale = null; p.rebonds = 0; p.rebondie = false; p.transperce = false;
-  p.homing = false; p.drone = null; p.dejaCible = false; p.dejaDrones = null; p.dedans = false; p.hitCd = 0;
-  p.x += p.vx * 0.03; p.y += p.vy * 0.03;
-  son(f, 3); eclats(g, p.x, p.y, "#b04cff");
+// Psycho Absorption : le projectile disparaît dans son aura et Bison regagne des PV
+function absorber(g, p, f) {
+  const soin = Math.min(Math.max(1, Math.round(degatsProj(p) * ABSORPTION_SOIN)), f.hpMax - f.hp);
+  if (soin > 0) { f.hp += soin; g.txt.push({ x: f.x, y: f.y - f.hh - 10, t: 0.8, s: "+" + soin, soin: true }); }
+  son(f, 3);
+  for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, r = 30 + Math.random() * 20; // particules aspirées vers lui
+    g.parts.push({ x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, vx: -Math.cos(a) * r * 4, vy: -Math.sin(a) * r * 4, t: 0.25, c: i % 2 ? "#b04cff" : "#e6c8ff" }); }
 }
 // dégâts d'un projectile : balles d'une rafale de McCree 1 de moins à chaque touche, moitié après un rebond
 function degatsProj(p) {
@@ -1499,8 +1500,8 @@ function maj(dt) {
       }
       if (p.transperce && p.dejaCible) continue;
       if (touche(cible, p.x, p.y, p.r * 0.6)) {
-        // Psycho Reflect de Bison : une chance (tirée une fois par projectile) de le renvoyer à moitié de dégâts
-        if (cible.type === "bison" && !p.renvoye && (p.jetReflet ??= Math.random() < (REFLET_CHANCE[p.kind] || 0))) { renvoyer(g, p, cible); return true; }
+        // Psycho Absorption de Bison : une chance (tirée une fois par projectile) de l'absorber et de se soigner
+        if (cible.type === "bison" && (p.jetReflet ??= Math.random() < (REFLET_CHANCE[p.kind] || 0))) { absorber(g, p, cible); return false; }
         if (p.perce) { // transperce : refait des dégâts à chaque nouveau passage à travers l'adversaire
           if (!p.dedans && !(p.hitCd > 0)) {
             p.hitCd = 0.6; degats(g, cible, p.dmg, p.x, p.y);
@@ -1948,7 +1949,6 @@ function dessiner() {
   if (g.mer) dessinerMer(g);
   for (const p of g.proj) {
     ctx.save(); ctx.translate(p.x, p.y);
-    if (p.renvoye) { ctx.shadowColor = "#b04cff"; ctx.shadowBlur = 16; } // renvoyé par Bison
     if (p.kind === "balle") { // balle de revolver en laiton/cuivre, avec une petite traînée
       ctx.rotate(Math.atan2(p.vy, p.vx));
       const tr = ctx.createLinearGradient(-30, 0, -5, 0);
@@ -2909,7 +2909,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.28.7", NOTES = "Retour au volume d'avant.";
+const VERSION = "1.29.0", NOTES = "Bison : Psycho Absorption à la place du Psycho Reflect, il absorbe certains projectiles et regagne la moitié de leurs dégâts en PV.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -715,7 +715,7 @@ const CHARS = {
     nom: "Bombardier", emoji: "🛰️", vitesse: 80, pv: 200, taille: 1.5, portrait: "entier", images: ["tir", "appareil"],
     sonNom: "lancement", son2: "explosion du missile", son3: "appareil détruit", son4: "sifflement du missile",
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Énorme (deux fois plus de PV) mais très lent. Deux petits appareils de 25 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Bombardier fait tomber de gros missiles du ciel sur lui. Sans appareil, il ne peut plus attaquer. Un appareil détruit revient au bout de 8 secondes, un par un. Les adversaires peuvent viser les appareils quand ils sont bien plus proches que le Bombardier.",
+    desc: "Énorme (deux fois plus de PV) mais très lent. Deux petits appareils de 25 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Bombardier fait tomber de gros missiles du ciel sur lui. Sans appareil, il ne peut plus attaquer. Un appareil détruit revient au bout de 8 secondes, un par un. Les adversaires visent le Bombardier en priorité, mais leurs tirs peuvent toucher les appareils qui passent devant.",
     svg: `<g ${O}>
       <rect x='36' y='108' width='20' height='34' rx='4' fill='#4a5160'/><rect x='64' y='108' width='20' height='34' rx='4' fill='#4a5160'/>
       <rect x='30' y='136' width='28' height='9' rx='3' fill='#2a2e38'/><rect x='62' y='136' width='28' height='9' rx='3' fill='#2a2e38'/>
@@ -1062,7 +1062,6 @@ const STOMP_CD = 5, STOMP_DUREE = 1.2, STOMP_DEGATS = 12, GENOU_CD = 2, GENOU_DE
 // Psycho Reflect : chance de renvoyer un projectile (à moitié de dégâts), plus faible pour les balles de McCree
 const REFLET_CHANCE = { balle: 0.1, feu: 0.25, mortier: 0.25 };
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
-const PRIORITE_APPAREIL = 0.35; // un appareil est visé s'il est environ 3 fois plus proche que l'adversaire
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
 const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 3.6, MISSILE_DELAI = 1.6, MISSILE_RAYON = 190, MISSILE_DEGATS = 38;
 const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
@@ -1096,11 +1095,11 @@ function bougerAppareil(f, o, d, dt) {
   d.dir += Math.max(-4 * dt, Math.min(4 * dt, diff));
 }
 function dronePos(f, d) { return { x: d.x, y: d.y }; }
-// les appareils du Titan sont de vrais ennemis : on vise le plus proche, l'adversaire ou un de ses appareils
-// (un appareil est renvoyé sous forme de cible avec .drone)
+// cible visée : toujours l'adversaire en priorité ; les appareils du Bombardier ne sont visés
+// que si on ne le voit pas (un appareil est renvoyé sous forme de cible avec .drone)
 function cibleDe(f, o) {
-  // un appareil n'est préféré à l'adversaire que s'il est nettement plus proche
-  let best = cache(o, f) ? null : o, dBest = best ? Math.hypot(o.x - f.x, o.y - f.y) * PRIORITE_APPAREIL : Infinity;
+  if (!cache(o, f)) return o;
+  let best = null, dBest = Infinity;
   if (!o.mort) for (const d of o.drones || []) {
     if (d.nouveau > 0) continue;
     const dd = Math.hypot(d.x - f.x, d.y - f.y);
@@ -2618,7 +2617,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.21.3", NOTES = "Sorcier : flaque de feu un peu plus petite (rayon 120).";
+const VERSION = "1.21.4", NOTES = "Les adversaires visent de nouveau le Bombardier en priorité plutôt que ses appareils.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -417,7 +417,7 @@ const CHARS = {
         const ca = Math.cos(f.laserAng), sa = Math.sin(f.laserAng), c0 = canonMonde(f);
         for (let t = 0; t < 900; t += 6) {
           const px = c0.x + ca * t, py = c0.y + sa * t;
-          if (px < 0 || px > W || py < 0 || py > W) return { len: t };
+          if (px < 0 || px > W || py < 0 || py > W || dansLaMer(g, px, py)) return { len: t }; // le rayon s'arrête à la surface de la mer
           if (o.drones) for (const d of o.drones) { const q = dronePos(o, d); if (Math.hypot(q.x - px, q.y - py) < 16) return { len: t, drone: d }; }
           if (touche(o, px, py, 10)) return { len: t, px, py };
         }
@@ -850,9 +850,9 @@ const CHARS = {
     }
   },
   marin: {
-    nom: "Le Marin", emoji: "⛵", vitesse: 70, pv: 140, taille: 1.15, images: ["poisson"], sonNom: "tempête", son2: "poisson", son3: "croque",
+    nom: "Le Marin", emoji: "⛵", vitesse: 70, pv: 115, taille: 1.15, images: ["poisson"], sonNom: "tempête", son2: "poisson", son3: "croque",
     imageDe: () => 1,
-    desc: "140 PV. Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact.",
+    desc: "115 PV. Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. Tout projectile qui tombe dans la mer s’éteint. Au bout de 30 secondes, l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
     svg: `<g ${O}>
       <path d='M8 96 H112 Q104 128 60 130 Q16 128 8 96Z' fill='#6b3d1f'/><path d='M8 96 H112' stroke='#f2b134' stroke-width='5'/>
       <path d='M30 92 V14' stroke='#8a5228' stroke-width='6'/><path d='M34 18 Q58 30 54 86 H34Z' fill='#c4232f'/>
@@ -866,6 +866,11 @@ const CHARS = {
       f.derive = (f.derive ?? 1.5 + Math.random() * 2) - dt;
       if (f.derive <= 0 || Math.abs(f.vx) < 1) { f.derive = 2 + Math.random() * 3; f.vx = Math.random() < 0.5 ? -1 : 1; }
       f.vx = Math.sign(f.vx) * this.vitesse; f.vy = 0;
+      const I = g.mer.ile;
+      if (I && I.monte >= 1) { // il met le cap sur l'île de la tortue
+        f.vx = Math.sign(I.x - f.x || 1) * ILE_VITESSE;
+        if (Math.abs(f.x - I.x) < ILE_LARGEUR * 0.35 && g.running) { g.ile = true; o.hp = 0; f.vx = 0; } // arrivé chez lui : il gagne
+      }
       f.y = merSurface(g, f.x) - f.hh * 0.72; // la coque trempe juste un peu dans l'eau
       f.penche = Math.atan2(merSurface(g, f.x + 25) - merSurface(g, f.x - 25), 50) * 0.8;
     },
@@ -874,6 +879,12 @@ const CHARS = {
       const M = g.mer ??= { t: 0, vagues: [], tempete: 0, tempeteCd: 5, vagueT: 0, poisson: null, poissonCd: 3.5, tic: 0 };
       const hasard = (a, b) => a + Math.random() * (b - a);
       M.t += dt;
+      if (g.running) M.combat = (M.combat || 0) + dt;
+      if (!M.ile && M.combat >= ILE_DELAI && !f.mort) { // l'île sort de l'eau, du côté opposé au Marin
+        const droite = f.x < W / 2;
+        M.ile = { x: droite ? W - ILE_LARGEUR / 2 - 6 : ILE_LARGEUR / 2 + 6, monte: 0 };
+      }
+      if (M.ile) M.ile.monte = Math.min(1, M.ile.monte + dt / 1.5);
       // tempête : pendant quelques secondes, des vagues de toutes tailles traversent de gauche à droite
       M.tempeteCd -= dt;
       if (M.tempete > 0) {
@@ -1147,6 +1158,10 @@ function merHauteur(g, x) {
   return h;
 }
 function merSurface(g, x) { return W - merHauteur(g, x); }
+function dansLaMer(g, x, y) { return !!g.mer && y > merSurface(g, x); }
+function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (Math.random() - 0.5) * 120, vy: -60 - Math.random() * 120, t: 0.45, g: 500, c: i % 2 ? "#9fd8ff" : "#e8f6ff" }); }
+// l'île de la tortue : au bout d'un moment, le Marin rentre chez lui (c'est une victoire pour lui)
+const ILE_DELAI = 30, ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
 const STOMP_CD = 5, STOMP_DUREE = 1.2, STOMP_DEGATS = 11, GENOU_CD = 2, GENOU_DEGATS = 4;
@@ -1429,6 +1444,7 @@ function maj(dt) {
     const n = Math.max(1, Math.ceil(Math.hypot(p.vx, p.vy) * dt / 8));
     for (let i = 0; i < n; i++) {
       p.x += p.vx * dt / n; p.y += p.vy * dt / n;
+      if (dansLaMer(g, p.x, p.y)) { plouf(g, p.x, merSurface(g, p.x)); return false; } // la mer éteint tout projectile
       const traverse = p.perce || p.transperce;
       const dmg = degatsProj(p);
       if (cible.drones && droneTouche(g, cible, p.x, p.y, p.r * 0.6, dmg, traverse ? (p.dejaDrones ||= new Set()) : null)) {
@@ -1505,6 +1521,7 @@ function maj(dt) {
     m.t -= dt;
     if (m.t > 0) return true;
     const o = g.f.find(x => x !== m.owner);
+    if (dansLaMer(g, m.x, m.y)) { plouf(g, m.x, merSurface(g, m.x)); return false; } // missile tombé dans la mer : sans effet
     g.boums.push({ x: m.x, y: m.y, t: 0.6 }); g.secousse = Math.max(g.secousse, 0.15); son(m.owner, 2);
     for (let i = 0; i < 24; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 260; g.parts.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, t: 0.6, g: 400, c: ["#ffd23f", "#ff8a2a", "#5b5b66"][i % 3] }); }
     if (g.running && o && Math.hypot(o.x - m.x, o.y - m.y) < MISSILE_RAYON + Math.max(o.hw, o.hh) * 0.4) degats(g, o, MISSILE_DEGATS, o.x, o.y - o.hh * 0.3);
@@ -1532,7 +1549,8 @@ function maj(dt) {
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
     g.texteFin = gagnant ? `${CHARS[gagnant.type].nom} gagne !` : "Double KO !";
     document.getElementById("winText").textContent = g.texteFin;
-    for (const f of g.f) if (f.hp <= 0) exploser(g, f);
+    if (g.ile) g.texteFin = "Le Marin est rentré chez lui !";
+    for (const f of g.f) if (f.hp <= 0 && !g.ile) exploser(g, f);
     g.gagnant = gagnant;
     if (gagnant) {
       g.zoom = gagnant; calmer(gagnant);
@@ -1572,6 +1590,11 @@ function dessinerMer(g) {
     for (let i = 0; i < 45; i++) { const x = Math.random() * W, y = Math.random() * W; ctx.moveTo(x, y); ctx.lineTo(x + 6, y + 18); }
     ctx.stroke();
   }
+  if (M.ile) dessinerIle(g, M.ile);
+  if (!M.ile && g.f.some(f => f.type === "marin" && !f.mort)) { // compte à rebours avant l'île
+    ctx.font = "800 15px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "rgba(200,235,255,.8)";
+    ctx.fillText(`🐢 Île de la tortue dans ${Math.max(0, Math.ceil(ILE_DELAI - (M.combat || 0)))} s`, W / 2, 30);
+  }
   const P = M.poisson;
   if (P) {
     const img = spriteImage("marin-2"), vers = P.phase === "chute" ? Math.PI / 2 : -Math.PI / 2;
@@ -1586,6 +1609,45 @@ function dessinerMer(g) {
       ctx.fillStyle = "#1b2033"; for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(sx * r * 0.32, -r * 0.55, 3, 0, 7); ctx.fill(); }
       ctx.fillStyle = "#f2f2f2"; for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * 7 - 3, -r * 1.05); ctx.lineTo(i * 7 + 3, -r * 1.05); ctx.lineTo(i * 7, -r * 0.85); ctx.fill(); } // dents
     }
+  }
+  ctx.restore();
+}
+// l'île de la tortue : une grosse tortue endormie, du sable et un palmier sur sa carapace
+function dessinerIle(g, I) {
+  const base = W * (1 - MER_NIVEAU) + 6, y0 = base + (1 - I.monte) * (ILE_HAUTEUR + 20), L = ILE_LARGEUR, Hh = ILE_HAUTEUR, x = I.x;
+  const vers = x > W / 2 ? -1 : 1; // la tête regarde vers le centre
+  ctx.save(); ctx.lineJoin = "round"; ctx.strokeStyle = "#1b2033"; ctx.lineWidth = 3;
+  // tête et nageoires
+  ctx.fillStyle = "#6fbf5a";
+  ctx.beginPath(); ctx.ellipse(x + vers * L * 0.55, y0 - Hh * 0.28, 26, 20, vers * -0.3, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#1b2033"; ctx.beginPath(); ctx.arc(x + vers * L * 0.6, y0 - Hh * 0.33, 3.5, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + vers * L * 0.57, y0 - Hh * 0.24, 9, 0.2, 1.2); ctx.stroke(); // sourire
+  ctx.fillStyle = "#6fbf5a";
+  ctx.beginPath(); ctx.ellipse(x + vers * L * 0.32, y0 - 6, 30, 11, vers * 0.5, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(x - vers * L * 0.36, y0 - 6, 24, 9, -vers * 0.5, 0, 7); ctx.fill(); ctx.stroke();
+  // carapace
+  const gr = ctx.createLinearGradient(0, y0 - Hh, 0, y0); gr.addColorStop(0, "#5c9a3f"); gr.addColorStop(1, "#2f5e2a");
+  ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(x, y0, L / 2, Hh * 0.7, 0, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "rgba(20,50,20,.55)"; ctx.lineWidth = 2.5;
+  for (const [dx, dy, r] of [[0, -0.42, 20], [-0.28, -0.25, 17], [0.28, -0.25, 17], [-0.12, -0.12, 14], [0.14, -0.12, 14]]) {
+    ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; ctx.lineTo(x + dx * L + Math.cos(a) * r, y0 + dy * Hh + Math.sin(a) * r * 0.75); } ctx.closePath(); ctx.stroke();
+  }
+  // sable sur le dessus
+  ctx.fillStyle = "#ecd48b"; ctx.strokeStyle = "#1b2033"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.ellipse(x, y0 - Hh * 0.64, L * 0.26, 11, 0, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // palmier
+  const px = x - vers * 10, py = y0 - Hh * 0.68;
+  ctx.strokeStyle = "#7a4a22"; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(px, py); ctx.quadraticCurveTo(px + vers * 18, py - 40, px + vers * 8, py - 78); ctx.stroke();
+  ctx.fillStyle = "#3aa34a"; ctx.strokeStyle = "#1b2033"; ctx.lineWidth = 2.5;
+  const tx = px + vers * 8, ty = py - 78;
+  for (let i = 0; i < 6; i++) { const a = -Math.PI / 2 + (i - 2.5) * 0.62; ctx.beginPath(); ctx.moveTo(tx, ty);
+    ctx.quadraticCurveTo(tx + Math.cos(a - 0.3) * 30, ty + Math.sin(a - 0.3) * 30 - 6, tx + Math.cos(a) * 44, ty + Math.sin(a) * 34 + 14);
+    ctx.quadraticCurveTo(tx + Math.cos(a + 0.3) * 24, ty + Math.sin(a + 0.3) * 24, tx, ty); ctx.fill(); ctx.stroke(); }
+  ctx.fillStyle = "#7a4a22"; for (const d of [-5, 5]) { ctx.beginPath(); ctx.arc(tx + d, ty + 6, 5, 0, 7); ctx.fill(); }
+  // nom de l'île
+  if (I.monte >= 1) {
+    ctx.font = "800 16px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff6d0";
+    ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.lineWidth = 4; ctx.strokeText("Île de la tortue", x, ty - 30); ctx.fillText("Île de la tortue", x, ty - 30);
   }
   ctx.restore();
 }
@@ -1970,7 +2032,7 @@ function montrerFin() {
   const g = jeu, w = g.gagnant, carte = document.getElementById("finCarte"), cv = document.getElementById("finPortrait"), x = cv.getContext("2d");
   carte.style.setProperty("--team", w ? (w.side ? "var(--droite)" : "var(--gauche)") : "var(--muted)");
   document.getElementById("finSur").textContent = w ? "Victoire" : "Fin du combat";
-  document.getElementById("finScore").textContent = w && g.autodestruction ? "Autodestruction réussie !" : w ? `Il lui reste ${Math.ceil(w.hp)} PV` : "Les deux sont tombés en même temps";
+  document.getElementById("finScore").textContent = w && g.ile ? "Arrivé sur l’île de la tortue" : w && g.autodestruction ? "Autodestruction réussie !" : w ? `Il lui reste ${Math.ceil(w.hp)} PV` : "Les deux sont tombés en même temps";
   x.clearRect(0, 0, cv.width, cv.height);
   const persos = w ? [w] : g.f, part = cv.width / persos.length;
   persos.forEach((f, i) => {
@@ -2768,7 +2830,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.24.0", NOTES = "Nouveau perso : le Marin ! La mer en bas de l'arène, des tempêtes avec de grosses vagues et un gros poisson qui croque.";
+const VERSION = "1.25.0", NOTES = "Le Marin : la mer éteint tous les projectiles, et au bout de 30 s l'île de la tortue sort de l'eau (s'il l'atteint, il gagne). 115 PV.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -747,7 +747,7 @@ const CHARS = {
     }
   },
   bison: {
-    nom: "Bison", emoji: "👊", vitesse: 220, taille: 1.3, tailles: { 2: 0.55 }, images: ["psycho crusher", "head stomp"],
+    nom: "Bison", emoji: "👊", vitesse: 220, taille: 1.15, tailles: { 2: 0.55 }, images: ["psycho crusher", "head stomp"],
     sonNom: "psycho crusher", son2: "head stomp", son3: "renvoi",
     imageDe: f => f.crusher ? 2 : f.stomp ? 3 : 1,
     desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (intouchable en l’air). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Reflect : une chance sur quatre de renvoyer un projectile à moitié de dégâts (une sur dix pour les balles). Attrapé par la langue du Smoker, il s’en arrache avec son Head Stomp après 2 secondes, s’il est prêt.",
@@ -1058,7 +1058,7 @@ function degatsLaser(f) { return LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1)
 const CRUSHER_CD = 3.5, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 9, CRUSHER_SONNE = 0.5;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
-const STOMP_CD = 5, STOMP_DUREE = 1.2, STOMP_DEGATS = 12, GENOU_CD = 2, GENOU_DEGATS = 4;
+const STOMP_CD = 5, STOMP_DUREE = 1.2, STOMP_DEGATS = 11, GENOU_CD = 2, GENOU_DEGATS = 4;
 // Psycho Reflect : chance de renvoyer un projectile (à moitié de dégâts), plus faible pour les balles de McCree
 const REFLET_CHANCE = { balle: 0.1, feu: 0.25, mortier: 0.25 };
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
@@ -2617,7 +2617,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.21.5", NOTES = "Bombardier : missiles un peu plus rapides à atterrir (1,5 s). Bison : plus grand, zone de touche aussi.";
+const VERSION = "1.21.6", NOTES = "Bison : 15 % plus grand (au lieu de 30 %), Head Stomp 12 → 11 dégâts.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -565,7 +565,7 @@ const CHARS = {
         }
       } else if (f.etat === "stalk") { // immobile, fixe l'adversaire, la jauge monte
         f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1;
-        f.jauge = Math.min(1, f.jauge + dt / 3.5); // jauge pleine en 3,5 s
+        f.jauge = Math.min(1, f.jauge + dt / 3.8); // jauge pleine en 3,8 s
         if (f.jauge >= 1) {
           f.etat = "furie"; arreterSon(f, 2); son(f, 1, true); // son joué en boucle pendant toute la furie
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -1064,7 +1064,7 @@ const STOMP_CD = 5, STOMP_DUREE = 1.2, STOMP_DEGATS = 11, GENOU_CD = 2, GENOU_DE
 const REFLET_CHANCE = { balle: 0.1, feu: 0.25, mortier: 0.25 };
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
-const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 3.6, MISSILE_DELAI = 1.5, MISSILE_RAYON = 190, MISSILE_DEGATS = 38;
+const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 3.5, MISSILE_DELAI = 1.5, MISSILE_RAYON = 190, MISSILE_DEGATS = 38;
 const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
 // appareils : ils patrouillent au hasard (faisceau bleu) ; quand l'adversaire passe dans leur faisceau,
 // ils le repèrent (faisceau rouge) et volent près de lui en le gardant en visée
@@ -2618,7 +2618,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.21.7", NOTES = "Bison : nouvel emplacement d'image et de son pour ses coups de genou au corps à corps.";
+const VERSION = "1.21.8", NOTES = "Myers : jauge de traque en 3,8 s. Bombardier : un missile toutes les 3,5 s.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -388,7 +388,7 @@ const CHARS = {
   robot: {
     nom: "Robot", emoji: "🤖", vitesse: 220, images: ["attaque"], sonNom: "laser", son2: "minuteur",
     imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : 1,
-    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle ce qu’il touche. Chaque nouveau tir fait plus de dégâts que le précédent : plus le combat dure, plus il est dangereux. Le rayon ricoche sur les autres ennemis (jusqu’à 3), avec des dégâts divisés par deux à chaque ricochet. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire avec lui (égalité).",
+    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle ce qu’il touche. Chaque nouveau tir fait plus de dégâts que le précédent : plus le combat dure, plus il est dangereux. Le rayon ricoche sur les autres ennemis (jusqu’à 3), avec des dégâts divisés par deux à chaque ricochet. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire : c’est une victoire pour lui.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='26' fill='#8b93a6'/><rect x='64' y='112' width='12' height='26' fill='#8b93a6'/>
       <rect x='40' y='134' width='20' height='10' rx='2' fill='#5d6476'/><rect x='60' y='134' width='20' height='10' rx='2' fill='#5d6476'/>
@@ -1213,9 +1213,9 @@ function myersCoin(g, f, o, autre) {
   eclats(g, f.x, f.y, "#55555f");
 }
 const AUTODESTRUCTION_PV = 25, AUTODESTRUCTION_DUREE = 5; // Robot
-// le Robot explose et emporte l'adversaire : les deux tombent à 0, c'est une égalité
+// le Robot déclenche son explosion et emporte l'adversaire : c'est une victoire pour lui
 function autodestruction(g, f, o) {
-  g.autodestruction = true; f.hp = 0; o.hp = 0; g.secousse = 0.9;
+  g.autodestruction = true; o.hp = 0; g.secousse = 0.9;
   for (let i = 0; i < 3; i++) g.boums.push({ x: f.x + (Math.random() - 0.5) * 60, y: f.y + (Math.random() - 0.5) * 60, t: 0.6 });
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
@@ -1425,7 +1425,7 @@ function maj(dt) {
     g.running = false; g.fin = FIN; arreterBoucles();
     document.body.classList.add("fin-combat"); // plus de « Recommencer » ni de retour : on attend la carte de fin
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
-    g.texteFin = gagnant ? `${CHARS[gagnant.type].nom} gagne !` : g.autodestruction ? "Égalité !" : "Double KO !";
+    g.texteFin = gagnant ? `${CHARS[gagnant.type].nom} gagne !` : "Double KO !";
     document.getElementById("winText").textContent = g.texteFin;
     for (const f of g.f) if (f.hp <= 0) exploser(g, f);
     g.gagnant = gagnant;
@@ -1829,7 +1829,7 @@ function montrerFin() {
   const g = jeu, w = g.gagnant, carte = document.getElementById("finCarte"), cv = document.getElementById("finPortrait"), x = cv.getContext("2d");
   carte.style.setProperty("--team", w ? (w.side ? "var(--droite)" : "var(--gauche)") : "var(--muted)");
   document.getElementById("finSur").textContent = w ? "Victoire" : "Fin du combat";
-  document.getElementById("finScore").textContent = w ? `Il lui reste ${Math.ceil(w.hp)} PV` : g.autodestruction ? "Le Robot a tout emporté avec lui" : "Les deux sont tombés en même temps";
+  document.getElementById("finScore").textContent = w && g.autodestruction ? "Autodestruction réussie !" : w ? `Il lui reste ${Math.ceil(w.hp)} PV` : "Les deux sont tombés en même temps";
   x.clearRect(0, 0, cv.width, cv.height);
   const persos = w ? [w] : g.f, part = cv.width / persos.length;
   persos.forEach((f, i) => {
@@ -2618,7 +2618,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.21.0", NOTES = "Bison : s'arrache de la langue du Smoker, reflet réduit sur les balles, Head Stomp plus fréquent. L'Inconnu : mortier plus gros et plus fort. Petits buffs : Bombardier, Myers, McCree.";
+const VERSION = "1.21.1", NOTES = "Robot : son autodestruction compte maintenant comme une victoire pour lui.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

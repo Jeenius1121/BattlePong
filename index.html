@@ -599,7 +599,7 @@ const CHARS = {
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 3,5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue, il lâche prise. Tant qu’il tient quelqu’un dans sa langue, il ne prend aucun dégât.",
+    desc: "Frappe au corps à corps. Toutes les 3,5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise. Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -1020,7 +1020,8 @@ function nouveauJeu(running) {
 }
 function degats(g, cible, n, x, y) {
   if (cible.mort || cible.enLair) return;
-  if (g.f.some(x => x.capture === cible)) return; // le Smoker qui tient quelqu'un dans sa langue ne prend aucun dégât
+  // le Smoker qui étrangle quelqu'un contre lui ne prend aucun dégât (mais il reste touchable pendant qu'il le ramène)
+  if (cible.langue && cible.langue.etat === "etreinte" && g.f.some(x => x.capture === cible)) return;
   const c = CHARS[cible.type];
   if (c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
   // Myers encaisse moins pendant sa furie (arrondi, 1 dégât minimum)
@@ -2646,7 +2647,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.22.5", NOTES = "Bison : on peut le toucher pendant qu'il monte dans le ciel au début du Head Stomp.";
+const VERSION = "1.22.6", NOTES = "Smoker : touchable pendant qu'il ramène l'adversaire (ça coupe sa langue), mais intouchable une fois l'adversaire étranglé contre lui.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

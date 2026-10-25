@@ -708,7 +708,7 @@ const CHARS = {
         eclats(g, f.x, f.y, "#8d86a0");
         return;
       }
-      if (f.criT <= 0) { f.criT = 2; f.attT = 0.3; son(f); crier(g, f, HURLEUR_DEGATS, 320, 12); }
+      if (f.criT <= 0) { f.criT = 2; f.attT = 0.3; son(f); crier(g, f, HURLEUR_DEGATS, 280, 12); }
     }
   },
   titan: {
@@ -1143,7 +1143,7 @@ function droneTouche(g, f, x, y, rad, n, deja) {
 }
 /* ===== CRI DU HURLEUR =====
    Une onde de choc en anneau part de lui et grandit ; elle blesse une fois l'adversaire qu'elle traverse. */
-const HURLEUR_DEGATS = 12, HURLEUR_CRI_SORTIE = 18, HURLEUR_INVIS_CD = 6, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
+const HURLEUR_DEGATS = 12, HURLEUR_CRI_SORTIE = 22, HURLEUR_INVIS_CD = 6, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
 function crier(g, f, dmg, portee, epais) {
   g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
 }
@@ -2618,7 +2618,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.21.1", NOTES = "Robot : son autodestruction compte maintenant comme une victoire pour lui.";
+const VERSION = "1.21.2", NOTES = "Steve : ondes normales moins loin (280), mais cri de sortie d'invisibilité plus fort (22).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

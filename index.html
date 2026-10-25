@@ -852,7 +852,7 @@ const CHARS = {
   marin: {
     nom: "Le Marin", emoji: "⛵", vitesse: 70, pv: 115, taille: 1.15, images: ["poisson"], sonNom: "tempête", son2: "poisson", son3: "croque",
     imageDe: () => 1,
-    desc: "115 PV. Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. Tout projectile qui tombe dans la mer s’éteint. Au bout de 25 secondes, l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
+    desc: "115 PV. Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. Tout projectile qui tombe dans la mer s’éteint. Quand un laser se prépare (ou parfois quand un missile va lui tomber dessus), il plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 25 secondes, l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
     svg: `<g ${O}>
       <path d='M8 96 H112 Q104 128 60 130 Q16 128 8 96Z' fill='#6b3d1f'/><path d='M8 96 H112' stroke='#f2b134' stroke-width='5'/>
       <path d='M30 92 V14' stroke='#8a5228' stroke-width='6'/><path d='M34 18 Q58 30 54 86 H34Z' fill='#c4232f'/>
@@ -866,12 +866,26 @@ const CHARS = {
       f.derive = (f.derive ?? 1.5 + Math.random() * 2) - dt;
       if (f.derive <= 0 || Math.abs(f.vx) < 1) { f.derive = 2 + Math.random() * 3; f.vx = Math.random() < 0.5 ? -1 : 1; }
       f.vx = Math.sign(f.vx) * this.vitesse; f.vy = 0;
+      // plongée : quand un laser se prépare ou qu'un missile va lui tomber dessus, il plonge sous l'eau un instant
+      f.plongeeCd = Math.max(0, (f.plongeeCd ?? 0) - dt);
+      // il voit venir tous les lasers, mais seulement une partie des missiles (tirage une fois par missile)
+      const danger = o.charge > 0 || o.tir > 0 || g.missiles.some(m => m.owner === o && m.t < 0.6 && Math.hypot(m.x - f.x, m.y - f.y) < MISSILE_RAYON + f.hw * 0.5 && (m.vu ??= Math.random() < PLONGEE_MISSILE));
+      if (f.plongee > 0) {
+        f.plongee -= dt;
+        if (f.plongee <= 0) { f.enLair = false; this.eclabousser(g, f.x, merSurface(g, f.x)); }
+      } else if (f.plongeeCd <= 0 && danger) {
+        f.plongee = PLONGEE_DUREE; f.plongeeCd = PLONGEE_CD; f.enLair = true; // sous l'eau : intouchable, comme Bison en l'air
+        this.eclabousser(g, f.x, merSurface(g, f.x)); jouerEffet("plongeon", 0.6);
+      }
       const I = g.mer.ile;
       if (I && I.monte >= 1) { // il met le cap sur l'île de la tortue
         f.vx = Math.sign(I.x - f.x || 1) * ILE_VITESSE;
         if (Math.abs(f.x - I.x) < ILE_LARGEUR * 0.35 && g.running) { g.ile = true; o.hp = 0; f.vx = 0; } // arrivé chez lui : il gagne
       }
-      f.y = merSurface(g, f.x) - f.hh * 0.72; // la coque trempe juste un peu dans l'eau
+      // la coque trempe juste un peu dans l'eau ; en plongée, tout le bateau passe sous la surface
+      const enfonce = f.plongee > 0 ? Math.min(1, (PLONGEE_DUREE - f.plongee) / 0.2, f.plongee / 0.2) : 0;
+      f.y = merSurface(g, f.x) - f.hh * (0.72 - 1.5 * enfonce);
+      if (f.plongee > 0 && Math.random() < 0.4) g.parts.push({ x: f.x + (Math.random() - 0.5) * f.hw, y: merSurface(g, f.x), vx: 0, vy: -40 - Math.random() * 40, t: 0.4, c: "#cfefff" }); // bulles
       f.penche = Math.atan2(merSurface(g, f.x + 25) - merSurface(g, f.x - 25), 50) * 0.8;
     },
     // la mer, la tempête et le poisson vivent tout le temps, même quand le Marin est attrapé
@@ -1152,7 +1166,7 @@ const CRUSHER_CD = 3.5, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 9, CRUSHER_SONNE
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
 const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 3;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
-const POISSON_CD = [3.5, 5], POISSON_MONTEE = 1.4, POISSON_PAUSE = 0.5, POISSON_CHUTE = 0.8, POISSON_HAUT = 70, POISSON_RAYON = 42;
+const POISSON_CD = [4, 5.5], POISSON_MONTEE = 1.4, POISSON_PAUSE = 1, POISSON_CHUTE = 0.8, POISSON_HAUT = 70, POISSON_RAYON = 42;
 const CROQUE_DEGATS = 23, POISSON_CONTACT = 11, POISSON_ECART = 150;
 // hauteur de l'eau (depuis le bas) à la position x : niveau de base, petites ondulations et vagues de la tempête
 function merHauteur(g, x) {
@@ -1164,6 +1178,7 @@ function merSurface(g, x) { return W - merHauteur(g, x); }
 function dansLaMer(g, x, y) { return !!g.mer && y > merSurface(g, x); }
 function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (Math.random() - 0.5) * 120, vy: -60 - Math.random() * 120, t: 0.45, g: 500, c: i % 2 ? "#9fd8ff" : "#e8f6ff" }); }
 // l'île de la tortue : au bout d'un moment, le Marin rentre chez lui (c'est une victoire pour lui)
+const PLONGEE_DUREE = 1.2, PLONGEE_CD = 6, PLONGEE_MISSILE = 0.3; // plongée du Marin face au laser ou aux missiles
 const ILE_DELAI = 25, ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
@@ -1398,7 +1413,7 @@ function maj(dt) {
     if (f.x < f.hw) { f.x = f.hw; f.vx = Math.abs(f.vx); rebond = true; }
     if (f.x > W - f.hw) { f.x = W - f.hw; f.vx = -Math.abs(f.vx); rebond = true; }
     if (f.y < f.hh) { f.y = f.hh; f.vy = Math.abs(f.vy); rebond = true; }
-    if (f.y > W - f.hh) { f.y = W - f.hh; f.vy = -Math.abs(f.vy); rebond = true; }
+    if (f.y > W - f.hh && !(f.plongee > 0)) { f.y = W - f.hh; f.vy = -Math.abs(f.vy); rebond = true; } // le Marin en plongée peut descendre sous le bord
     if (rebond) {
       const ang = Math.atan2(f.vy, f.vx) + (Math.random() - 0.5) * 0.2, sp = Math.hypot(f.vx, f.vy);
       f.vx = Math.cos(ang) * sp; f.vy = Math.sin(ang) * sp;
@@ -2841,7 +2856,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.25.2", NOTES = "Le Marin : le poisson reste moins longtemps en haut, vagues plus rapides, île de la tortue au bout de 25 s.";
+const VERSION = "1.26.0", NOTES = "Le Marin : nouvelle plongée (il esquive sous l'eau les lasers et une partie des missiles, toutes les 6 s au plus). Poisson 1 s en haut, un peu moins fréquent.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

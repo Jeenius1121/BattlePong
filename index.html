@@ -101,8 +101,8 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{display:
 .thumb{width:34px; height:34px; object-fit:contain; flex:none}
 .tuile:focus-visible,.panneau:focus-visible,.btn:focus-visible,.small:focus-within{outline:3px solid var(--ink); outline-offset:2px}
 
-.hud{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; margin:20px 0 8px}
-.bar-wrap .name{font-weight:800; font-size:.9rem; display:flex; justify-content:space-between; gap:6px}
+.hud{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; margin:20px 0 8px; align-items:end} /* barres toujours à la même hauteur */
+.bar-wrap .name{font-weight:800; font-size:.9rem; display:flex; justify-content:space-between; align-items:center; gap:6px; white-space:nowrap; height:1.5rem}
 .bar-wrap.right .name{flex-direction:row-reverse}
 .bar{height:12px; border-radius:6px; background:var(--line); overflow:hidden; margin-top:4px}
 .bar span{display:block; height:100%; width:100%; background:var(--hp); transition:width .12s linear}
@@ -125,6 +125,10 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 #finPortrait{flex:none; width:64px; height:64px; border-radius:50%; background:radial-gradient(circle at 50% 40%, color-mix(in srgb,var(--team) 35%,#fff), var(--team)); box-shadow:0 0 0 4px var(--panel), 0 0 0 7px var(--team)}
 .finSur{margin:2px 0 0; font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
 #winText{margin:0; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(1.2rem,5.6vw,1.8rem); line-height:1.05; transform:rotate(-2deg); color:var(--ink)}
+.finBoutons{display:flex; gap:8px; width:100%; margin-top:4px} /* côte à côte : la carte reste courte, sans défilement */
+.finCarte .finBoutons .btn{flex:1 1 0; width:auto; min-width:0; padding-left:8px; padding-right:8px; font-size:.88rem; white-space:normal; line-height:1.15}
+#winText.long{font-size:clamp(.95rem,4.2vw,1.25rem)} /* message long (nom à rallonge) : plus petit pour que les boutons restent visibles */
+@media (max-height:760px){ .overlay{padding:8px} .finCarte{padding:12px 12px 10px; gap:4px} #finPortrait{width:52px; height:52px} }
 .finScore{margin:0 0 4px; font-size:.85rem; color:var(--muted)}
 .finCarte .btn{width:100%; flex:none}
 .finCarte .btn.ghost{padding:8px 12px; font-size:.88rem}
@@ -229,8 +233,10 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
         <p class="finSur" id="finSur">Fin du combat</p>
         <p id="winText"></p>
         <p class="finScore" id="finScore"></p>
-        <button class="btn revanche" id="rematch" type="button">↻ Revanche</button>
-        <button class="btn ghost" id="changer" type="button">Changer de persos</button>
+        <div class="finBoutons">
+          <button class="btn revanche" id="rematch" type="button">↻ Revanche</button>
+          <button class="btn ghost" id="changer" type="button">Changer de persos</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1604,7 +1610,7 @@ function maj(dt) {
     document.body.classList.add("fin-combat"); // plus de « Recommencer » ni de retour : on attend la carte de fin
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
     g.texteFin = g.ile ? `${CHARS.marin.nom} est rentré chez lui ! 🐢` : gagnant ? `${CHARS[gagnant.type].nom} gagne !` : "Double KO !";
-    document.getElementById("winText").textContent = g.texteFin;
+    const wt = document.getElementById("winText"); wt.textContent = g.texteFin; wt.classList.toggle("long", g.texteFin.length > 24);
     for (const f of g.f) if (f.hp <= 0 && !g.ile) exploser(g, f);
     g.gagnant = gagnant;
     if (gagnant) {
@@ -2928,7 +2934,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.30.0", NOTES = "Joueur 1 et joueur 2 bien différenciés en combat : étiquette J1 ou J2 au-dessus de chaque perso et barres de vie aux couleurs de chaque joueur.";
+const VERSION = "1.30.1", NOTES = "Barres de vie toujours alignées. Carte de fin compacte (boutons côte à côte, texte réduit pour les noms longs) : plus besoin de faire défiler.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

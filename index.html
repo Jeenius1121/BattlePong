@@ -342,6 +342,9 @@ const CHARS = {
           g.parts.push({ x: f.x + Math.cos(a) * f.hw * 0.8, y: f.y + Math.sin(a) * f.hh * 0.8, vx: (Math.random() - 0.5) * 40, vy: -60 - Math.random() * 60,
             t: 0.5 + Math.random() * 0.4, g: -80, c: Math.random() < 0.5 ? "#ffd23f" : "#ff8a2a" });
         }
+        if (dansLaMer(g, f.x, f.y + f.hh * 0.9)) { // le cercle de feu touche l'eau : il s'éteint, sans exploser ni laisser de flaque
+          f.bouclier = 0; f.bouclierCd = 10; f.sp = null; vapeur(g, f.x, merSurface(g, f.x)); return;
+        }
         if (f.bouclier <= 0) this.casser(f, g);
         return;
       }
@@ -381,7 +384,8 @@ const CHARS = {
         g.parts.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.6 + Math.random() * 0.6, g: 200,
           forme: i % 2 ? "eclat" : undefined, rot: Math.random() * 6, c: ["#fff3b0", "#ffd23f", "#ff8a2a", "#e0302a"][i % 4] });
       }
-      g.feux.push({ x: f.x, y: f.y, r: FEU_RAYON, t: FEU_DUREE, owner: f, tic: 0 });
+      if (!dansLaMer(g, f.x, f.y + FEU_RAYON)) g.feux.push({ x: f.x, y: f.y, r: FEU_RAYON, t: FEU_DUREE, owner: f, tic: 0 }); // pas de flaque si elle toucherait l'eau
+      else vapeur(g, f.x, merSurface(g, f.x));
       if (o && Math.hypot(o.x - f.x, o.y - f.y) < FEU_RAYON + Math.max(o.hw, o.hh) * 0.6) degats(g, o, 18, o.x, o.y - o.hh * 0.3);
     }
   },
@@ -852,7 +856,7 @@ const CHARS = {
   marin: {
     nom: "Le Marin", emoji: "⛵", vitesse: 70, pv: 115, taille: 1.15, images: ["poisson"], sonNom: "tempête", son2: "poisson", son3: "croque",
     imageDe: () => 1,
-    desc: "115 PV. Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. Tout projectile qui tombe dans la mer s’éteint. Quand un laser se prépare (ou parfois quand un missile va lui tomber dessus), il plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 25 secondes, l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
+    desc: "115 PV. Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand un laser se prépare (ou parfois quand un missile va lui tomber dessus), il plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 25 secondes, l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
     svg: `<g ${O}>
       <path d='M8 96 H112 Q104 128 60 130 Q16 128 8 96Z' fill='#6b3d1f'/><path d='M8 96 H112' stroke='#f2b134' stroke-width='5'/>
       <path d='M30 92 V14' stroke='#8a5228' stroke-width='6'/><path d='M34 18 Q58 30 54 86 H34Z' fill='#c4232f'/>
@@ -1176,6 +1180,7 @@ function merHauteur(g, x) {
 }
 function merSurface(g, x) { return W - merHauteur(g, x); }
 function dansLaMer(g, x, y) { return !!g.mer && y > merSurface(g, x); }
+function vapeur(g, x, y) { for (let i = 0; i < 18; i++) g.parts.push({ x: x + (Math.random() - 0.5) * 80, y, vx: (Math.random() - 0.5) * 60, vy: -40 - Math.random() * 80, t: 0.8, g: -30, c: i % 2 ? "rgba(220,225,235,.8)" : "rgba(170,180,195,.7)" }); }
 function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (Math.random() - 0.5) * 120, vy: -60 - Math.random() * 120, t: 0.45, g: 500, c: i % 2 ? "#9fd8ff" : "#e8f6ff" }); }
 // l'île de la tortue : au bout d'un moment, le Marin rentre chez lui (c'est une victoire pour lui)
 const PLONGEE_DUREE = 1.2, PLONGEE_CD = 6, PLONGEE_MISSILE = 0.3; // plongée du Marin face au laser ou aux missiles
@@ -1547,6 +1552,7 @@ function maj(dt) {
     return false;
   });
   g.feux = g.feux.filter(z => {
+    if (dansLaMer(g, z.x, z.y + z.r)) { vapeur(g, z.x, merSurface(g, z.x)); return false; } // une vague atteint la flaque : éteinte
     z.t -= dt; z.tic -= dt;
     const o = g.f.find(x => x !== z.owner);
     if (g.running && o && z.tic <= 0 && Math.hypot(o.x - z.x, o.y - z.y) < z.r + Math.max(o.hw, o.hh) * 0.4) {
@@ -2856,7 +2862,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.26.0", NOTES = "Le Marin : nouvelle plongée (il esquive sous l'eau les lasers et une partie des missiles, toutes les 6 s au plus). Poisson 1 s en haut, un peu moins fréquent.";
+const VERSION = "1.26.1", NOTES = "Le Marin : la mer éteint le bouclier de feu du Sorcier et sa flaque de feu.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

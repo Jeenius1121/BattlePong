@@ -517,7 +517,7 @@ const CHARS = {
           const G = 900, x0 = f.x, y0 = f.y - f.hh * 0.3, c = t.drone || o;
           const dx = c.x - x0, dy = c.y - y0, T = 0.55 + Math.hypot(dx, dy) / 650;
           g.proj.push({ kind: "mortier", x: x0, y: y0, vx: dx / T, vy: dy / T - 0.5 * G * T, gravite: G,
-            r: 18, dmg: 13, owner: f, rot: 0, perce: true });
+            r: 30, dmg: 13, owner: f, rot: 0, perce: true });
         });
       }
     }
@@ -565,7 +565,7 @@ const CHARS = {
         }
       } else if (f.etat === "stalk") { // immobile, fixe l'adversaire, la jauge monte
         f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1;
-        f.jauge = Math.min(1, f.jauge + dt / 3.7); // jauge pleine en 3,7 s
+        f.jauge = Math.min(1, f.jauge + dt / 3.5); // jauge pleine en 3,5 s
         if (f.jauge >= 1) {
           f.etat = "furie"; arreterSon(f, 2); son(f, 1, true); // son joué en boucle pendant toute la furie
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -750,7 +750,7 @@ const CHARS = {
     nom: "Bison", emoji: "👊", vitesse: 220, images: ["psycho crusher", "head stomp"],
     sonNom: "psycho crusher", son2: "head stomp", son3: "renvoi",
     imageDe: f => f.crusher ? 2 : f.stomp ? 3 : 1,
-    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (intouchable en l’air). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Reflect : une chance sur quatre de renvoyer un projectile à moitié de dégâts.",
+    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (intouchable en l’air). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Reflect : une chance sur quatre de renvoyer un projectile à moitié de dégâts (une sur dix pour les balles). Attrapé par la langue du Smoker, il s’en arrache avec son Head Stomp après 2 secondes, s’il est prêt.",
     svg: `<g ${O}>
       <path d='M30 64 Q18 104 22 146 L98 146 Q102 104 90 64Z' fill='#7a1020'/>
       <rect x='44' y='108' width='13' height='28' fill='#b3202c'/><rect x='63' y='108' width='13' height='28' fill='#b3202c'/>
@@ -766,6 +766,7 @@ const CHARS = {
       <path d='M38 30 Q60 10 82 30 L84 34 H36Z' fill='#c4232f'/><path d='M36 32 H86 L92 38 H34Z' fill='#1b1b22'/>
       <circle cx='60' cy='24' r='5' fill='#f2b134'/><path d='M57 23 h6 M60 20 v6' stroke='#7a1020' stroke-width='1.5'/></g>`,
     attaque(f, o, g, dt) {
+      f.prise = 0;
       f.crusherCd = (f.crusherCd ?? 1.5) - dt;
       f.stompCd = (f.stompCd ?? STOMP_CD - 1) - dt;
       f.genouCd = Math.max(0, (f.genouCd || 0) - dt);
@@ -780,7 +781,7 @@ const CHARS = {
         if (S.t < montee) { f.haut = S.t / montee * 320; f.vis = 1 - S.t / montee; }
         else if (S.t < STOMP_DUREE - chute) {
           f.haut = 320; f.vis = 0;
-          const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy), pas = Math.min(d, 330 * dt);
+          const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy), pas = Math.min(d, STOMP_SUIVI * dt);
           if (d > 1 && !o.mort) { f.x += dx / d * pas; f.y += dy / d * pas; }
         } else if (S.t < STOMP_DUREE) { f.haut = (STOMP_DUREE - S.t) / chute * 320; f.vis = 1; }
         else { // atterrissage
@@ -829,6 +830,13 @@ const CHARS = {
         const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1;
         f.crusher = { ux: dx / d, uy: dy / d, t: 0, touche: false, drones: new Set() };
       }
+    },
+    // dans la langue du Smoker : dès que son Head Stomp est prêt, il s'arrache et s'envole
+    attrape(f, o, g, dt) {
+      f.stompCd = (f.stompCd ?? STOMP_CD - 1) - dt; f.prise = (f.prise || 0) + dt;
+      if (f.stompCd > 0 || f.prise < BISON_ARRACHE || !f.capture.langue) return; // il doit d'abord tenir un moment dans la langue
+      couperLangue(f.capture, f, g, f.x, f.y);
+      f.stompCd = STOMP_CD; f.stomp = { t: 0 }; f.enLair = true; son(f, 2);
     },
     genou(f, o, g, t) {
       f.attT = 0.15;
@@ -1047,13 +1055,16 @@ const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 8, LASER_HAUSSE = 6;
 // dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
 function degatsLaser(f) { return LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1); }
 // Bison
-const CRUSHER_CD = 3.5, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
-const STOMP_CD = 6, STOMP_DUREE = 1.1, STOMP_DEGATS = 18, GENOU_CD = 2, GENOU_DEGATS = 4;
-const REFLET_CHANCE = 0.25; // Psycho Reflect : chance de renvoyer un projectile (à moitié de dégâts)
+const CRUSHER_CD = 3.5, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 9, CRUSHER_SONNE = 0.5;
+const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
+const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
+const STOMP_CD = 5, STOMP_DUREE = 1.2, STOMP_DEGATS = 12, GENOU_CD = 2, GENOU_DEGATS = 4;
+// Psycho Reflect : chance de renvoyer un projectile (à moitié de dégâts), plus faible pour les balles de McCree
+const REFLET_CHANCE = { balle: 0.1, feu: 0.25, mortier: 0.25 };
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
 const PRIORITE_APPAREIL = 0.35; // un appareil est visé s'il est environ 3 fois plus proche que l'adversaire
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
-const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 3.8, MISSILE_DELAI = 1.6, MISSILE_RAYON = 190, MISSILE_DEGATS = 38;
+const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 3.6, MISSILE_DELAI = 1.6, MISSILE_RAYON = 190, MISSILE_DEGATS = 38;
 const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
 // appareils : ils patrouillent au hasard (faisceau bleu) ; quand l'adversaire passe dans leur faisceau,
 // ils le repèrent (faisceau rouge) et volent près de lui en le gardant en visée
@@ -1213,7 +1224,7 @@ const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, com
 const BOUCLIER_PV = 35, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
-const RECHARGE = 1.7; // rechargement du Cowboy après chaque rafale (secondes)
+const RECHARGE = 1.6; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
 const FIN = 3.2, ANNONCE_DELAI = 1; // durée de la séquence de fin, attente avant d'annoncer le gagnant (secondes réelles)
@@ -1256,6 +1267,7 @@ function maj(dt) {
     if (f.mort) continue;
     // ralenti par l'Inconnu : il se déplace et recharge ses attaques à 65 % de sa vitesse
     if (g.running && !f.capture) CHARS[f.type].attaque(f, o, g, f.lent > 0 ? dt * RALENTI : dt);
+    else if (g.running && f.capture && CHARS[f.type].attrape) CHARS[f.type].attrape(f, o, g, dt); // ce qu'il peut faire dans la langue du Smoker
     majTaille(f);
     const lenteur = f.lent > 0 ? RALENTI : 1;
     f.lent = Math.max(0, (f.lent || 0) - dt);
@@ -1323,7 +1335,7 @@ function maj(dt) {
       if (p.transperce && p.dejaCible) continue;
       if (touche(cible, p.x, p.y, p.r * 0.6)) {
         // Psycho Reflect de Bison : une chance (tirée une fois par projectile) de le renvoyer à moitié de dégâts
-        if (cible.type === "bison" && !p.renvoye && (p.jetReflet ??= Math.random() < REFLET_CHANCE)) { renvoyer(g, p, cible); return true; }
+        if (cible.type === "bison" && !p.renvoye && (p.jetReflet ??= Math.random() < (REFLET_CHANCE[p.kind] || 0))) { renvoyer(g, p, cible); return true; }
         if (p.perce) { // transperce : refait des dégâts à chaque nouveau passage à travers l'adversaire
           if (!p.dedans && !(p.hitCd > 0)) {
             p.hitCd = 0.6; degats(g, cible, p.dmg, p.x, p.y);
@@ -1354,7 +1366,7 @@ function maj(dt) {
       if (p.kind === "mortier") {
         // côté touché : le dôme de fumée s'ouvre vers l'intérieur de l'arène
         const ang = p.y > W ? -Math.PI / 2 : p.x < 0 ? 0 : p.x > W ? Math.PI : Math.PI / 2;
-        explosion(g, Math.min(W, Math.max(0, p.x)), Math.min(W, Math.max(0, p.y)), cible, 25, ang);
+        explosion(g, Math.min(W, Math.max(0, p.x)), Math.min(W, Math.max(0, p.y)), cible, 28, ang);
       }
       return false;
     }
@@ -2606,7 +2618,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.20.0", NOTES = "Nouveau perso : Bison ! Psycho Crusher, Head Stomp, Double Knee Press et Psycho Reflect.";
+const VERSION = "1.21.0", NOTES = "Bison : s'arrache de la langue du Smoker, reflet réduit sur les balles, Head Stomp plus fréquent. L'Inconnu : mortier plus gros et plus fort. Petits buffs : Bombardier, Myers, McCree.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

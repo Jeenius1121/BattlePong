@@ -2870,7 +2870,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.27.1", NOTES = "Jeune marin beau gosse : ses sons (mer, vague, île, plongeon) sont dans son onglet ; nouveau son de l'île de la tortue, bien audible sur téléphone.";
+const VERSION = "1.27.2", NOTES = "Le son de l'île de la tortue dure 0,5 s de plus (écho en fin de phrase).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

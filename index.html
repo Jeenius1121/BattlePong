@@ -1221,7 +1221,7 @@ function autodestruction(g, f, o) {
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const FEU_BONUS = 5; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
-const BOUCLIER_PV = 35, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
+const BOUCLIER_PV = 35, FEU_RAYON = 120, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
 const RECHARGE = 1.6; // rechargement du Cowboy après chaque rafale (secondes)
@@ -2618,7 +2618,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.21.2", NOTES = "Steve : ondes normales moins loin (280), mais cri de sortie d'invisibilité plus fort (22).";
+const VERSION = "1.21.3", NOTES = "Sorcier : flaque de feu un peu plus petite (rayon 120).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

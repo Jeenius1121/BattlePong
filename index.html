@@ -2354,8 +2354,8 @@ function construireUI() {
    Un son par perso, joué à chaque attaque. Stocké dans le navigateur (IndexedDB). */
 let audioCtx = null, sonsActifs = true;
 const sons = {}, enCours = {};
-// volume général de tous les sons (musique, voix, effets) : 1,1 = 10 % plus fort
-const VOLUME_GENERAL = 1.1;
+// volume général de tous les sons (musique, voix, effets) : 1,32 = 32 % plus fort que le niveau de base
+const VOLUME_GENERAL = 1.32;
 let sortieAudio = null;
 function sortie() {
   if (!sortieAudio || sortieAudio.context !== audioCtx) {
@@ -2909,7 +2909,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.28.5", NOTES = "Jeune beau et plein d’avenir : on peut mettre sa propre image pour l'île de la tortue (image 3).";
+const VERSION = "1.28.6", NOTES = "Tous les sons 20 % plus forts.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

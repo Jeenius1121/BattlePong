@@ -645,7 +645,7 @@ const CHARS = {
         if (atteint && o.etat === "furie") { couperLangue(f, o, g, L.x, L.y); return; } // Myers en furie tranche la langue
         if (atteint) { // attrapé !
           L.etat = "attire"; o.capture = f; arreterSons(o); // l'adversaire attrapé se tait
-          o.burst = 0; o.charge = 0; o.tir = 0; o.muzzle = 0; o.rot = 0; o.vx = 0; o.vy = 0;
+          o.burst = 0; o.charge = 0; o.tir = 0; o.muzzle = 0; o.rot = 0; o.vx = 0; o.vy = 0; o.crusher = null;
           eclats(g, L.x, L.y, "#6e3038");
         } else if (L.t > 0.9) L.etat = "rentre";
       } else if (L.etat === "attire") { // il ramène l'adversaire contre lui
@@ -745,6 +745,96 @@ const CHARS = {
         if (s4) plusTard(g, Math.max(0, MISSILE_DELAI - s4.buffer.duration), () => { if (!f.mort && g.running) son(f, 4); });
       }
     }
+  },
+  bison: {
+    nom: "Bison", emoji: "👊", vitesse: 220, images: ["psycho crusher", "head stomp"],
+    sonNom: "psycho crusher", son2: "head stomp", son3: "renvoi",
+    imageDe: f => f.crusher ? 2 : f.stomp ? 3 : 1,
+    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (intouchable en l’air). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Reflect : une chance sur quatre de renvoyer un projectile à moitié de dégâts.",
+    svg: `<g ${O}>
+      <path d='M30 64 Q18 104 22 146 L98 146 Q102 104 90 64Z' fill='#7a1020'/>
+      <rect x='44' y='108' width='13' height='28' fill='#b3202c'/><rect x='63' y='108' width='13' height='28' fill='#b3202c'/>
+      <rect x='41' y='132' width='18' height='12' rx='2' fill='#1b1b22'/><rect x='61' y='132' width='18' height='12' rx='2' fill='#1b1b22'/>
+      <rect x='26' y='70' width='12' height='30' rx='6' fill='#b3202c'/><circle cx='32' cy='102' r='6' fill='#f2f2f2'/>
+      <path d='M38 62 Q60 54 82 62 L84 112 H36Z' fill='#c4232f'/>
+      <rect x='36' y='96' width='48' height='8' fill='#f2b134'/>
+      <path d='M48 64 L60 84 L72 64' fill='none' stroke='#f2b134' stroke-width='3'/>
+      <rect x='82' y='70' width='22' height='12' rx='6' fill='#b3202c'/><circle cx='104' cy='76' r='7' fill='#f2f2f2'/>
+      <circle cx='60' cy='42' r='17' fill='#e2b08a'/>
+      <path d='M50 40 h8 M62 40 h8' stroke='#1b2033' stroke-width='3'/>
+      <path d='M54 52 Q60 55 66 52' fill='none'/>
+      <path d='M38 30 Q60 10 82 30 L84 34 H36Z' fill='#c4232f'/><path d='M36 32 H86 L92 38 H34Z' fill='#1b1b22'/>
+      <circle cx='60' cy='24' r='5' fill='#f2b134'/><path d='M57 23 h6 M60 20 v6' stroke='#7a1020' stroke-width='1.5'/></g>`,
+    attaque(f, o, g, dt) {
+      f.crusherCd = (f.crusherCd ?? 1.5) - dt;
+      f.stompCd = (f.stompCd ?? STOMP_CD - 1) - dt;
+      f.genouCd = Math.max(0, (f.genouCd || 0) - dt);
+      if (f.sonne > 0) { // a raté son Psycho Crusher : sonné contre le mur
+        f.sonne -= dt; f.vx = 0; f.vy = 0;
+        if (f.sonne <= 0) { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); }
+        return;
+      }
+      if (f.stomp) { // Head Stomp : monte, suit l'adversaire depuis le ciel, retombe sur lui
+        const S = f.stomp, montee = 0.25, chute = 0.3;
+        S.t += dt; f.vx = 0; f.vy = 0;
+        if (S.t < montee) { f.haut = S.t / montee * 320; f.vis = 1 - S.t / montee; }
+        else if (S.t < STOMP_DUREE - chute) {
+          f.haut = 320; f.vis = 0;
+          const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy), pas = Math.min(d, 330 * dt);
+          if (d > 1 && !o.mort) { f.x += dx / d * pas; f.y += dy / d * pas; }
+        } else if (S.t < STOMP_DUREE) { f.haut = (STOMP_DUREE - S.t) / chute * 320; f.vis = 1; }
+        else { // atterrissage
+          f.stomp = null; f.enLair = false; f.haut = 0; f.vis = 1; g.secousse = Math.max(g.secousse, 0.2);
+          for (let i = 0; i < 18; i++) { const a = Math.random() * Math.PI * 2, v = 120 + Math.random() * 200; g.parts.push({ x: f.x, y: f.y + f.hh * 0.7, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.4, t: 0.45, c: i % 2 ? "#b04cff" : "#e6c8ff" }); }
+          if (!o.mort && !cache(o) && ecart(f, o) < 25) degats(g, o, STOMP_DEGATS, o.x, o.y - o.hh * 0.4);
+          for (const d of [...(o.drones || [])]) if (Math.hypot(d.x - f.x, d.y - f.y) < 80) blesserDrone(g, o, d, STOMP_DEGATS);
+          const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy); // rebondit plus loin
+          if (d > 1) { f.vx = dx / d; f.vy = dy / d; } else { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); }
+          normaliser(f); redresser(f);
+        }
+        return;
+      }
+      if (f.crusher) { // Psycho Crusher : fonce en vrille, traverse tout jusqu'au mur
+        const C = f.crusher; C.t += dt;
+        f.vx = C.ux * CRUSHER_VITESSE; f.vy = C.uy * CRUSHER_VITESSE;
+        if (!C.touche && !o.mort && !cache(o) && ecart(f, o) < 0) {
+          C.touche = true;
+          // le bouclier du Sorcier éclate d'un coup
+          if (o.bouclier > 0 && CHARS[o.type].casser) CHARS[o.type].casser(o, g);
+          else degats(g, o, CRUSHER_DEGATS, (f.x + o.x) / 2, (f.y + o.y) / 2);
+        }
+        for (const d of [...(o.drones || [])]) if (!C.drones.has(d) && Math.hypot(d.x - f.x, d.y - f.y) < Math.max(f.hw, f.hh) * 0.8) { C.drones.add(d); blesserDrone(g, o, d, CRUSHER_DEGATS); }
+        for (let i = 0; i < 2; i++) g.parts.push({ x: f.x - C.ux * f.hw * 0.6 + (Math.random() - 0.5) * f.hh, y: f.y - C.uy * f.hw * 0.6 + (Math.random() - 0.5) * f.hh,
+          vx: -C.ux * 120 + (Math.random() - 0.5) * 80, vy: -C.uy * 120 + (Math.random() - 0.5) * 80, t: 0.35, c: Math.random() < 0.5 ? "#b04cff" : "#ff5af0" });
+        const auMur = f.x <= f.hw + 1 || f.x >= W - f.hw - 1 || f.y <= f.hh + 1 || f.y >= W - f.hh - 1;
+        if ((auMur && C.t > 0.08) || C.t > 2) {
+          f.crusher = null;
+          if (!C.touche) f.sonne = CRUSHER_SONNE; // raté : sonné
+          else { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); redresser(f); }
+        }
+        return;
+      }
+      if (f.genou > 0) { // 2e coup de genou du Double Knee Press
+        f.genou -= dt;
+        if (f.genou <= 0 && !o.mort && !cache(o) && ecart(f, o) < 30) this.genou(f, o, g, f.genouCible);
+      }
+      const t = cibleDe(f, o);
+      if (!t) return;
+      if (f.genouCd <= 0 && ecart(f, t) < 10) { // Double Knee Press : deux coups de genou qui repoussent
+        f.genouCd = GENOU_CD; f.genou = 0.18; f.genouCible = t; this.genou(f, o, g, t);
+      } else if (f.stompCd <= 0 && !t.drone) {
+        f.stompCd = STOMP_CD; f.stomp = { t: 0 }; f.enLair = true; son(f, 2);
+      } else if (f.crusherCd <= 0) {
+        f.crusherCd = CRUSHER_CD; son(f);
+        const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1;
+        f.crusher = { ux: dx / d, uy: dy / d, t: 0, touche: false, drones: new Set() };
+      }
+    },
+    genou(f, o, g, t) {
+      f.attT = 0.15;
+      frapper(g, o, t, GENOU_DEGATS, (f.x + t.x) / 2, (f.y + t.y) / 2);
+      if (!t.drone) { const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1; o.recul = 0.18; o.rvx = dx / d * 500; o.rvy = dy / d * 500; }
+    }
   }
 };
 
@@ -830,7 +920,7 @@ function redresser(f) {
   f.vx = sx * c * sp; f.vy = sy * sn * sp;
 }
 // l'adversaire est-il invisible (Myers qui rôde) ? Personne ne peut alors le viser
-function cache(o, f) { return o.etat === "rode" && !(f && CHARS[f.type].voitInvisible && (CHARS[f.type].voitInvisible === true || CHARS[f.type].voitInvisible.includes(o.type))); }
+function cache(o, f) { return !!o.enLair || o.etat === "rode" && !(f && CHARS[f.type].voitInvisible && (CHARS[f.type].voitInvisible === true || CHARS[f.type].voitInvisible.includes(o.type))); }
 // images en plus : Myers (furie), Cowboy (visée, tir). Image n stockée sous la clé id + "-n".
 // Une image en plus absente est remplacée par la précédente, puis par l'image normale.
 function spriteDe(f) {
@@ -863,6 +953,7 @@ function ecart(a, b) {
 }
 // test au pixel près : le projectile touche-t-il une partie visible de l'image ?
 function touche(f, px, py, pr) {
+  if (f.enLair) return false; // Bison en l'air (Head Stomp) : intouchable
   if (f.rot) { // on ramène le point dans le repère de l'image tournée
     const c = Math.cos(f.rot), sn = Math.sin(f.rot), dx = px - f.x, dy = py - f.y;
     px = f.x + c * dx + sn * dy; py = f.y - sn * dx + c * dy;
@@ -915,7 +1006,7 @@ function nouveauJeu(running) {
   majHud();
 }
 function degats(g, cible, n, x, y) {
-  if (cible.mort) return;
+  if (cible.mort || cible.enLair) return;
   const c = CHARS[cible.type];
   if (c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
   // Myers encaisse moins pendant sa furie (arrondi, 1 dégât minimum)
@@ -955,6 +1046,10 @@ const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sa
 const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 8, LASER_HAUSSE = 6;
 // dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
 function degatsLaser(f) { return LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1); }
+// Bison
+const CRUSHER_CD = 3.5, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
+const STOMP_CD = 6, STOMP_DUREE = 1.1, STOMP_DEGATS = 18, GENOU_CD = 2, GENOU_DEGATS = 4;
+const REFLET_CHANCE = 0.25; // Psycho Reflect : chance de renvoyer un projectile (à moitié de dégâts)
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
 const PRIORITE_APPAREIL = 0.35; // un appareil est visé s'il est environ 3 fois plus proche que l'adversaire
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
@@ -1004,6 +1099,14 @@ function cibleDe(f, o) {
 }
 // frappe la cible choisie : l'adversaire ou un appareil
 function frapper(g, o, t, n, x, y) { if (t.drone) blesserDrone(g, o, t.drone, n); else degats(g, o, n, x, y); }
+// Psycho Reflect : le projectile repart vers celui qui l'a lancé, à moitié de dégâts
+function renvoyer(g, p, f) {
+  p.dmg = Math.max(1, Math.round(degatsProj(p) / 2)); p.owner = f; p.renvoye = true;
+  p.vx = -p.vx; p.vy = -p.vy; p.rafale = null; p.rebonds = 0; p.rebondie = false; p.transperce = false;
+  p.homing = false; p.drone = null; p.dejaCible = false; p.dejaDrones = null; p.dedans = false; p.hitCd = 0;
+  p.x += p.vx * 0.03; p.y += p.vy * 0.03;
+  son(f, 3); eclats(g, p.x, p.y, "#b04cff");
+}
 // dégâts d'un projectile : balles d'une rafale de McCree 1 de moins à chaque touche, moitié après un rebond
 function degatsProj(p) {
   const n = p.rafale ? Math.max(1, p.dmg - p.rafale.touches) : p.dmg;
@@ -1072,6 +1175,7 @@ function langueCoupee(f, o, g) {
       if (distSeg(x, y, c.x, c.y, c.x + Math.cos(o.laserAng) * o.laserLen, c.y + Math.sin(o.laserAng) * o.laserLen) < 14) coupe = { x, y };
     }
     for (const z of g.feux) if (z.owner === o && Math.hypot(x - z.x, y - z.y) < z.r) coupe = { x, y };
+    if (o.crusher && Math.hypot(x - o.x, y - o.y) < Math.max(o.hw, o.hh) * 0.8) coupe = { x, y }; // Psycho Crusher de Bison
     for (const w of g.ondes) if (w.owner === o && Math.abs(Math.hypot(x - w.x, y - w.y) - w.r) < w.epais) coupe = { x, y };
   }
   if (!coupe) return false;
@@ -1171,13 +1275,14 @@ function maj(dt) {
     else if (f.charge > 0 || f.tir > 0) f.face = f.laserFace;
     else if (Math.abs(f.vx) > 20) f.face = f.vx > 0 ? 1 : -1;
     // le robot tourne son image vers sa cible tant qu'il charge ou tire
-    f.rot = f.charge > 0 || f.tir > 0 ? (f.face > 0 ? f.laserAng : f.laserAng - Math.PI) : 0;
+    const angRot = f.charge > 0 || f.tir > 0 ? f.laserAng : f.crusher ? Math.atan2(f.crusher.uy, f.crusher.ux) : null; // Bison en vrille
+    f.rot = angRot === null ? 0 : f.face > 0 ? angRot : angRot - Math.PI;
     f.flash = Math.max(0, f.flash - dt); f.muzzle = Math.max(0, f.muzzle - dt); f.attT = Math.max(0, (f.attT || 0) - dt);
   }
   // collision entre les deux persos (rectangles ajustés à l'image)
   const dx = b.x - a.x, dy = b.y - a.y;
   const ox = a.hw + b.hw - Math.abs(dx), oy = a.hh + b.hh - Math.abs(dy);
-  if (ox > 0 && oy > 0 && !a.mort && !b.mort) {
+  if (ox > 0 && oy > 0 && !a.mort && !b.mort && !a.crusher && !b.crusher && !a.enLair && !b.enLair) {
     if (ox < oy) {
       const s = Math.sign(dx) || 1; a.x -= s * ox / 2; b.x += s * ox / 2;
       if ((a.vx - b.vx) * s > 0) { const t = a.vx; a.vx = b.vx; b.vx = t; }
@@ -1217,6 +1322,8 @@ function maj(dt) {
       }
       if (p.transperce && p.dejaCible) continue;
       if (touche(cible, p.x, p.y, p.r * 0.6)) {
+        // Psycho Reflect de Bison : une chance (tirée une fois par projectile) de le renvoyer à moitié de dégâts
+        if (cible.type === "bison" && !p.renvoye && (p.jetReflet ??= Math.random() < REFLET_CHANCE)) { renvoyer(g, p, cible); return true; }
         if (p.perce) { // transperce : refait des dégâts à chaque nouveau passage à travers l'adversaire
           if (!p.dedans && !(p.hitCd > 0)) {
             p.hitCd = 0.6; degats(g, cible, p.dmg, p.x, p.y);
@@ -1409,6 +1516,12 @@ function dessiner() {
       ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 8, f.hh + 8, performance.now() / 500, 0, 7); ctx.stroke();
       ctx.setLineDash([]);
     }
+    if (f.stomp) { // ombre au sol du Head Stomp, qui grossit quand il retombe
+      const k = 1 - Math.min(1, (f.haut || 0) / 320);
+      ctx.fillStyle = `rgba(176,76,255,${0.18 + 0.32 * k})`; ctx.beginPath(); ctx.ellipse(0, f.hh * 0.85, f.hw * (0.5 + 0.5 * k), f.hw * (0.18 + 0.12 * k), 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(176,76,255,.7)"; ctx.lineWidth = 2; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.ellipse(0, f.hh * 0.85, f.hw * 0.9, f.hw * 0.32, 0, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (f.haut) ctx.translate(0, -f.haut);
     if (f.rot) ctx.rotate(f.rot);
     ctx.scale(f.face, 1);
     if (f.ox) ctx.translate(f.ox, 0);
@@ -1422,6 +1535,7 @@ function dessiner() {
       const vite = 4 + (AUTODESTRUCTION_DUREE - f.decompte) * 3;
       ctx.shadowColor = `rgba(255,40,40,${0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 1000 * vite))})`; ctx.shadowBlur = 26;
     }
+    if (f.type === "bison") { ctx.shadowColor = "rgba(170,70,255,.85)"; ctx.shadowBlur = f.crusher ? 32 : 14; } // aura psychique
     ctx.drawImage(s.img, -f.hw, -f.hh, f.hw * 2, f.hh * 2);
     ctx.shadowBlur = 0;
     if (f.etat === "furie" && !spriteImage(f.type + "-2")) { // couteau qui frappe (sauf si une image de furie est fournie)
@@ -1553,6 +1667,7 @@ function dessiner() {
   }
   for (const p of g.proj) {
     ctx.save(); ctx.translate(p.x, p.y);
+    if (p.renvoye) { ctx.shadowColor = "#b04cff"; ctx.shadowBlur = 16; } // renvoyé par Bison
     if (p.kind === "balle") { // balle de revolver en laiton/cuivre, avec une petite traînée
       ctx.rotate(Math.atan2(p.vy, p.vx));
       const tr = ctx.createLinearGradient(-30, 0, -5, 0);
@@ -2491,7 +2606,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.19.2", NOTES = "Smoker : plus rapide (vitesse 230 → 260).";
+const VERSION = "1.20.0", NOTES = "Nouveau perso : Bison ! Psycho Crusher, Head Stomp, Double Knee Press et Psycho Reflect.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

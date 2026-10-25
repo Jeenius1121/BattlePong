@@ -101,12 +101,20 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{display:
 .thumb{width:34px; height:34px; object-fit:contain; flex:none}
 .tuile:focus-visible,.panneau:focus-visible,.btn:focus-visible,.small:focus-within{outline:3px solid var(--ink); outline-offset:2px}
 
-.hud{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:20px 0 8px}
-.bar-wrap .name{font-weight:800; font-size:.9rem; display:flex; justify-content:space-between}
+.hud{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; margin:20px 0 8px}
+.bar-wrap .name{font-weight:800; font-size:.9rem; display:flex; justify-content:space-between; gap:6px}
 .bar-wrap.right .name{flex-direction:row-reverse}
 .bar{height:12px; border-radius:6px; background:var(--line); overflow:hidden; margin-top:4px}
 .bar span{display:block; height:100%; width:100%; background:var(--hp); transition:width .12s linear}
 .bar-wrap.right .bar span{margin-left:auto}
+/* joueur 1 / joueur 2 : leur couleur de la sélection, sur la barre de vie et en jeu */
+.bar-wrap.j1{--team:var(--gauche)} .bar-wrap.j2{--team:var(--droite)}
+.bar-wrap .bar{box-shadow:0 0 0 2px var(--team)}
+.badgeJ{display:inline-block; margin:0 6px 0 0; padding:1px 6px; border-radius:6px; background:var(--team); color:#fff; font-size:.72rem; letter-spacing:.03em}
+.bar-wrap.right .badgeJ{margin:0 0 0 6px}
+.bar-wrap.right .name > span:first-child{display:flex; flex-direction:row-reverse; align-items:center}
+.bar-wrap .name > span:first-child{display:flex; align-items:center; min-width:0}
+#n0,#n1{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
 .stage{position:relative; width:90%; margin:0 auto}
 canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-action:manipulation}
@@ -209,8 +217,8 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 
   <div data-vue="combat">
   <div class="hud">
-    <div class="bar-wrap"><div class="name"><span id="n0"></span><span id="h0">100</span></div><div class="bar"><span id="b0"></span></div></div>
-    <div class="bar-wrap right"><div class="name"><span id="n1"></span><span id="h1">100</span></div><div class="bar"><span id="b1"></span></div></div>
+    <div class="bar-wrap j1"><div class="name"><span><b class="badgeJ">J1</b><span id="n0"></span></span><span id="h0">100</span></div><div class="bar"><span id="b0"></span></div></div>
+    <div class="bar-wrap right j2"><div class="name"><span><b class="badgeJ">J2</b><span id="n1"></span></span><span id="h1">100</span></div><div class="bar"><span id="b1"></span></div></div>
   </div>
 
   <div class="stage">
@@ -1639,7 +1647,7 @@ function dessinerMer(g) {
     ctx.stroke();
   }
   if (!M.ile && g.f.some(f => f.type === "marin" && !f.mort)) { // compte à rebours avant l'île
-    ctx.font = "800 15px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "rgba(200,235,255,.8)";
+    ctx.font = "800 15px Rubik, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "rgba(200,235,255,.8)";
     ctx.fillText(`🐢 Île de la tortue dans ${Math.max(0, Math.ceil(ILE_DELAI - (M.combat || 0)))} s`, W / 2, 30);
   }
   const P = M.poisson;
@@ -1675,7 +1683,7 @@ function dessinerIle(g, I) {
     ctx.save(); ctx.translate(x, y0 - h / 2 + Hh * 0.12); if (x > W / 2) ctx.scale(-1, 1);
     ctx.drawImage(img.img, -w / 2, -h / 2, w, h); ctx.restore();
     if (I.monte >= 1) {
-      ctx.save(); ctx.font = "800 16px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff6d0"; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.lineWidth = 4;
+      ctx.save(); ctx.font = "800 16px Rubik, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff6d0"; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.lineWidth = 4;
       const ly = ileHaut() - 125; // au-dessus du bateau quand il s'y pose
       ctx.strokeText("Île de la tortue", x, ly); ctx.fillText("Île de la tortue", x, ly); ctx.restore();
     }
@@ -1712,7 +1720,7 @@ function dessinerIle(g, I) {
   ctx.fillStyle = "#7a4a22"; for (const d of [-5, 5]) { ctx.beginPath(); ctx.arc(tx + d, ty + 6, 5, 0, 7); ctx.fill(); }
   // nom de l'île
   if (I.monte >= 1) {
-    ctx.font = "800 16px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff6d0";
+    ctx.font = "800 16px Rubik, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff6d0";
     ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.lineWidth = 4; ctx.strokeText("Île de la tortue", x, ty - 30); ctx.fillText("Île de la tortue", x, ty - 30);
   }
   ctx.restore();
@@ -2028,6 +2036,17 @@ function dessiner() {
   }
   ctx.globalAlpha = 1;
   ctx.font = "800 22px Rubik, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  // étiquette « J1 » / « J2 » au-dessus de chaque perso, dans la couleur de son joueur (cachée s'il est invisible)
+  if (!(g.fin > 0 || g.finVoix > 0)) for (const f of g.f) {
+    if (f.mort || (f.vis ?? 1) < 0.5 || f.enLair) continue;
+    const coul = f.side ? couleurs.droite : couleurs.gauche, y = Math.max(20, f.y - f.hh - (f.haut || 0) - 20), x = Math.min(W - 26, Math.max(26, f.x));
+    ctx.save(); ctx.globalAlpha = 0.92;
+    ctx.fillStyle = coul; ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(x - 22, y - 14, 44, 26, 8); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - 7, y + 12); ctx.lineTo(x + 7, y + 12); ctx.lineTo(x, y + 20); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "900 18px Rubik, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(f.side ? "J2" : "J1", x, y - 0.5); ctx.restore();
+  }
   for (const t of g.txt) {
     ctx.globalAlpha = Math.min(1, t.t * 2); ctx.fillStyle = t.soin ? "#3fae5a" : couleurs.ink; // soin en vert
     ctx.fillText(t.s, t.x, t.y);
@@ -2909,7 +2928,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.29.1", NOTES = "Réajustement : Sorcier (flaque de feu plus grande), Myers (jauge en 3,7 s), Robot et Smoker retouchés. Tout le monde entre 48 et 52 %.";
+const VERSION = "1.30.0", NOTES = "Joueur 1 et joueur 2 bien différenciés en combat : étiquette J1 ou J2 au-dessus de chaque perso et barres de vie aux couleurs de chaque joueur.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

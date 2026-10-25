@@ -857,7 +857,7 @@ const CHARS = {
   },
   marin: {
     nom: "Jeune marin beau gosse", emoji: "⛵", vitesse: 70, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
-    pv: 118, taille: 1.15, images: ["poisson"], sonNom: "tempête", son2: "poisson", son3: "croque",
+    pv: 118, taille: 1.15, images: ["poisson"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", sonsLongs: [4],
     imageDe: () => 1,
     desc: "118 PV. Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand un laser se prépare (ou parfois quand un missile va lui tomber dessus), il plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 25 secondes, l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
     svg: `<g ${O}>
@@ -882,7 +882,7 @@ const CHARS = {
         if (f.plongee <= 0) { f.enLair = false; this.eclabousser(g, f.x, merSurface(g, f.x)); }
       } else if (f.plongeeCd <= 0 && danger) {
         f.plongee = PLONGEE_DUREE; f.plongeeCd = PLONGEE_CD; f.enLair = true; // sous l'eau : intouchable, comme Bison en l'air
-        this.eclabousser(g, f.x, merSurface(g, f.x)); jouerEffet("plongeon", 0.6);
+        this.eclabousser(g, f.x, merSurface(g, f.x)); jouerEffet("marin-8", 0.6);
       }
       const I = g.mer.ile;
       if (I && I.monte >= 1) { // il met le cap sur l'île de la tortue
@@ -901,11 +901,11 @@ const CHARS = {
       const hasard = (a, b) => a + Math.random() * (b - a);
       M.t += dt;
       if (g.running) M.combat = (M.combat || 0) + dt;
-      if (!M.sonMer && g.running) { M.sonMer = true; jouerCle("mer", { boucle: true, volume: 0.5 }); } // bruit de la mer en continu
+      if (!M.sonMer && g.running) { M.sonMer = true; jouerCle("marin-4", { boucle: true, volume: 0.5 }); } // bruit de la mer en continu
       if (!M.ile && M.combat >= ILE_DELAI && !f.mort) { // l'île sort de l'eau, du côté opposé au Marin
         const droite = f.x < W / 2;
         M.ile = { x: droite ? W - ILE_LARGEUR / 2 - 6 : ILE_LARGEUR / 2 + 6, monte: 0 };
-        jouerEffet("ile", 0.9); // pile au moment où l'île sort de l'eau
+        jouerEffet("marin-7", 1); // pile au moment où l'île sort de l'eau
       }
       if (M.ile) M.ile.monte = Math.min(1, M.ile.monte + dt / 1.5);
       // tempête : pendant quelques secondes, des vagues de toutes tailles traversent de gauche à droite
@@ -916,7 +916,7 @@ const CHARS = {
           M.vagueT = hasard(0.5, 1.2);
           const r = Math.random(), h = W * (r < 0.45 ? hasard(0.04, 0.1) : r < 0.8 ? hasard(0.12, 0.22) : hasard(0.25, 0.4));
           const l = 120 + h * 2.2; M.vagues.push({ x: -l / 2, h, l });
-          jouerEffet("vague", 0.25 + 0.75 * Math.min(1, h / (W * 0.4))); // plus la vague est grosse, plus elle fait de bruit
+          jouerEffet("marin-6", 0.25 + 0.75 * Math.min(1, h / (W * 0.4))); // plus la vague est grosse, plus elle fait de bruit
         }
       } else if (M.tempeteCd <= 0 && g.running) { M.tempete = TEMPETE_DUREE; M.tempeteCd = hasard(...TEMPETE_CD); M.vagueT = 0; son(f, 1); }
       for (const v of M.vagues) v.x += VAGUE_VITESSE * dt;
@@ -935,7 +935,7 @@ const CHARS = {
         const bas = merSurface(g, P.x) + 30, haut = POISSON_HAUT;
         if (P.phase === "monte") { const k = Math.min(1, P.t / POISSON_MONTEE); P.y = bas + (haut - bas) * (1 - (1 - k) ** 2); if (k >= 1) { P.phase = "pause"; P.t = 0; } }
         else if (P.phase === "pause") { P.y = haut + Math.sin(P.t * 6) * 4; if (P.t >= POISSON_PAUSE) { P.phase = "chute"; P.t = 0; } }
-        else { const k = Math.min(1, P.t / POISSON_CHUTE); P.y = haut + (bas - haut) * k * k; if (k >= 1) { M.poisson = null; this.eclabousser(g, P.x, merSurface(g, P.x)); jouerEffet("plongeon", 0.8); } }
+        else { const k = Math.min(1, P.t / POISSON_CHUTE); P.y = haut + (bas - haut) * k * k; if (k >= 1) { M.poisson = null; this.eclabousser(g, P.x, merSurface(g, P.x)); jouerEffet("marin-8", 0.8); } }
         // l'adversaire touché : croqué en montant ou en retombant (ramené vers l'eau), simple contact en haut
         const dx = Math.max(0, Math.abs(P.x - o.x) - o.hw * 0.7), dy = Math.max(0, Math.abs(P.y - o.y) - o.hh * 0.7);
         if (g.running && !o.mort && !o.enLair && !P.deja[P.phase] && Math.hypot(dx, dy) < POISSON_RAYON) {
@@ -1121,7 +1121,7 @@ function creerCombattant(type, side) {
   return f;
 }
 function nouveauJeu(running) {
-  arreterBoucles(); couper("_mer"); // la mer du combat précédent se tait
+  arreterBoucles(); couper("_marin-4"); // la mer du combat précédent se tait
   jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], feux: [], ondes: [], missiles: [], secousse: 0, running, fin: 0 };
   majHud();
 }
@@ -1571,7 +1571,7 @@ function maj(dt) {
   g.secousse = Math.max(0, g.secousse - dt);
 
   if (g.running && (a.hp <= 0 || b.hp <= 0)) {
-    g.running = false; g.fin = FIN; arreterBoucles(); couper("_mer");
+    g.running = false; g.fin = FIN; arreterBoucles(); couper("_marin-4");
     document.body.classList.add("fin-combat"); // plus de « Recommencer » ni de retour : on attend la carte de fin
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
     g.texteFin = gagnant ? `${CHARS[gagnant.type].nom} gagne !` : "Double KO !";
@@ -2363,10 +2363,9 @@ function couper(cle) {
   delete enCours[cle];
 }
 // coupe tous les sons en cours d'un perso (attrapé par le Smoker, ou mort)
-function arreterSons(f) { for (let n = 1; n <= 4; n++) arreterSon(f, n); }
+function arreterSons(f) { for (let n = 1; n <= 9; n++) if (n !== 5) arreterSon(f, n); }
 // sons communs à tous : un fichier perso s'il y en a un, sinon un son fabriqué par le jeu
-const SONS_GENERAUX = { musique: "Musique de sélection (en boucle)", ready: "Ready", fight: "Fight", wins: "Wins (après le nom du gagnant)", explosion: "Explosion (perso mort)",
-  mer: "Mer du Marin (en boucle)", vague: "Vague de la tempête", ile: "Île de la tortue qui sort de l’eau", plongeon: "Poisson qui retombe dans l’eau" };
+const SONS_GENERAUX = { musique: "Musique de sélection (en boucle)", ready: "Ready", fight: "Fight", wins: "Wins (après le nom du gagnant)", explosion: "Explosion (perso mort)" };
 // joue un son « libre » (nom, musique, annonces), sur sa propre piste
 function jouerCle(cle, opts = {}) {
   const s = sons[cle];
@@ -2515,7 +2514,8 @@ function detecterCoups(buf) {
 }
 // sons d'un perso : le son 1 sous son id, les sons 2 à 4 (son2, son3, son4) sous id + "-2", "-3", "-4"
 // chaque perso a aussi un son de nom (clé id + "-5"), joué quand on le choisit et quand il gagne
-function clesSon(id) { const c = CHARS[id]; return !c ? [id] : [id, ...[2, 3, 4].filter(n => c["son" + n]).map(n => id + "-" + n), id + "-5"]; }
+// sons d'un perso : 1 à 4, puis 6 à 9 pour ceux qui en ont besoin (le 5 est toujours son nom, rangé à la fin)
+function clesSon(id) { const c = CHARS[id]; return !c ? [id] : [id, ...[2, 3, 4, 6, 7, 8, 9].filter(n => c["son" + n]).map(n => id + "-" + n), id + "-5"]; }
 function nomSon(id, n) { const c = CHARS[id]; return n === 5 ? "nom (sélection et victoire)" : n > 1 ? c["son" + n] : c.sonNom || "attaque"; }
 const cleSon = (type, n) => n > 1 ? type + "-" + n : type;
 function majInfoSon(cle) {
@@ -2870,7 +2870,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.27.0", NOTES = "Le Marin devient « Jeune marin beau gosse », portrait centré sur sa tête. Tour d'équilibrage : tout le monde entre 48 et 52 %.";
+const VERSION = "1.27.1", NOTES = "Jeune marin beau gosse : ses sons (mer, vague, île, plongeon) sont dans son onglet ; nouveau son de l'île de la tortue, bien audible sur téléphone.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

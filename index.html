@@ -1178,10 +1178,12 @@ const CHARS = {
     }
   },
   hammond: {
-    nom: "Bouldozer", emoji: "🐹", vitesse: 200, images: ["tourelle"],
+    nom: "Bouldozer", emoji: "🐹", vitesse: 200, taille: 1.12, images: ["tourelle"],
+    // l'image tourelle à l'échelle qui donne la même boule que l'image normale (boule de 119 px contre 138 px dans l'image tourelle)
+    echelles: { 2: 119 / 138 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
-    desc: "Une boule de démolition. Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin, rebondit sur les murs et retombe en bas de l’arène : il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), avant de relancer son grappin.",
+    desc: "Une boule de démolition. Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin, rebondit sur les murs et retombe en bas de l’arène : il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (20 % de dégâts en moins), avant de relancer son grappin.",
     svg: `<g ${O}>
       <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
       <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
@@ -1389,7 +1391,9 @@ function majTaille(f) {
   const s = spriteDe(f), c = CHARS[f.type], m = c.sprite;
   if (f.sp === s) return;
   // memeEchelle : toutes ses images à la même échelle que l'image normale (le perso garde la même taille quelle que soit sa pose)
-  const kDe = x => x === m || c.memeEchelle ? echelle(m) : Math.min(m.th * echelle(m) / x.th, TAILLE_MAX * 1.3 / x.tw);
+  // echelles : une image en plus affichée à une échelle donnée par rapport à l'image normale (au lieu de la même hauteur)
+  const ech = c.echelles && c.imageDe ? c.echelles[c.imageDe(f)] : 0;
+  const kDe = x => x === m || c.memeEchelle ? echelle(m) : ech ? echelle(m) * ech : Math.min(m.th * echelle(m) / x.th, TAILLE_MAX * 1.3 / x.tw);
   const fois = c.tailles && c.imageDe ? c.tailles[c.imageDe(f)] || 1 : 1;
   f.sp = s; f.k = kDe(s) * (s === m ? 1 : fois) * (c.taille || 1); // taille : réglage de taille propre au perso
   f.hw = s.tw * f.k / 2; f.hh = s.th * f.k / 2;
@@ -1474,6 +1478,7 @@ function degats(g, cible, n, x, y) {
   const c = CHARS[cible.type];
   if (c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
   // Myers encaisse moins pendant sa furie (arrondi, 1 dégât minimum)
+  if (cible.type === "hammond" && cible.etatH === "tourelle") n = Math.max(1, Math.round(n * (1 - HAMMOND_BLINDAGE))); // Bouldozer posé en bas : un peu blindé
   if (cible.esquive > 0) n = Math.max(1, Math.round(n * 0.5)); // juste après une roulade de McCree : 50 % de dégâts en moins
   // GigaChad qui prend la pose : 60 % de dégâts en moins (seulement 25 % contre les attaques foudroyantes :
   // couteau de Myers en furie, Psycho Crusher et Head Stomp de Bison) ; les cris de Steve (des ondes sonores) passent à travers
@@ -1723,6 +1728,7 @@ const FINALE_NB = 6, FINALE_ECART = 70, FINALE_MECHE = [0.8, 1.6], FINALE_DEGATS
 const HAMMOND_GRAVITE = 900, HAMMOND_POMPE = 750, HAMMOND_VITESSE_MAX = 820, HAMMOND_VITESSE_PLAFOND = 1000, HAMMOND_FEU_VITESSE = 500, HAMMOND_REBOND = 0.85, HAMMOND_REBOND_SOL = 0.5, HAMMOND_ATTERRIT = 450;
 const HAMMOND_ESSAIS = 6, HAMMOND_VISEE = 0.6; // endroits essayés pour le grappin ; angle (radians) pour lâcher vers l'adversaire
 const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 20, HAMMOND_CHOC_CD = 0.5;
+const HAMMOND_BLINDAGE = 0.2; // dégâts en moins quand il est posé en bas (mode tourelle)
 const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.25;
 // mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
 // Repère du perso tourné vers l'avant (x vers l'avant) ; u = demi-hauteur de l'image
@@ -3504,7 +3510,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.36.2", NOTES = "Bouldozer en mode tourelle : la tête du hamster suit maintenant la direction où visent ses mitraillettes.";
+const VERSION = "1.36.3", NOTES = "Bouldozer : sa boule est 12 % plus grosse, et elle garde la même taille quand il se pose en bas pour tirer (il ne rapetisse plus). Posé en bas, il prend 20 % de dégâts en moins.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

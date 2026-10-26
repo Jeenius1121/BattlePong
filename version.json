@@ -1,1 +1,1 @@
-{"version": "1.36.2", "notes": "Bouldozer en mode tourelle : la tête du hamster suit maintenant la direction où visent ses mitraillettes."}
+{"version": "1.36.3", "notes": "Bouldozer : sa boule est 12 % plus grosse, et elle garde la même taille quand il se pose en bas pour tirer (il ne rapetisse plus). Posé en bas, il prend 20 % de dégâts en moins."}

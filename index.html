@@ -1181,6 +1181,8 @@ const CHARS = {
     nom: "Bouldozer", emoji: "🐹", vitesse: 200, pv: 150, taille: 1.23, images: ["tourelle"],
     // l'image tourelle à l'échelle qui donne la même boule que l'image normale (boule de 119 px contre 138 px dans l'image tourelle)
     echelles: { 2: 119 / 138 },
+    // en sélection et sur la carte de fin : l'image tourelle (où on voit le hamster), cadrée sur sa tête
+    portraitImage: 2, portraitAutre: { cx: 0.4, cy: 0.1, taille: 0.26 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
     desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (20 % de dégâts en moins), avant de relancer son grappin.",
@@ -2748,7 +2750,7 @@ function montrerFin() {
   x.clearRect(0, 0, cv.width, cv.height);
   const persos = w ? [w] : g.f, part = cv.width / persos.length;
   persos.forEach((f, i) => {
-    const s = CHARS[f.type].sprite, t = cadreTete(s, CHARS[f.type].portrait), k = cv.height / t.S;
+    const s = imagePortrait(f.type), t = cadrePortrait(f.type), k = cv.height / t.S;
     x.save(); x.beginPath(); x.rect(i * part, 0, part, cv.height); x.clip();
     x.translate(i * part + part / 2, 0);
     if (f.side) x.scale(-1, 1);
@@ -2836,7 +2838,7 @@ function majSelection(change) {
   document.querySelectorAll(".panneau").forEach(p => {
     const i = +p.dataset.side, c = CHARS[choix[i]], img = p.querySelector(".grand");
     const nomG = p.querySelector(".nomGrand");
-    img.src = c.sprite.url; nomG.textContent = c.nom; nomG.classList.toggle("deux-lignes", c.nom.length > 14); ajusterNom(nomG);
+    img.src = imagePortrait(choix[i]).url; nomG.textContent = c.nom; nomG.classList.toggle("deux-lignes", c.nom.length > 14); ajusterNom(nomG);
     p.classList.toggle("actif", i === coteActif);
     if (i === change) { img.classList.remove("entre"); void img.offsetWidth; img.classList.add("entre"); }
   });
@@ -2862,10 +2864,13 @@ function cadreTete(s, portrait) {
   const cx = n ? sx / n : s.tw / 2;
   return (s.tete = { x: cx - S / 2, y: y0 - S * 0.06, S });
 }
+// image de portrait (sélection, carte de fin) : l'image normale, ou une autre image du perso (portraitImage) si elle est là
+function imagePortrait(id) { const c = CHARS[id]; return c.portraitImage && c.spr && c.spr[c.portraitImage] || c.sprite; }
+function cadrePortrait(id) { const c = CHARS[id], s = imagePortrait(id); return cadreTete(s, s === c.sprite ? c.portrait : c.portraitAutre); }
 function dessinerTuile(id) {
   const cv = document.querySelector(`.tuile[data-id="${id}"] canvas`);
   if (!cv) return;
-  const s = CHARS[id].sprite, t = cadreTete(s, CHARS[id].portrait), x = cv.getContext("2d"), k = cv.width / t.S;
+  const s = imagePortrait(id), t = cadrePortrait(id), x = cv.getContext("2d"), k = cv.width / t.S;
   x.clearRect(0, 0, cv.width, cv.height);
   x.drawImage(s.img, -t.x * k, -t.y * k, s.tw * k, s.th * k);
 }
@@ -3557,7 +3562,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.37.1", NOTES = "Bouldozer comme dans Overwatch : en lâchant le grappin il s’envole, s’arrête au sommet en tremblant, puis plonge en feu ; l’adversaire touché au sol est projeté en l’air et se fait mitrailler. Ses dégâts sont ajustés en conséquence. Micro buff du Sorcier (bouclier 38 PV), micro nerf du Bombardier.";
+const VERSION = "1.37.2", NOTES = "Sélection : Bouldozer apparaît avec son image de tir (le hamster bien visible) dans le grand panneau, et sa vignette est cadrée sur la tête du hamster. Pareil sur la carte de victoire.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

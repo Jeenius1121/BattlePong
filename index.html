@@ -380,7 +380,7 @@ const CHARS = {
     nom: "Sorcier", emoji: "🧙", vitesse: 200, voitInvisible: true, images: ["attaque", "bouclier"], son2: "bouclier",
     tailles: { 3: 1.4 }, // l'image du bouclier (cercle de feu) est affichée plus grande
     imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : 1,
-    desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. Une boule de feu lancée depuis ce feu fait 5 dégâts de plus.",
+    desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 3 dégâts de plus.",
     svg: `<g ${O}>
       <rect x='92' y='34' width='6' height='112' rx='3' fill='#8a5228'/><circle cx='95' cy='30' r='10' fill='#4fc3f7'/>
       <rect x='28' y='72' width='12' height='30' rx='6' fill='#6a4bb5'/>
@@ -410,6 +410,8 @@ const CHARS = {
         if (f.bouclier <= 0) this.casser(f, g);
         return;
       }
+      // passer dans sa flaque de feu lui donne une aura de feu, gardée jusqu'à sa prochaine boule de feu
+      if (g.feux.some(z => z.owner === f && Math.hypot(f.x - z.x, f.y - z.y) < z.r)) f.aura = true;
       f.cd -= dt;
       const t = f.cd <= 0 && cibleDe(f, o);
       if (t) {
@@ -418,8 +420,8 @@ const CHARS = {
           if (f.capture) return; // attrapé par le Smoker entre-temps : il ne peut plus rien faire
           // part vers sa cible et tourne un peu vers elle au début, sans la suivre partout
           const c = t.drone || o, a = Math.atan2(c.y - f.y, c.x - f.x) + (Math.random() - 0.5) * 0.5;
-          // lancée depuis la flaque de feu laissée par son bouclier : boule attisée, plus grosse et plus forte
-          const attise = g.feux.some(z => z.owner === f && Math.hypot(f.x - z.x, f.y - z.y) < z.r);
+          // aura de feu (prise dans sa flaque) : la prochaine boule est attisée, plus grosse et plus forte, et l'aura s'éteint
+          const attise = !!f.aura; f.aura = false;
           g.proj.push({ kind: "feu", homing: true, virage: 0.7, guideT: 1, x: f.x, y: f.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, r: 13, dmg: 14 + (attise ? FEU_BONUS : 0), attise, owner: f, rot: 0, drone: t.drone });
         });
       }
@@ -1455,7 +1457,7 @@ function autodestruction(g, f, o) {
   for (let i = 0; i < 3; i++) g.boums.push({ x: f.x + (Math.random() - 0.5) * 60, y: f.y + (Math.random() - 0.5) * 60, t: 0.6 });
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
-const FEU_BONUS = 5; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
+const FEU_BONUS = 3; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 35, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 4; // PV regagnés par l'Inconnu à chaque téléportation
@@ -1912,6 +1914,15 @@ function dessiner() {
       ctx.fillStyle = `rgba(255,255,240,${0.18 + 0.12 * Math.sin(performance.now() / 60)})`; ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 10, f.hh + 10, 0, 0, 7); ctx.fill();
       ctx.fillStyle = "#fff6b0";
       for (let i = 0; i < 4; i++) { const a = performance.now() / 250 + i * Math.PI / 2; ctx.beginPath(); ctx.arc(Math.cos(a) * f.hw * 0.7, -f.hh - 6 + Math.sin(a) * 6, 4, 0, 7); ctx.fill(); }
+    }
+    if (f.aura) { // aura de feu du Sorcier : flammes qui dansent autour de lui
+      const tt = performance.now() / 120;
+      ctx.fillStyle = `rgba(255,120,30,${0.16 + 0.06 * Math.sin(tt)})`; ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 12, f.hh + 10, 0, 0, 7); ctx.fill();
+      for (let i = 0; i < 7; i++) {
+        const a = tt * 0.6 + i * Math.PI * 2 / 7, px = Math.cos(a) * (f.hw + 6), py = Math.sin(a) * (f.hh + 4), hf = 10 + 5 * Math.sin(tt * 2 + i);
+        ctx.fillStyle = i % 2 ? "rgba(255,210,63,.85)" : "rgba(255,110,30,.85)";
+        ctx.beginPath(); ctx.moveTo(px - 5, py); ctx.quadraticCurveTo(px, py - hf * 1.6, px + 5, py); ctx.closePath(); ctx.fill();
+      }
     }
     if (f.flou > 0 && !(f.aveugle > 0)) { // vue encore trouble après la grenade flash
       ctx.fillStyle = `rgba(255,255,240,${0.08 + 0.05 * Math.sin(performance.now() / 90)})`; ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 6, f.hh + 6, 0, 0, 7); ctx.fill();
@@ -3044,7 +3055,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.33.0", NOTES = "Grenade flash de McCree : l'adversaire est vraiment aveuglé (tous ses coups ratent) puis a la vue trouble 2 s (20 % de coups ratés). Grenade toutes les 16 s pour compenser.";
+const VERSION = "1.33.1", NOTES = "Sorcier : passer dans sa flaque de feu lui donne une aura de feu ; sa prochaine boule de feu, où qu'il soit, est boostée (+3) et l'aura disparaît.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

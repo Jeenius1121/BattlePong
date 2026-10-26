@@ -714,6 +714,9 @@ const CHARS = {
         L.x += dx / d * pas; L.y += dy / d * pas;
         const atteint = d < Math.max(o.hw, o.hh) * 0.5 || touche(o, L.x, L.y, 6);
         if (atteint && o.etat === "furie") { couperLangue(f, o, g, L.x, L.y); return; } // Myers en furie tranche la langue
+        if (atteint && CHARS[o.type].imperturbable && o.pose > 0) { // GigaChad en pleine pose : la langue glisse sur lui
+          L.etat = "rentre"; g.txt.push({ x: o.x, y: o.y - o.hh - 30, t: 0.9, s: "Imperturbable !" }); return;
+        }
         if (atteint) { // attrapé !
           L.etat = "attire"; o.capture = f; arreterSons(o); // l'adversaire attrapé se tait
           o.burst = 0; o.charge = 0; o.tir = 0; o.muzzle = 0; o.rot = 0; o.vx = 0; o.vy = 0; o.crusher = null; o.stomp = null; o.haut = 0; o.vis = 1; o.enLair = false;
@@ -1046,6 +1049,79 @@ const CHARS = {
     eclabousser(g, x, y) {
       for (let i = 0; i < 16; i++) g.parts.push({ x: x + (Math.random() - 0.5) * 40, y, vx: (Math.random() - 0.5) * 220, vy: -150 - Math.random() * 250, t: 0.7, g: 600, c: i % 2 ? "#9fd8ff" : "#e8f6ff" });
     }
+  },
+  gigachad: {
+    nom: "GigaChad", emoji: "🗿", vitesse: 215, images: ["pose 1", "pose 2", "pose 3", "pose 4", "pose 5", "coup de poing"],
+    sonNom: "pose", son2: "coup de poing", son3: "gros coup de poing (contre le mur)", son4: "musique (en boucle, tout le combat)", sonsMusique: [4],
+    imperturbable: true,
+    // images 2 à 6 : les 5 poses, l'une après l'autre ; image 7 : coup de poing
+    imageDe: f => f.poing > 0 ? 7 : f.pose > 0 ? 2 + (f.numPose || 0) % 5 : 1,
+    desc: "Marche vers l’adversaire en zigzaguant, puis s’arrête pour prendre la pose 1,5 seconde : chaque pose réussie lui donne +1 en attaque (5 max). Imperturbable : pendant qu’il pose, il ne prend que la moitié des dégâts (le couteau de Myers en furie passe mieux : 25 % seulement) et la langue du Smoker glisse sur lui. Il prend la pose exprès quand un missile va lui tomber dessus ou qu’un laser se prépare. Aura de charisme : pendant la pose, l’adversaire est attiré doucement vers lui, d’autant plus fort qu’il a cumulé de poses. Au contact, il donne un petit coup de poing s’il n’a aucune pose ; sinon il cumule 2 à 4 poses puis frappe d’un coup qui les dépense toutes : plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
+    svg: `<g ${O}>
+      <rect x='46' y='110' width='12' height='30' fill='#2b3a5c'/><rect x='62' y='110' width='12' height='30' fill='#2b3a5c'/>
+      <rect x='42' y='136' width='18' height='8' rx='2' fill='#1b1b22'/><rect x='60' y='136' width='18' height='8' rx='2' fill='#1b1b22'/>
+      <path d='M34 60 Q60 50 86 60 L80 112 H40Z' fill='#d9a37a'/>
+      <path d='M44 74 Q52 80 60 74 Q68 80 76 74 M48 90 h24 M50 100 h20' fill='none' stroke='#a8714c' stroke-width='2'/>
+      <path d='M34 62 Q14 58 14 36 Q14 26 24 28 Q30 44 40 50Z' fill='#d9a37a'/><circle cx='20' cy='26' r='8' fill='#d9a37a'/>
+      <path d='M86 62 Q106 58 106 36 Q106 26 96 28 Q90 44 80 50Z' fill='#d9a37a'/><circle cx='100' cy='26' r='8' fill='#d9a37a'/>
+      <path d='M46 30 Q46 12 60 12 Q74 12 74 30 L72 46 Q60 56 48 46Z' fill='#e2b08a'/>
+      <path d='M48 46 Q60 58 72 46 L72 40 Q60 46 48 40Z' fill='#5a4632'/>
+      <path d='M50 30 h8 M62 30 h8' stroke='#1b2033' stroke-width='3'/>
+      <path d='M44 26 Q46 6 62 8 Q76 8 76 24 Q66 14 56 18 Q48 20 44 26Z' fill='#2a1f18'/></g>`,
+    attaque(f, o, g, dt) {
+      f.poses ??= 0; f.poing = Math.max(0, (f.poing || 0) - dt); f.coupCd = Math.max(0, (f.coupCd || 0) - dt);
+      const t = cibleDe(f, o);
+      if (f.pose > 0) { // il prend la pose : immobile, imperturbable, son aura attire l'adversaire
+        f.pose -= dt; f.vx = 0; f.vy = 0; if (t) f.face = t.x >= f.x ? 1 : -1;
+        if (!o.mort && !cache(o, f) && !o.capture && !o.recul && ecart(f, o) > 4 && !(o.plongee > 0)) {
+          const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy) || 1, v = GIGA_AURA + GIGA_AURA_POSE * f.poses;
+          o.x += dx / d * v * dt; if (o.type !== "marin") o.y += dy / d * v * dt; // le bateau reste sur l'eau
+        }
+        if (f.pose <= 0) { // pose réussie : +1 en attaque
+          f.pose = 0; f.marche = GIGA_MARCHE; f.numPose = (f.numPose || 0) + 1;
+          if (f.poses < GIGA_POSES_MAX) { f.poses++; g.txt.push({ x: f.x, y: f.y - f.hh - 12, t: 0.9, s: "+1 ATK", soin: true }); }
+        }
+        return;
+      }
+      // il marche vers sa cible en zigzaguant (moins facile à viser)
+      f.zig = (f.zig ?? Math.random() * 6) + dt;
+      if (t) { const a = Math.atan2(t.y - f.y, t.x - f.x) + Math.sin(f.zig * GIGA_ZIG_VITESSE) * GIGA_ZIG; f.vx = Math.cos(a) * this.vitesse; f.vy = Math.sin(a) * this.vitesse; }
+      else if (Math.hypot(f.vx, f.vy) < 1) { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); }
+      // au contact : petit coup s'il n'a aucune pose, sinon il attend d'en avoir cumulé assez (2 à 4) pour frapper fort
+      f.objectif ??= GIGA_OBJECTIF[0] + Math.floor(Math.random() * (GIGA_OBJECTIF[1] - GIGA_OBJECTIF[0] + 1));
+      if (t && f.coupCd <= 0 && ecart(f, t) < 8 && (f.poses === 0 || f.poses >= f.objectif)) this.coup(f, o, g, t);
+      f.marche = (f.marche ?? GIGA_MARCHE) - dt;
+      // un missile qui va tomber sur lui ou un laser qui se prépare : il prend la pose tout de suite (imperturbable, moitié des dégâts)
+      const danger = o.charge > 0 || o.tir > 0 || g.missiles.some(m => m.owner === o && m.t < GIGA_POSE && Math.hypot(m.x - f.x, m.y - f.y) < MISSILE_RAYON + f.hw);
+      if ((f.marche <= 0 || danger) && f.poses < GIGA_POSES_MAX) { f.pose = GIGA_POSE; f.vx = 0; f.vy = 0; son(f); }
+    },
+    // coup de poing (même sans pose, un petit coup) : dépense toutes les poses ; un gros coup envoie l'adversaire s'écraser contre le mur
+    coup(f, o, g, t) {
+      const n = f.poses; f.poses = 0; f.objectif = null; f.coupCd = GIGA_COUP_CD; f.poing = 0.3;
+      if (n > 0) f.marche = GIGA_MARCHE; // un petit coup sans pose ne retarde pas la prochaine pose
+      const dmg = GIGA_COUP + GIGA_COUP_POSE * n, x = (f.x + t.x) / 2, y = (f.y + t.y) / 2;
+      son(f, n >= GIGA_GROS ? 3 : 2); g.secousse = Math.max(g.secousse, 0.08 + 0.04 * n);
+      frapper(g, o, t, dmg, x, y);
+      // le poing balaie aussi les appareils du Bombardier à portée
+      for (const d of [...(o.drones || [])]) if (d !== t.drone && Math.hypot(d.x - f.x, d.y - f.y) < Math.max(f.hw, f.hh) + GIGA_PORTEE_APPAREIL) blesserDrone(g, o, d, dmg);
+      for (let i = 0; i < 8 + n * 4; i++) { const a = Math.random() * Math.PI * 2, v = 100 + Math.random() * (120 + 40 * n); g.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.4, c: i % 2 ? "#ffd23f" : "#fff3c4" }); }
+      if (t.drone || o.mort || o.capture) return;
+      const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
+      if (n >= GIGA_GROS) { o.recul = 0.6; o.rvx = dx / d * GIGA_PROJETE; o.rvy = dy / d * GIGA_PROJETE; o.projete = { par: f, dmg: GIGA_MUR + GIGA_MUR_POSE * n }; }
+    },
+    attrape(f) { f.pose = 0; }, // attrapé par le Smoker : la pose est ratée
+    // la musique tourne tout le combat ; l'adversaire envoyé au mur s'y écrase
+    monde(f, o, g, dt) {
+      if (g.running && !enCours["_gigachad-4"]) jouerCle("gigachad-4", { boucle: true, volume: 0.45 });
+      const P = o.projete;
+      if (!P) return;
+      if (!(o.recul > 0) || o.mort || o.capture || o.enLair) { o.projete = null; return; }
+      if (o.x <= o.hw + 1 || o.x >= W - o.hw - 1 || o.y <= o.hh + 1 || o.y >= W - o.hh - 1) {
+        o.projete = null; o.recul = 0; g.secousse = Math.max(g.secousse, 0.35);
+        degats(g, o, P.dmg, o.x, o.y - o.hh * 0.3);
+        for (let i = 0; i < 20; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 260; g.parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.5, g: 500, c: i % 2 ? "#c9b48a" : "#8a7a5c" }); }
+      }
+    }
   }
 };
 
@@ -1212,7 +1288,7 @@ function creerCombattant(type, side) {
   return f;
 }
 function nouveauJeu(running) {
-  arreterBoucles(); couper("_marin-4"); // la mer du combat précédent se tait
+  arreterBoucles(); couper("_marin-4"); couper("_gigachad-4"); // la mer et la musique de GigaChad du combat précédent se tait
   jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], feux: [], ondes: [], missiles: [], grenades: [], flashs: [], secousse: 0, running, fin: 0 };
   for (const [f, o] of [[jeu.f[0], jeu.f[1]], [jeu.f[1], jeu.f[0]]]) if (CHARS[f.type].preparer) CHARS[f.type].preparer(f, o, jeu); // ex. le Marin posé sur la mer
   majHud();
@@ -1229,7 +1305,9 @@ function degats(g, cible, n, x, y) {
   const c = CHARS[cible.type];
   if (c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
   // Myers encaisse moins pendant sa furie (arrondi, 1 dégât minimum)
-  if (cible.esquive > 0) n = Math.max(1, Math.round(n * 0.5)); // juste après une roulade de McCree : 50 % de dégâts en moins
+  if (cible.esquive > 0) n = Math.max(1, Math.round(n * 0.5));
+  // GigaChad qui prend la pose : 50 % de dégâts en moins (seulement 25 % contre le couteau de Myers en furie)
+  if (c.imperturbable && cible.pose > 0) n = Math.max(1, Math.round(n * (attaquant && attaquant.etat === "furie" ? 1 - GIGA_IMPERTURBABLE_FURIE : 0.5))); // juste après une roulade de McCree : 50 % de dégâts en moins
   if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction)));
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
   const reaction = CHARS[cible.type].quandTouche;
@@ -1266,6 +1344,14 @@ const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sa
 const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 5.45;
 // dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
 function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1)); }
+// GigaChad : pose de 1,5 s, ~1 s de marche entre deux poses ; +1 en attaque par pose (5 max)
+const GIGA_POSE = 1.5, GIGA_MARCHE = 1, GIGA_POSES_MAX = 5, GIGA_AURA = 30, GIGA_AURA_POSE = 14;
+const GIGA_OBJECTIF = [2, 4];
+const GIGA_PORTEE_APPAREIL = 100;
+const GIGA_IMPERTURBABLE_FURIE = 0.25; // portée du poing sur les appareils (en plus de sa taille) // nombre de poses cumulées avant de frapper fort (au hasard)
+const GIGA_ZIG = 0.9, GIGA_ZIG_VITESSE = 5; // zigzag en marchant : écart max (radians) et rythme
+// coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
+const GIGA_COUP = 7, GIGA_COUP_POSE = 11, GIGA_COUP_CD = 0.8, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
 // Bison
 const CRUSHER_CD = 3.5, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 9, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
@@ -1691,7 +1777,7 @@ function maj(dt) {
   g.secousse = Math.max(0, g.secousse - dt);
 
   if (g.running && (a.hp <= 0 || b.hp <= 0)) {
-    g.running = false; g.fin = FIN; arreterBoucles(); couper("_marin-4");
+    g.running = false; g.fin = FIN; arreterBoucles(); couper("_marin-4"); couper("_gigachad-4");
     document.body.classList.add("fin-combat"); // plus de « Recommencer » ni de retour : on attend la carte de fin
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
     g.texteFin = g.ile ? `${CHARS.marin.nom} est rentré chez lui ! 🐢` : gagnant ? `${CHARS[gagnant.type].nom} gagne !` : "Double KO !";
@@ -1923,6 +2009,14 @@ function dessiner() {
         ctx.fillStyle = i % 2 ? "rgba(255,210,63,.85)" : "rgba(255,110,30,.85)";
         ctx.beginPath(); ctx.moveTo(px - 5, py); ctx.quadraticCurveTo(px, py - hf * 1.6, px + 5, py); ctx.closePath(); ctx.fill();
       }
+    }
+    if (f.pose > 0) { // aura de charisme de GigaChad : halo doré, plus grand avec les poses cumulées
+      const tt = performance.now() / 150, k = 1 + 0.12 * (f.poses || 0);
+      const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, (Math.max(f.hw, f.hh) + 30) * k);
+      gr.addColorStop(0, "rgba(255,215,80,0)"); gr.addColorStop(0.6, `rgba(255,215,80,${0.3 + 0.08 * Math.sin(tt)})`); gr.addColorStop(1, "rgba(255,215,80,0)");
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, (Math.max(f.hw, f.hh) + 30) * k, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,240,170,.9)";
+      for (let i = 0; i < 6; i++) { const a = tt * 0.5 + i * Math.PI / 3, r = (Math.max(f.hw, f.hh) + 14) * k; ctx.beginPath(); ctx.arc(Math.cos(a) * r, Math.sin(a) * r * 0.8, 2.5, 0, 7); ctx.fill(); }
     }
     if (f.flou > 0 && !(f.aveugle > 0)) { // vue encore trouble après la grenade flash
       ctx.fillStyle = `rgba(255,255,240,${0.08 + 0.05 * Math.sin(performance.now() / 90)})`; ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 6, f.hh + 6, 0, 0, 7); ctx.fill();
@@ -2172,7 +2266,13 @@ function dessiner() {
     ctx.beginPath(); ctx.roundRect(x - 22, y - 14, 44, 26, 8); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x - 7, y + 12); ctx.lineTo(x + 7, y + 12); ctx.lineTo(x, y + 20); ctx.fill();
     ctx.fillStyle = "#fff"; ctx.font = "900 18px Rubik, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(f.side ? "J2" : "J1", x, y - 0.5); ctx.restore();
+    ctx.fillText(f.side ? "J2" : "J1", x, y - 0.5);
+    if (f.poses > 0) { // GigaChad : attaque cumulée par ses poses, en doré à côté de l'étiquette
+      const px = x + (x > W - 80 ? -44 : 44);
+      ctx.fillStyle = "#ffd23f"; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.roundRect(px - 20, y - 13, 40, 24, 8); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#3a2a00"; ctx.font = "900 16px Rubik, system-ui, sans-serif"; ctx.fillText("+" + f.poses, px, y - 0.5);
+    }
+    ctx.restore();
   }
   for (const t of g.txt) {
     ctx.globalAlpha = Math.min(1, t.t * 2); ctx.fillStyle = t.soin ? "#3fae5a" : couleurs.ink; // soin en vert
@@ -2611,12 +2711,14 @@ function arreterBoucles() {
 // Tout son (MP3, M4A…) est converti en WAV mono léger de 3 s max : facile à stocker partout.
 // Myers a droit à un son long (10 s) : il dure toute sa furie.
 // sonsLongs : numéros des sons gardés jusqu'à 20 s (ils sont coupés par le jeu à la fin de l'action)
-const SON_MAX = 3, SON_LONG = 10, SON_TRES_LONG = 20;
+// sonsMusique : musiques qui tournent tout le combat, gardées jusqu'à 60 s
+const SON_MAX = 3, SON_LONG = 10, SON_TRES_LONG = 20, SON_MUSIQUE = 60;
 // noms des persos et sons généraux (musique…) : gardés en entier, jusqu'à 5 minutes
 const SON_ENTIER = 300;
 function sonMax(cle) {
   if (cle in SONS_GENERAUX || numImage(cle) === 5) return SON_ENTIER;
   const c = CHARS[persoDe(cle)];
+  if (c && c.sonsMusique && c.sonsMusique.includes(numImage(cle))) return SON_MUSIQUE;
   if (c && c.sonsLongs && c.sonsLongs.includes(numImage(cle))) return SON_TRES_LONG;
   return c && c.sonLong ? SON_LONG : SON_MAX;
 }
@@ -3055,7 +3157,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.33.4", NOTES = "Micro buff de Myers : sa furie dure 7,1 s au lieu de 7 s.";
+const VERSION = "1.34.0", NOTES = "Nouveau perso : GigaChad ! Il prend la pose (+1 en attaque à chaque pose), encaisse moitié moins en posant, attire l’adversaire avec son aura de charisme et le frappe d’un coup de poing qui peut l’envoyer s’écraser contre le mur. Sa musique tourne pendant tout le combat.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

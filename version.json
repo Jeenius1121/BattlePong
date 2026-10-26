@@ -1,1 +1,1 @@
-{"version": "1.32.0", "notes": "Rework de McCree : roulade quand il va être touché (intouchable, puis -50 % de dégâts 1 s, recharge son arme, rafale 1,5x plus rapide juste après). Compensé : balles à 8, grenade toutes les 11 s. Petits réajustements du Marin, de Myers et du Sorcier."}
+{"version": "1.32.1", "notes": "McCree : vraie animation de roulade en 6 images (détourées de ta planche) avec une traînée d'images fantômes."}

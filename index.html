@@ -278,10 +278,10 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 const O = "stroke='#1b2033' stroke-width='3' stroke-linejoin='round' stroke-linecap='round'";
 const CHARS = {
   cowboy: {
-    nom: "McCree", emoji: "🤠", vitesse: 242, images: ["visée", "tir", "roulade"], sonNom: "tirs", son2: "rechargement", son3: "grenade flash", son4: "roulade", sonFort: true, caler: true,
+    nom: "McCree", emoji: "🤠", vitesse: 242, images: ["visée", "tir", "roulade 1", "roulade 2", "roulade 3", "roulade 4", "roulade 5", "roulade 6"], sonNom: "tirs", son2: "rechargement", son3: "grenade flash", son4: "roulade", sonFort: true, caler: true,
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
-    // image 4 pendant la roulade (seulement si elle est fournie)
-    imageDe: f => f.roulade > 0 && CHARS.cowboy.spr && CHARS.cowboy.spr[4] ? 4 : f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
+    // roulade : les images 4 à 9 s'enchaînent comme une animation (si elles sont fournies)
+    imageDe: f => f.roulade > 0 && rouladeAnimee() ? 4 + Math.min(5, Math.floor((1 - f.roulade / ROULADE_DUREE) * 6)) : f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
     desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis. Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui aveugle l’adversaire : quelques dégâts et un gros ralentissement pendant un peu plus d’une seconde. Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
     // va-t-il être touché ? renvoie la direction du danger (projectile, laser, langue) ou sa source (zone, corps à corps)
     menace(f, o, g) {
@@ -327,6 +327,7 @@ const CHARS = {
       f.esquive = Math.max(0, (f.esquive || 0) - dt);
       if (f.roulade > 0) { // en pleine roulade : il file, intouchable, sans tirer
         f.roulade -= dt; f.vx = f.rdx * ROULADE_VITESSE; f.vy = f.rdy * ROULADE_VITESSE;
+        (f.traces ||= []).push({ x: f.x, y: f.y, s: spriteDe(f), hw: f.hw, hh: f.hh, face: f.rdx >= 0 ? 1 : -1, rot: f.rot || 0, t: 0.18 }); // images fantômes
         if (Math.random() < 0.5) g.parts.push({ x: f.x, y: f.y + f.hh * 0.8, vx: (Math.random() - 0.5) * 40, vy: -20, t: 0.35, c: "#b9a07a" }); // poussière
         if (f.roulade <= 0) { f.enLair = false; f.esquive = ROULADE_ESQUIVE; normaliser(f); }
         return;
@@ -1459,6 +1460,8 @@ const BALLE_VITESSE = 1320; // vitesse des balles de McCree
 const FLASH_PREMIERE = 4, FLASH_CD = 11, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3;
 // roulade de McCree : esquive rapide quand il va être touché
 const ROULADE_CD = 8, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUIVE = 1, ROULADE_BONUS = 1.5;
+// les 6 images de roulade de McCree sont-elles toutes là ?
+function rouladeAnimee() { const s = CHARS.cowboy.spr; return !!s && [4, 5, 6, 7, 8, 9].every(n => s[n]); }
 const ENCHAINE_CHANCE = 0.02; // chance par balle qui touche de ne pas recharger (McCree)
 const RECHARGE = 1.55; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
@@ -1527,7 +1530,8 @@ function maj(dt) {
     // le robot tourne son image vers sa cible tant qu'il charge ou tire
     const angRot = f.charge > 0 || f.tir > 0 ? f.laserAng : f.crusher ? Math.atan2(f.crusher.uy, f.crusher.ux) : null; // Bison en vrille
     f.rot = angRot === null ? (f.penche || 0) : f.face > 0 ? angRot : angRot - Math.PI;
-    if (f.roulade > 0) f.rot = (1 - f.roulade / ROULADE_DUREE) * Math.PI * 2 * (f.rdx >= 0 ? 1 : -1); // il roule sur lui-même // le bateau du Marin suit la pente des vagues
+    if (f.roulade > 0 && !rouladeAnimee()) f.rot = (1 - f.roulade / ROULADE_DUREE) * Math.PI * 2 * (f.rdx >= 0 ? 1 : -1); // sans images de roulade : il tourne sur lui-même
+    if (f.roulade > 0) f.face = f.rdx >= 0 ? 1 : -1; // il regarde dans le sens de sa roulade // le bateau du Marin suit la pente des vagues
     f.flash = Math.max(0, f.flash - dt); f.muzzle = Math.max(0, f.muzzle - dt); f.attT = Math.max(0, (f.attT || 0) - dt);
   }
   // collision entre les deux persos (rectangles ajustés à l'image)
@@ -1877,6 +1881,13 @@ function dessiner() {
   for (const f of g.f) {
     if (f.mort) continue;
     const s = spriteDe(f);
+    if (f.traces && f.traces.length) { // traînée de la roulade de McCree : images fantômes qui s'effacent
+      f.traces = f.traces.filter(t => (t.t -= 1 / 60) > 0);
+      for (const t of f.traces) {
+        ctx.save(); ctx.translate(t.x, t.y); ctx.rotate(t.rot); ctx.scale(t.face, 1); ctx.globalAlpha = 0.35 * t.t / 0.18;
+        ctx.drawImage(t.s.img, -t.hw, -t.hh, t.hw * 2, t.hh * 2); ctx.restore();
+      }
+    }
     ctx.save(); ctx.translate(f.x, f.y);
     if (f.capture) { // il se débat, plus fort quand la langue serre
       const L = f.capture.langue, k = L && L.serre > 0 ? 3 : 1;
@@ -3015,7 +3026,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.32.0", NOTES = "Rework de McCree : roulade quand il va être touché (intouchable, puis -50 % de dégâts 1 s, recharge son arme, rafale 1,5x plus rapide juste après). Compensé : balles à 8, grenade toutes les 11 s. Petits réajustements du Marin, de Myers et du Sorcier.";
+const VERSION = "1.32.1", NOTES = "McCree : vraie animation de roulade en 6 images (détourées de ta planche) avec une traînée d'images fantômes.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

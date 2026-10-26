@@ -1324,6 +1324,102 @@ const CHARS = {
     },
     // attrapé par la langue du Smoker : il lâche tout et retombera
     attrape(f) { f.etatH = "vol"; f.etatT = 0; f.grappin = null; f.bvx = 0; f.bvy = 0; f.enFeu = false; }
+  },
+  grievous: {
+    nom: "Général Grievous", emoji: "⚔️", vitesse: 225, images: ["à quatre pattes", "saut"],
+    sonNom: "moulinet", son2: "coup de sabre", son3: "course à quatre pattes", son4: "saut depuis le plafond",
+    // image 2 : à quatre pattes (sur les murs et le plafond) ; image 3 : il tombe du plafond, bras écartés
+    imageDe: f => f.araignee ? (f.araignee.phase === "chute" ? 3 : 2) : 1,
+    desc: "Toujours ses 4 sabres laser sortis. Quand l’adversaire s’approche trop, il enchaîne 4 coups de sabre puis un estoc en avant. De temps en temps, il avance en faisant tourner deux sabres comme des hélices : ça blesse au contact et ça bloque les projectiles qui arrivent par devant. Il peut aussi filer à quatre pattes jusqu’au mur, grimper au plafond, ramper jusqu’au-dessus de l’adversaire, le fixer un instant… puis lui tomber dessus, les 4 sabres écartés.",
+    svg: `<g ${O}>
+      <path d='M30 60 Q14 100 26 144 L60 120 L94 144 Q106 100 90 60Z' fill='#7a1a1a'/>
+      <path d='M48 112 L44 140 M72 112 L76 140' stroke='#d8d4c8' stroke-width='6'/>
+      <rect x='38' y='136' width='12' height='6' rx='2' fill='#bdb7a8'/><rect x='70' y='136' width='12' height='6' rx='2' fill='#bdb7a8'/>
+      <path d='M46 64 h28 l-4 48 h-20z' fill='#d8d4c8'/><path d='M50 74 h20 M50 84 h20 M52 94 h16' stroke='#7a7466' stroke-width='2'/>
+      <path d='M46 68 L22 48 M74 68 L98 48 M48 84 L26 98 M72 84 L94 98' stroke='#d8d4c8' stroke-width='5'/>
+      <path d='M48 30 Q60 12 72 30 L70 56 Q60 62 50 56Z' fill='#e8e2d2'/>
+      <path d='M52 38 L58 42 M68 38 L62 42' stroke='#1b2033' stroke-width='3'/>
+      <circle cx='55' cy='41' r='2.4' fill='#ffd23f' stroke='none'/><circle cx='65' cy='41' r='2.4' fill='#ffd23f' stroke='none'/></g>`,
+    attaque(f, o, g, dt) {
+      f.moulinetCd = (f.moulinetCd ?? MOULINET_PREMIER) - dt;
+      f.araigneeCd = (f.araigneeCd ?? ARAIGNEE_PREMIERE) - dt;
+      f.comboCd = Math.max(0, (f.comboCd || 0) - dt);
+      f.sabreT = (f.sabreT || [0, 0, 0, 0]).map(x => Math.max(0, x - dt));
+      const t = cibleDe(f, o);
+      if (f.araignee) return this.araigneeMaj(f, o, g, dt, t);
+      if (f.combo) { // enchaînement : 4 coups de sabre, puis l'estoc
+        const C = f.combo; C.t += dt;
+        while (C.n < 4 && C.t >= C.n * COMBO_ECART) {
+          f.sabreT[C.n] = COMBO_ECART + 0.04; son(f, 2);
+          if (C.cible && !C.cible.mort && ecart(f, C.cible) < GRIEVOUS_PORTEE) frapper(g, o, C.cible, COMBO_DEGATS, (f.x + C.cible.x) / 2, (f.y + C.cible.y) / 2);
+          C.n++;
+        }
+        if (C.n === 4 && !C.estoc && C.t >= 4 * COMBO_ECART + 0.05) { // estoc : il fonce en avant, les 4 sabres pointés
+          C.estoc = true; f.estoc = ESTOC_DUREE; f.estocTouche = false;
+          const dx = (C.cible || o).x - f.x, dy = (C.cible || o).y - f.y, d = Math.hypot(dx, dy) || 1;
+          f.vx = dx / d * ESTOC_VITESSE; f.vy = dy / d * ESTOC_VITESSE; f.face = dx >= 0 ? 1 : -1;
+        }
+        if (f.estoc > 0) {
+          f.estoc -= dt;
+          if (!f.estocTouche && C.cible && !C.cible.mort && ecart(f, C.cible) < GRIEVOUS_PORTEE * 0.8) { f.estocTouche = true; frapper(g, o, C.cible, ESTOC_DEGATS, (f.x + C.cible.x) / 2, (f.y + C.cible.y) / 2); }
+          if (f.estoc <= 0) { normaliser(f); redresser(f); }
+        } else if (!C.estoc) { f.vx *= 0.3; f.vy *= 0.3; if (C.cible) f.face = C.cible.x >= f.x ? 1 : -1; }
+        if (C.t >= 4 * COMBO_ECART + 0.05 + ESTOC_DUREE + 0.1) { f.combo = null; f.comboCd = COMBO_CD; if (Math.hypot(f.vx, f.vy) < 1) { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); } normaliser(f); }
+        return;
+      }
+      if (f.moulinet > 0) { // il avance vers l'adversaire, deux sabres en hélice
+        f.moulinet -= dt; f.moulinetTic = (f.moulinetTic || 0) - dt;
+        if (t) { const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1; f.vx = dx / d * MOULINET_VITESSE; f.vy = dy / d * MOULINET_VITESSE; f.face = dx >= 0 ? 1 : -1; }
+        if (t && f.moulinetTic <= 0 && ecart(f, t) < MOULINET_PORTEE) { f.moulinetTic = MOULINET_TIC; frapper(g, o, t, MOULINET_DEGATS, (f.x + t.x) / 2, (f.y + t.y) / 2); }
+        if (f.moulinet <= 0) { normaliser(f); redresser(f); }
+        return;
+      }
+      if (t && f.comboCd <= 0 && ecart(f, t) < GRIEVOUS_PORTEE) { f.combo = { t: 0, n: 0, cible: t }; return; }
+      if (f.moulinetCd <= 0 && t) { f.moulinetCd = MOULINET_CD; f.moulinet = MOULINET_DUREE; son(f); return; }
+      if (f.araigneeCd <= 0 && t && !t.drone) { f.araigneeCd = ARAIGNEE_CD; this.araigneeDebut(f, g); }
+    },
+    // course d'araignée : il file au mur le plus proche, grimpe au plafond, rampe au-dessus de l'adversaire, le fixe, puis lui tombe dessus
+    araigneeDebut(f, g) {
+      const dg = f.x, dd = W - f.x, dh = f.y;
+      const mur = dh < Math.min(dg, dd) ? "plafond" : dg < dd ? "gauche" : "droite";
+      f.araignee = { phase: mur === "plafond" ? "plafond" : "mur", mur, t: 0 }; f.vx = 0; f.vy = 0; son(f, 3);
+    },
+    araigneeMaj(f, o, g, dt, t) {
+      const A = f.araignee; A.t += dt; f.vx = 0; f.vy = 0;
+      const allerVers = (x, y, v) => { const dx = x - f.x, dy = y - f.y, d = Math.hypot(dx, dy); if (d < 1) return true; const pas = Math.min(d, v * dt); f.x += dx / d * pas; f.y += dy / d * pas; return pas >= d - 0.5; };
+      const fin = () => { f.araignee = null; f.penche = 0; const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); };
+      if (A.t > ARAIGNEE_MAX && A.phase !== "chute") { fin(); return; } // sécurité
+      if (A.phase === "mur") { // vers le mur de côté le plus proche, puis il grimpe jusqu'au plafond
+        const xm = A.mur === "gauche" ? f.hw : W - f.hw;
+        f.penche = Math.abs(f.x - xm) > 4 ? 0 : (A.mur === "gauche" ? Math.PI / 2 : -Math.PI / 2) * f.face;
+        if (Math.abs(f.x - xm) > 2) allerVers(xm, f.y, ARAIGNEE_VITESSE);
+        else if (allerVers(xm, f.hh, ARAIGNEE_VITESSE)) A.phase = "plafond";
+        return;
+      }
+      if (A.phase === "plafond") { // il rampe au plafond jusqu'au-dessus de l'adversaire
+        f.penche = Math.PI; f.y = Math.max(f.hh, f.y - ARAIGNEE_VITESSE * dt);
+        const cx = t ? t.x : f.x; f.face = cx >= f.x ? 1 : -1;
+        allerVers(Math.min(W - f.hw, Math.max(f.hw, cx)), f.hh, ARAIGNEE_VITESSE);
+        if ((t && Math.abs(t.x - f.x) < 12 && f.y <= f.hh + 2) || A.t > ARAIGNEE_MAX - 0.8) { A.phase = "fixe"; A.t2 = 0; }
+        return;
+      }
+      if (A.phase === "fixe") { // il fixe sa cible un instant, puis se laisse tomber
+        f.penche = Math.PI; A.t2 += dt; if (t) f.face = t.x >= f.x ? 1 : -1;
+        if (A.t2 >= FIXE_DUREE) { A.phase = "chute"; A.yCible = t ? Math.max(f.y + 40, t.y - t.hh * 0.3) : W - f.hh; A.touche = false; f.penche = 0; son(f, 4); }
+        return;
+      }
+      // chute : bras et sabres écartés, il tombe sur l'adversaire
+      f.y += SAUT_VITESSE * dt; f.penche = 0;
+      if (t && !A.touche && ecart(f, t) < 6) { A.touche = true; frapper(g, o, t, SAUT_DEGATS, (f.x + t.x) / 2, (f.y + t.y) / 2); g.secousse = Math.max(g.secousse, 0.25); }
+      if (f.y >= Math.min(W - f.hh, A.yCible)) {
+        f.y = Math.min(W - f.hh, f.y);
+        if (t && !A.touche && Math.hypot(t.x - f.x, t.y - f.y) < SAUT_RAYON + t.hw) { A.touche = true; frapper(g, o, t, SAUT_DEGATS, t.x, t.y - t.hh * 0.3); }
+        for (let i = 0; i < 16; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 200; g.parts.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.4, c: i % 2 ? "#6ab7ff" : "#7dff7d" }); }
+        f.sabreT = [0.16, 0.16, 0.16, 0.16]; fin();
+      }
+    },
+    // attrapé par la langue du Smoker : il lâche tout
+    attrape(f) { f.araignee = null; f.combo = null; f.moulinet = 0; f.estoc = 0; f.penche = 0; }
   }
 };
 
@@ -1546,7 +1642,7 @@ function explosion(g, x, y, cible, dmg, ang) {
   if (Math.hypot(dx, dy) < 140) degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3);
   for (const d of [...(cible.drones || [])]) { const p = dronePos(cible, d); if (Math.hypot(p.x - x, p.y - y) < 150) blesserDrone(g, cible, d, dmg); }
 }
-const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (38 → 7,6 s max)
+const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (40 → 8 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
 // laser du robot : de plus en plus fort, un palier tous les LASER_TIC (très petit, petit, moyen, gros, très gros)
 const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 5.6;
@@ -1591,7 +1687,7 @@ const ABSORPTION_SOIN = 0.5;
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
 const DRONE_LIEN = 0.04; // part des PV max du Bombardier perdue quand un de ses appareils est détruit
-const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 2.95, MISSILE_DELAI = 1.5, MISSILE_RAYON = 190, MISSILE_DEGATS = 40;
+const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 3.05, MISSILE_DELAI = 1.5, MISSILE_RAYON = 190, MISSILE_DEGATS = 40;
 const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
 // appareils : ils patrouillent au hasard (faisceau bleu) ; quand l'adversaire passe dans leur faisceau,
 // ils le repèrent (faisceau rouge) et volent près de lui en le gardant en visée
@@ -1878,10 +1974,51 @@ function majBombes(g, dt) {
     return false;
   });
 }
+// Général Grievous : enchaînement au corps à corps, moulinet, course d'araignée et saut depuis le plafond
+const GRIEVOUS_PORTEE = 55, COMBO_ECART = 0.12, COMBO_DEGATS = 4, COMBO_CD = 1.6, ESTOC_DUREE = 0.16, ESTOC_VITESSE = 700, ESTOC_DEGATS = 7;
+const MOULINET_PREMIER = 3, MOULINET_CD = 8, MOULINET_DUREE = 2, MOULINET_VITESSE = 210, MOULINET_TIC = 0.25, MOULINET_DEGATS = 3, MOULINET_PORTEE = 45;
+const ARAIGNEE_PREMIERE = 6, ARAIGNEE_CD = 10, ARAIGNEE_VITESSE = 420, ARAIGNEE_MAX = 4, FIXE_DUREE = 0.45, SAUT_VITESSE = 1250, SAUT_DEGATS = 16, SAUT_RAYON = 70;
+// les 4 sabres : attache (en proportion de la demi-largeur et de la demi-hauteur), angle au repos, couleur, devant ou derrière le corps
+const SABRES = [
+  { x: -0.3, y: -0.35, a: -2.25, c: "#4da3ff", devant: false },
+  { x: 0.3, y: -0.35, a: -0.8, c: "#59ff6a", devant: true },
+  { x: -0.25, y: -0.02, a: 2.35, c: "#59ff6a", devant: false },
+  { x: 0.25, y: -0.02, a: 0.7, c: "#4da3ff", devant: true }
+];
+// angle d'un sabre selon ce que fait Grievous (repère du perso tourné vers l'avant)
+function angleSabre(f, i, now) {
+  const S = SABRES[i];
+  if (f.araignee && f.araignee.phase === "chute") return [-2.6, -0.55, 2.6, 0.55][i]; // bras écartés
+  if (f.estoc > 0) return [-0.22, -0.08, 0.08, 0.22][i]; // les 4 pointés vers l'avant
+  if (f.moulinet > 0 && i % 2 === 1) return now * 22 * (i === 1 ? 1 : -1); // les deux sabres de devant tournent comme des hélices
+  let a = S.a + Math.sin(now * 2.2 + i * 1.7) * 0.08;
+  const k = (f.sabreT || [])[i] || 0;
+  if (k > 0) a += Math.sin((1 - k / (COMBO_ECART + 0.04)) * Math.PI) * (i < 2 ? 1.9 : -1.9); // coup de sabre
+  return a;
+}
+// dessine un sabre laser (manche, lame colorée qui brille, cœur blanc), dans le repère du perso
+function dessinerSabre(f, i, now) {
+  const S = SABRES[i], u = Math.max(f.hw, f.hh), L = u * 0.95, ax = S.x * f.hw, ay = S.y * f.hh;
+  const tourne = f.moulinet > 0 && i % 2 === 1;
+  const angles = tourne ? [0, 0.35, 0.7, 1.05].map(d => angleSabre(f, i, now) - d) : [angleSabre(f, i, now)];
+  ctx.save(); ctx.translate(ax, ay); ctx.lineCap = "round";
+  if (tourne) { // disque flou de l'hélice
+    ctx.fillStyle = S.c + "22"; ctx.beginPath(); ctx.arc(0, 0, L, 0, 7); ctx.fill();
+  }
+  angles.forEach((a, j) => {
+    const al = j ? 0.35 / j : 1, x1 = Math.cos(a) * u * 0.14, y1 = Math.sin(a) * u * 0.14, x2 = Math.cos(a) * L, y2 = Math.sin(a) * L;
+    ctx.globalAlpha = al;
+    ctx.strokeStyle = S.c + "55"; ctx.lineWidth = u * 0.11; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.strokeStyle = S.c; ctx.lineWidth = u * 0.055; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = u * 0.022; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    if (!j) { ctx.strokeStyle = "#9aa0ab"; ctx.lineWidth = u * 0.05; ctx.beginPath(); ctx.moveTo(-Math.cos(a) * u * 0.04, -Math.sin(a) * u * 0.04); ctx.lineTo(x1, y1); ctx.stroke(); }
+  });
+  ctx.restore(); ctx.globalAlpha = f.vis ?? 1;
+}
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const FEU_BONUS = 3; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
-const BOUCLIER_PV = 38, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
+const BOUCLIER_PV = 40, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 4; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
@@ -1892,7 +2029,7 @@ const ROULADE_CD = 8, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUI
 // les 6 images de roulade de McCree sont-elles toutes là ?
 function rouladeAnimee() { const s = CHARS.cowboy.spr; return !!s && [4, 5, 6, 7, 8, 9].every(n => s[n]); }
 const ENCHAINE_CHANCE = 0.02; // chance par balle qui touche de ne pas recharger (McCree)
-const RECHARGE = 1.4; // rechargement du Cowboy après chaque rafale (secondes)
+const RECHARGE = 1.35; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
 const FIN = 3.2, ANNONCE_DELAI = 1; // durée de la séquence de fin, attente avant d'annoncer le gagnant (secondes réelles)
@@ -2016,6 +2153,7 @@ function maj(dt) {
       if (!p.rate && touche(cible, p.x, p.y, p.r * 0.6)) {
         // Psycho Absorption de Bison : une chance (tirée une fois par projectile) de l'absorber et de se soigner
         if (cible.type === "bison" && (p.jetReflet ??= Math.random() < (REFLET_CHANCE[p.kind] || 0))) { absorber(g, p, cible); return false; }
+        if (cible.moulinet > 0 && p.kind !== "mortier" && (p.x - cible.x) * cible.face > 0) { eclats(g, p.x, p.y, "#bfe3ff"); return false; } // Grievous en moulinet : ses sabres arrêtent ce qui arrive par devant
         if (p.perce) { // transperce : refait des dégâts à chaque nouveau passage à travers l'adversaire
           if (!p.dedans && !(p.hitCd > 0)) {
             p.hitCd = 0.6; degats(g, cible, p.dmg, p.x, p.y);
@@ -2307,6 +2445,13 @@ function dessiner() {
     const k = 1 - o.t / 0.45; ctx.save(); ctx.strokeStyle = `rgba(255,200,90,${o.t / 0.45})`; ctx.lineWidth = 6;
     ctx.beginPath(); ctx.ellipse(o.x, o.y, ECRASE_RAYON * (0.3 + 0.9 * k), 14 + 10 * k, 0, 0, 7); ctx.stroke(); ctx.restore();
   }
+  for (const f of g.f) if (f.araignee && f.araignee.phase === "fixe" && !f.mort) { // Grievous fixe sa cible depuis le plafond
+    const o = g.f.find(x => x !== f), k = 0.5 + 0.5 * Math.sin(performance.now() / 70);
+    ctx.save(); ctx.fillStyle = `rgba(255,210,63,${0.25 + 0.3 * k})`; ctx.beginPath(); ctx.arc(f.x, f.y, Math.max(f.hw, f.hh) * 0.6, 0, 7); ctx.fill();
+    ctx.fillStyle = "#ffe066"; for (const dx of [-5, 5]) { ctx.beginPath(); ctx.arc(f.x + dx, f.y + f.hh * 0.55, 3 + k, 0, 7); ctx.fill(); }
+    if (o && !o.mort) { ctx.strokeStyle = `rgba(255,220,90,${0.35 + 0.3 * k})`; ctx.lineWidth = 2; ctx.setLineDash([6, 8]); ctx.beginPath(); ctx.moveTo(f.x, f.y + f.hh); ctx.lineTo(o.x, o.y); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.restore();
+  }
   for (const f of g.f) if (f.grappin && !f.mort) { // câble du grappin de Bouldozer
     ctx.save(); ctx.strokeStyle = "#d8dce6"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(f.grappin.x, f.grappin.y); ctx.lineTo(f.x, f.y); ctx.stroke();
     ctx.fillStyle = "#8b93a6"; ctx.strokeStyle = "#2a2e38"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(f.grappin.x, f.grappin.y, 7, 0, 7); ctx.fill(); ctx.stroke(); ctx.restore();
@@ -2446,9 +2591,11 @@ function dessiner() {
     if (f.type === "bison") { ctx.shadowColor = "rgba(170,70,255,.85)"; ctx.shadowBlur = f.crusher ? 32 : 14; } // aura psychique
     const canons = f.type === "hammond" && f.etatH === "tourelle";
     if (canons) dessinerCanon(f, 0); // mitraillette de derrière, cachée en partie par la boule
+    if (f.type === "grievous" && !(f.araignee && f.araignee.phase !== "chute")) { const now = performance.now() / 1000; for (const i of [0, 2]) dessinerSabre(f, i, now); } // sabres de derrière
     if (canons && CHARS.hammond.pn[2] && s === CHARS.hammond.spr[2]) dessinerTeteHammond(f, s); // sa tête suit la visée
     else ctx.drawImage(s.img, -f.hw, -f.hh, f.hw * 2, f.hh * 2);
     if (canons) dessinerCanon(f, 1); // mitraillette de devant
+    if (f.type === "grievous" && !(f.araignee && f.araignee.phase !== "chute")) { const now = performance.now() / 1000; for (const i of [1, 3]) dessinerSabre(f, i, now); } // sabres de devant
     ctx.shadowBlur = 0;
     if (f.etat === "furie" && !spriteImage(f.type + "-2")) { // couteau qui frappe (sauf si une image de furie est fournie)
       const swing = f.coupT > 0 ? 1.6 * (1 - f.coupT / 0.15) : 0;
@@ -3562,7 +3709,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.37.3", NOTES = "Sélection : le grand panneau de Bouldozer montre de nouveau sa boule ; seule sa vignette (et la carte de victoire) est cadrée sur la tête du hamster.";
+const VERSION = "1.38.0", NOTES = "Nouveau perso : le Général Grievous et ses 4 sabres laser ! Enchaînement de coups de sabre et estoc au corps à corps, moulinet qui bloque les projectiles, et course à quatre pattes sur les murs jusqu’au plafond, d’où il tombe sur l’adversaire. Micro ajustements : Sorcier (bouclier 40 PV), McCree (recharge 1,35 s), Bombardier (missile toutes les 3,05 s).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -1,1 +1,1 @@
-{"version": "1.32.1", "notes": "McCree : vraie animation de roulade en 6 images (détourées de ta planche) avec une traînée d'images fantômes."}
+{"version": "1.33.0", "notes": "Grenade flash de McCree : l'adversaire est vraiment aveuglé (tous ses coups ratent) puis a la vue trouble 2 s (20 % de coups ratés). Grenade toutes les 16 s pour compenser."}

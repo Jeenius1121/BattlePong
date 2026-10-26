@@ -282,7 +282,7 @@ const CHARS = {
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     // roulade : les images 4 à 9 s'enchaînent comme une animation (si elles sont fournies)
     imageDe: f => f.roulade > 0 && rouladeAnimee() ? 4 + Math.min(5, Math.floor((1 - f.roulade / ROULADE_DUREE) * 6)) : f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis. Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui aveugle l’adversaire : quelques dégâts et un gros ralentissement pendant un peu plus d’une seconde. Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
+    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis. Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui aveugle l’adversaire : quelques dégâts et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
     // va-t-il être touché ? renvoie la direction du danger (projectile, laser, langue) ou sa source (zone, corps à corps)
     menace(f, o, g) {
       for (const p of g.proj) if (p.owner === o) {
@@ -1215,8 +1215,13 @@ function nouveauJeu(running) {
   for (const [f, o] of [[jeu.f[0], jeu.f[1]], [jeu.f[1], jeu.f[0]]]) if (CHARS[f.type].preparer) CHARS[f.type].preparer(f, o, jeu); // ex. le Marin posé sur la mer
   majHud();
 }
+// tirs ratés : aveuglé par la grenade flash (tout rate), puis vue trouble (20 % de chances de rater)
+let attaquant = null, coupRate = false;
+function rateTir(f) { return !!f && (f.aveugle > 0 || (f.flou > 0 && Math.random() < FLASH_PRECISION)); }
+function rate(g, x, y) { if (!g.txt.some(t => t.rate && t.t > 0.5)) g.txt.push({ x, y: y - 20, t: 0.8, s: "Raté !", rate: true }); }
 function degats(g, cible, n, x, y) {
   if (cible.mort || cible.enLair) return;
+  if (coupRate || (attaquant && attaquant !== cible && rateTir(attaquant))) { rate(g, x, y); return; }
   // le Smoker qui étrangle quelqu'un contre lui ne prend aucun dégât (mais il reste touchable pendant qu'il le ramène)
   if (cible.langue && cible.langue.etat === "etreinte" && g.f.some(x => x.capture === cible)) return;
   const c = CHARS[cible.type];
@@ -1457,7 +1462,7 @@ const INCONNU_SOIN = 4; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
 // grenade flash de McCree : aveugle et ralentit énormément l'adversaire touché
-const FLASH_PREMIERE = 4, FLASH_CD = 11, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3;
+const FLASH_PREMIERE = 4, FLASH_CD = 16, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3, FLASH_FLOU = 2, FLASH_PRECISION = 0.2;
 // roulade de McCree : esquive rapide quand il va être touché
 const ROULADE_CD = 8, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUIVE = 1, ROULADE_BONUS = 1.5;
 // les 6 images de roulade de McCree sont-elles toutes là ?
@@ -1505,13 +1510,17 @@ function maj(dt) {
   for (const [f, o] of [[a, b], [b, a]]) {
     if (f.mort) continue;
     // ralenti par l'Inconnu : il se déplace et recharge ses attaques à 65 % de sa vitesse
+    attaquant = f; // ses coups peuvent rater s'il est aveuglé
     if (CHARS[f.type].monde) CHARS[f.type].monde(f, o, g, dt); // la mer du Marin
     // ralenti par l'Inconnu (mortier) ou, beaucoup plus fort, aveuglé par la grenade flash de McCree
     const lenteur = f.aveugle > 0 ? FLASH_RALENTI : f.lent > 0 ? RALENTI : 1;
     if (g.running && !f.capture) CHARS[f.type].attaque(f, o, g, dt * lenteur);
     else if (g.running && f.capture && CHARS[f.type].attrape) CHARS[f.type].attrape(f, o, g, dt); // ce qu'il peut faire dans la langue du Smoker
+    attaquant = null;
     majTaille(f);
-    f.lent = Math.max(0, (f.lent || 0) - dt); f.aveugle = Math.max(0, (f.aveugle || 0) - dt);
+    f.lent = Math.max(0, (f.lent || 0) - dt);
+    f.flou = Math.max(0, (f.flou || 0) - dt);
+    if (f.aveugle > 0 && (f.aveugle -= dt) <= 0) { f.aveugle = 0; f.flou = FLASH_FLOU; } // après l'aveuglement : vue trouble 2 s
     if (!f.capture) { f.x += f.vx * dt * lenteur; f.y += f.vy * dt * lenteur; }
     if (f.recul > 0) { f.recul -= dt; f.x += f.rvx * dt; f.y += f.rvy * dt; } // projeté par le Smoker
     let rebond = false;
@@ -1550,6 +1559,7 @@ function maj(dt) {
   // projectiles (déplacés par petits pas pour ne pas traverser les parties fines)
   g.proj = g.proj.filter(p => {
     const cible = p.owner === a ? b : a;
+    if (p.rate === undefined) p.rate = rateTir(p.owner); // tiré à l'aveugle : il passera à côté
     if (p.guideT !== undefined) p.guideT -= dt;
     const suivie = p.drone ? (cible.drones || []).includes(p.drone) && p.drone : !cache(cible, p.owner) && cible; // adversaire ou appareil visé
     if (p.homing && suivie && !(p.guideT <= 0)) {
@@ -1572,12 +1582,13 @@ function maj(dt) {
       if (dansLaMer(g, p.x, p.y)) { plouf(g, p.x, merSurface(g, p.x)); return false; } // la mer éteint tout projectile
       const traverse = p.perce || p.transperce;
       const dmg = degatsProj(p);
-      if (cible.drones && droneTouche(g, cible, p.x, p.y, p.r * 0.6, dmg, traverse ? (p.dejaDrones ||= new Set()) : null)) {
+      if (!p.rate && cible.drones && droneTouche(g, cible, p.x, p.y, p.r * 0.6, dmg, traverse ? (p.dejaDrones ||= new Set()) : null)) {
         if (p.rafale) p.rafale.touches++;
         if (!traverse) return false;
       }
       if (p.transperce && p.dejaCible) continue;
-      if (touche(cible, p.x, p.y, p.r * 0.6)) {
+      if (p.rate && !p.rateVu && touche(cible, p.x, p.y, p.r * 0.6)) { p.rateVu = true; rate(g, p.x, p.y); } // il passe à côté
+      if (!p.rate && touche(cible, p.x, p.y, p.r * 0.6)) {
         // Psycho Absorption de Bison : une chance (tirée une fois par projectile) de l'absorber et de se soigner
         if (cible.type === "bison" && (p.jetReflet ??= Math.random() < (REFLET_CHANCE[p.kind] || 0))) { absorber(g, p, cible); return false; }
         if (p.perce) { // transperce : refait des dégâts à chaque nouveau passage à travers l'adversaire
@@ -1601,7 +1612,7 @@ function maj(dt) {
       if (p.kind === "mortier") {
         // côté touché : le dôme de fumée s'ouvre vers l'intérieur de l'arène
         const ang = p.y > W ? -Math.PI / 2 : p.x < 0 ? 0 : p.x > W ? Math.PI : Math.PI / 2;
-        explosion(g, Math.min(W, Math.max(0, p.x)), Math.min(W, Math.max(0, p.y)), cible, 30, ang);
+        coupRate = p.rate; explosion(g, Math.min(W, Math.max(0, p.x)), Math.min(W, Math.max(0, p.y)), cible, 30, ang); coupRate = false;
       }
       return false;
     }
@@ -1621,9 +1632,10 @@ function maj(dt) {
   // zones de feu du Sorcier : brûlent l'adversaire qui passe dedans
   g.ondes = g.ondes.filter(w => {
     w.r += ONDE_VITESSE * dt;
+    if (w.rate === undefined) w.rate = rateTir(w.owner);
     const o = g.f.find(x => x !== w.owner);
     if (g.running && o && !w.touche && Math.abs(Math.hypot(o.x - w.x, o.y - w.y) - w.r) < Math.max(o.hw, o.hh) * 0.6 + w.epais) {
-      w.touche = true; degats(g, o, w.dmg, o.x, o.y - o.hh * 0.3);
+      w.touche = true; coupRate = w.rate; degats(g, o, w.dmg, o.x, o.y - o.hh * 0.3); coupRate = false;
     }
     for (const d of [...(o && o.drones || [])]) {
       const p = dronePos(o, d); w.drones ||= new Set();
@@ -1647,13 +1659,16 @@ function maj(dt) {
   });
   g.flashs = g.flashs.filter(e => (e.t -= dt) > 0);
   g.missiles = g.missiles.filter(m => {
+    if (m.rate === undefined) m.rate = rateTir(m.owner);
     m.t -= dt;
     if (m.t > 0) return true;
     const o = g.f.find(x => x !== m.owner);
     if (dansLaMer(g, m.x, m.y)) { plouf(g, m.x, merSurface(g, m.x)); return false; } // missile tombé dans la mer : sans effet
     g.boums.push({ x: m.x, y: m.y, t: 0.6 }); g.secousse = Math.max(g.secousse, 0.15); son(m.owner, 2);
     for (let i = 0; i < 24; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 260; g.parts.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, t: 0.6, g: 400, c: ["#ffd23f", "#ff8a2a", "#5b5b66"][i % 3] }); }
+    coupRate = m.rate; // missile lancé à l'aveugle : il tombe à côté
     if (g.running && o && Math.hypot(o.x - m.x, o.y - m.y) < MISSILE_RAYON + Math.max(o.hw, o.hh) * 0.4) degats(g, o, MISSILE_DEGATS, o.x, o.y - o.hh * 0.3);
+    coupRate = false;
     if (g.running && o) for (const d of [...(o.drones || [])]) if (Math.hypot(d.x - m.x, d.y - m.y) < MISSILE_RAYON) blesserDrone(g, o, d, MISSILE_DEGATS);
     return false;
   });
@@ -1897,6 +1912,9 @@ function dessiner() {
       ctx.fillStyle = `rgba(255,255,240,${0.18 + 0.12 * Math.sin(performance.now() / 60)})`; ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 10, f.hh + 10, 0, 0, 7); ctx.fill();
       ctx.fillStyle = "#fff6b0";
       for (let i = 0; i < 4; i++) { const a = performance.now() / 250 + i * Math.PI / 2; ctx.beginPath(); ctx.arc(Math.cos(a) * f.hw * 0.7, -f.hh - 6 + Math.sin(a) * 6, 4, 0, 7); ctx.fill(); }
+    }
+    if (f.flou > 0 && !(f.aveugle > 0)) { // vue encore trouble après la grenade flash
+      ctx.fillStyle = `rgba(255,255,240,${0.08 + 0.05 * Math.sin(performance.now() / 90)})`; ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 6, f.hh + 6, 0, 0, 7); ctx.fill();
     }
     if (f.lent > 0) { // ralenti
       ctx.strokeStyle = "#c03adf"; ctx.lineWidth = 4; ctx.setLineDash([6, 6]);
@@ -3026,7 +3044,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.32.1", NOTES = "McCree : vraie animation de roulade en 6 images (détourées de ta planche) avec une traînée d'images fantômes.";
+const VERSION = "1.33.0", NOTES = "Grenade flash de McCree : l'adversaire est vraiment aveuglé (tous ses coups ratent) puis a la vue trouble 2 s (20 % de coups ratés). Grenade toutes les 16 s pour compenser.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -1051,7 +1051,7 @@ const CHARS = {
     }
   },
   gigachad: {
-    nom: "GigaChad", emoji: "🗿", vitesse: 160, pv: 108, images: ["pose 1", "pose 2", "pose 3", "pose 4", "coup de poing"], memeEchelle: true,
+    nom: "GigaChad", emoji: "🗿", vitesse: 160, images: ["pose 1", "pose 2", "pose 3", "pose 4", "coup de poing"], memeEchelle: true,
     sonNom: "pose", son2: "coup de poing", son3: "gros coup de poing (contre le mur)", son4: "musique (en boucle, tout le combat)", sonsMusique: [4],
     imperturbable: true,
     // images 2 à 5 : les 4 poses, l'une après l'autre ; image 6 : coup de poing
@@ -1363,7 +1363,7 @@ const GIGA_LANGUE_GLISSE = 0.5; // chance que la langue du Smoker glisse sur lui
 const GIGA_APPROCHE = 1.5; // à 5 poses, il tourne peu à peu vers l'adversaire (radians par seconde)
 const GIGA_VIRAGE = 0.8; // en se baladant, il tourne doucement (radians par seconde, au plus)
 // coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
-const GIGA_COUP = 6, GIGA_COUP_POSE = 9, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
+const GIGA_COUP = 6, GIGA_COUP_POSE = 11, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
 // Bison
 const CRUSHER_CD = 3.3, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 9, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
@@ -3169,7 +3169,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.35.0", NOTES = "GigaChad ne fonce plus vers l’adversaire : il se balade tranquillement et cumule ses poses ; si l’adversaire vient à lui, il frappe avec ce qu’il a, et une fois à 5 poses il se rapproche petit à petit. La langue du Smoker glisse une fois sur deux sur lui, et les cris de Steve traversent sa pose. Micro buffs : Steve disparaît un peu plus souvent, le poisson du Marin croque un peu plus fort.";
+const VERSION = "1.35.1", NOTES = "GigaChad repasse à 100 PV (seul le Bombardier a plus de 100 PV). En échange, chaque pose ajoute 11 dégâts à son coup de poing au lieu de 9.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -1051,11 +1051,11 @@ const CHARS = {
     }
   },
   gigachad: {
-    nom: "GigaChad", emoji: "🗿", vitesse: 215, images: ["pose 1", "pose 2", "pose 3", "pose 4", "pose 5", "coup de poing"],
+    nom: "GigaChad", emoji: "🗿", vitesse: 215, pv: 108, images: ["pose 1", "pose 2", "pose 3", "pose 4", "coup de poing"], memeEchelle: true,
     sonNom: "pose", son2: "coup de poing", son3: "gros coup de poing (contre le mur)", son4: "musique (en boucle, tout le combat)", sonsMusique: [4],
     imperturbable: true,
-    // images 2 à 6 : les 5 poses, l'une après l'autre ; image 7 : coup de poing
-    imageDe: f => f.poing > 0 ? 7 : f.pose > 0 ? 2 + (f.numPose || 0) % 5 : 1,
+    // images 2 à 5 : les 4 poses, l'une après l'autre ; image 6 : coup de poing
+    imageDe: f => f.poing > 0 ? 6 : f.pose > 0 ? 2 + (f.numPose || 0) % 4 : 1,
     desc: "Marche vers l’adversaire en zigzaguant, puis s’arrête pour prendre la pose 1,5 seconde : chaque pose réussie lui donne +1 en attaque (5 max). Imperturbable : pendant qu’il pose, il ne prend que la moitié des dégâts (le couteau de Myers en furie passe mieux : 25 % seulement) et la langue du Smoker glisse sur lui. Il prend la pose exprès quand un missile va lui tomber dessus ou qu’un laser se prépare. Aura de charisme : pendant la pose, l’adversaire est attiré doucement vers lui, d’autant plus fort qu’il a cumulé de poses. Au contact, il donne un petit coup de poing s’il n’a aucune pose ; sinon il cumule 2 à 4 poses puis frappe d’un coup qui les dépense toutes : plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
     svg: `<g ${O}>
       <rect x='46' y='110' width='12' height='30' fill='#2b3a5c'/><rect x='62' y='110' width='12' height='30' fill='#2b3a5c'/>
@@ -1073,7 +1073,7 @@ const CHARS = {
       const t = cibleDe(f, o);
       if (f.pose > 0) { // il prend la pose : immobile, imperturbable, son aura attire l'adversaire
         f.pose -= dt; f.vx = 0; f.vy = 0; if (t) f.face = t.x >= f.x ? 1 : -1;
-        if (!o.mort && !cache(o, f) && !o.capture && !o.recul && ecart(f, o) > 4 && !(o.plongee > 0)) {
+        if (!o.mort && !cache(o, f) && !o.capture && !o.recul && !o.crusher && ecart(f, o) > 4 && !(o.plongee > 0)) { // Bison en vrille fonce sans être dévié
           const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy) || 1, v = GIGA_AURA + GIGA_AURA_POSE * f.poses;
           o.x += dx / d * v * dt; if (o.type !== "marin") o.y += dy / d * v * dt; // le bateau reste sur l'eau
         }
@@ -1220,7 +1220,8 @@ function spriteDe(f) {
 function majTaille(f) {
   const s = spriteDe(f), c = CHARS[f.type], m = c.sprite;
   if (f.sp === s) return;
-  const kDe = x => x === m ? echelle(x) : Math.min(m.th * echelle(m) / x.th, TAILLE_MAX * 1.3 / x.tw);
+  // memeEchelle : toutes ses images à la même échelle que l'image normale (le perso garde la même taille quelle que soit sa pose)
+  const kDe = x => x === m || c.memeEchelle ? echelle(m) : Math.min(m.th * echelle(m) / x.th, TAILLE_MAX * 1.3 / x.tw);
   const fois = c.tailles && c.imageDe ? c.tailles[c.imageDe(f)] || 1 : 1;
   f.sp = s; f.k = kDe(s) * (s === m ? 1 : fois) * (c.taille || 1); // taille : réglage de taille propre au perso
   f.hw = s.tw * f.k / 2; f.hh = s.th * f.k / 2;
@@ -1347,7 +1348,7 @@ function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs
 // GigaChad : pose de 1,5 s, ~1 s de marche entre deux poses ; +1 en attaque par pose (5 max)
 const GIGA_POSE = 1.5, GIGA_MARCHE = 1, GIGA_POSES_MAX = 5, GIGA_AURA = 30, GIGA_AURA_POSE = 14;
 const GIGA_OBJECTIF = [2, 4];
-const GIGA_PORTEE_APPAREIL = 100;
+const GIGA_PORTEE_APPAREIL = 70;
 const GIGA_IMPERTURBABLE_FURIE = 0.25; // portée du poing sur les appareils (en plus de sa taille) // nombre de poses cumulées avant de frapper fort (au hasard)
 const GIGA_ZIG = 0.9, GIGA_ZIG_VITESSE = 5; // zigzag en marchant : écart max (radians) et rythme
 // coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
@@ -3157,7 +3158,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.34.0", NOTES = "Nouveau perso : GigaChad ! Il prend la pose (+1 en attaque à chaque pose), encaisse moitié moins en posant, attire l’adversaire avec son aura de charisme et le frappe d’un coup de poing qui peut l’envoyer s’écraser contre le mur. Sa musique tourne pendant tout le combat.";
+const VERSION = "1.34.1", NOTES = "GigaChad : 4 poses au lieu de 5 (la pose en double est retirée), et il garde la même taille quelle que soit sa pose. Petit ajustement : 108 PV.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -1761,6 +1761,20 @@ function dessinerCanon(f, i) {
   }
   ctx.restore();
 }
+// image « tourelle » de Bouldozer coupée au niveau du cou : le corps, puis la tête qui pivote selon la visée des mitraillettes
+// TETE_HAMMOND : position du cou dans l'image (fractions de la largeur et de la hauteur), part de la visée suivie par la tête, inclinaison max
+const TETE_HAMMOND = { x: 0.4, y: 0.11, suivi: 0.6, haut: 0.5, bas: 0.3 };
+function dessinerTeteHammond(f, s) {
+  const T = TETE_HAMMOND, ry = Math.round(s.th * T.y), k = f.hh * 2 / s.th, kx = f.hw * 2 / s.tw;
+  // corps (tout ce qui est sous le cou)
+  ctx.drawImage(s.img, 0, ry, s.tw, s.th - ry, -f.hw, -f.hh + ry * k, f.hw * 2, (s.th - ry) * k);
+  // tête, qui pivote autour du cou (un peu plus haute que la coupe pour ne pas laisser de jour)
+  const px = -f.hw + s.tw * T.x * kx, py = -f.hh + ry * k, a = Math.max(-T.haut, Math.min(T.bas, (f.visee || 0) * T.suivi));
+  const rb = Math.min(s.th, ry + 2);
+  ctx.save(); ctx.translate(px, py); ctx.rotate(a);
+  ctx.drawImage(s.img, 0, 0, s.tw, rb, -s.tw * T.x * kx, -ry * k, f.hw * 2, rb * k);
+  ctx.restore();
+}
 // le bas de l'arène pour Bouldozer (la mer du Marin s'il y en a une)
 function solHammond(g, f) { return g.mer ? merSurface(g, f.x) - f.hh * 0.6 : W - f.hh; }
 // explosion d'une bombe de Chacal : blesse l'adversaire (et les appareils) dans le rayon
@@ -2377,7 +2391,8 @@ function dessiner() {
     if (f.type === "bison") { ctx.shadowColor = "rgba(170,70,255,.85)"; ctx.shadowBlur = f.crusher ? 32 : 14; } // aura psychique
     const canons = f.type === "hammond" && f.etatH === "tourelle";
     if (canons) dessinerCanon(f, 0); // mitraillette de derrière, cachée en partie par la boule
-    ctx.drawImage(s.img, -f.hw, -f.hh, f.hw * 2, f.hh * 2);
+    if (canons && CHARS.hammond.pn[2] && s === CHARS.hammond.spr[2]) dessinerTeteHammond(f, s); // sa tête suit la visée
+    else ctx.drawImage(s.img, -f.hw, -f.hh, f.hw * 2, f.hh * 2);
     if (canons) dessinerCanon(f, 1); // mitraillette de devant
     ctx.shadowBlur = 0;
     if (f.etat === "furie" && !spriteImage(f.type + "-2")) { // couteau qui frappe (sauf si une image de furie est fournie)
@@ -3489,7 +3504,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.36.1", NOTES = "Bouldozer en mode tourelle : nouvelle image, avec deux mitraillettes (devant et derrière) qui pivotent vers la cible ; les balles partent du bout des canons, avec recul et éclair. Petit buff de Chacal (une grenade toutes les 1,3 s).";
+const VERSION = "1.36.2", NOTES = "Bouldozer en mode tourelle : la tête du hamster suit maintenant la direction où visent ses mitraillettes.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

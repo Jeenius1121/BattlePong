@@ -278,10 +278,28 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
 const O = "stroke='#1b2033' stroke-width='3' stroke-linejoin='round' stroke-linecap='round'";
 const CHARS = {
   cowboy: {
-    nom: "McCree", emoji: "🤠", vitesse: 242, images: ["visée", "tir"], sonNom: "tirs", son2: "rechargement", son3: "grenade flash", sonFort: true, caler: true,
+    nom: "McCree", emoji: "🤠", vitesse: 242, images: ["visée", "tir", "roulade"], sonNom: "tirs", son2: "rechargement", son3: "grenade flash", son4: "roulade", sonFort: true, caler: true,
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
-    imageDe: f => f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis. De temps en temps, il lance une grenade flash qui aveugle l’adversaire : quelques dégâts et un gros ralentissement pendant un peu plus d’une seconde. Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
+    // image 4 pendant la roulade (seulement si elle est fournie)
+    imageDe: f => f.roulade > 0 && CHARS.cowboy.spr && CHARS.cowboy.spr[4] ? 4 : f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
+    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis. Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui aveugle l’adversaire : quelques dégâts et un gros ralentissement pendant un peu plus d’une seconde. Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
+    // va-t-il être touché ? renvoie la direction du danger (projectile, laser, langue) ou sa source (zone, corps à corps)
+    menace(f, o, g) {
+      for (const p of g.proj) if (p.owner === o) {
+        const dx = f.x - p.x, dy = f.y - p.y, d = Math.hypot(dx, dy) || 1, v = Math.hypot(p.vx, p.vy) || 1;
+        if (d < 150 && (p.vx * dx + p.vy * dy) / (v * d) > 0.85) return { dx: p.vx / v, dy: p.vy / v };
+      }
+      if (o.charge > 0 || o.tir > 0) { // laser du Robot pointé sur lui
+        const c0 = canonMonde(o), ca = Math.cos(o.laserAng), sa = Math.sin(o.laserAng);
+        if (distSeg(f.x, f.y, c0.x, c0.y, c0.x + ca * 900, c0.y + sa * 900) < Math.max(f.hw, f.hh) * 0.7) return { dx: ca, dy: sa };
+      }
+      if (o.langue && o.langue.etat === "tire" && Math.hypot(o.langue.x - f.x, o.langue.y - f.y) < 130) return { x: o.x, y: o.y, zone: true };
+      for (const m of g.missiles) if (m.owner === o && m.t < 0.5 && Math.hypot(m.x - f.x, m.y - f.y) < MISSILE_RAYON + f.hw * 0.4) return { x: m.x, y: m.y, zone: true };
+      for (const w of g.ondes) if (w.owner === o && Math.hypot(f.x - w.x, f.y - w.y) - w.r > 0 && Math.hypot(f.x - w.x, f.y - w.y) - w.r < 70) return { x: w.x, y: w.y, zone: true };
+      if (o.crusher && Math.hypot(o.x - f.x, o.y - f.y) < 220) return { dx: o.crusher.ux, dy: o.crusher.uy };
+      if ((o.etat === "furie" || o.stomp) && ecart(f, o) < 25) return { x: o.x, y: o.y, zone: true };
+      return null;
+    },
     // moments des 6 balles : calés sur les 6 coups du son de tir s'il y en a un, sinon rafale rapide
     horaires(f) {
       const s = sons.cowboy, lat = latenceSon(f);
@@ -305,6 +323,24 @@ const CHARS = {
       <path d='M43 30 Q60 35 77 30' fill='none' stroke='#5a3317' stroke-width='4'/></g>`,
     attaque(f, o, g, dt) {
       let t;
+      f.rouladeCd = Math.max(0, (f.rouladeCd ?? 2) - dt);
+      f.esquive = Math.max(0, (f.esquive || 0) - dt);
+      if (f.roulade > 0) { // en pleine roulade : il file, intouchable, sans tirer
+        f.roulade -= dt; f.vx = f.rdx * ROULADE_VITESSE; f.vy = f.rdy * ROULADE_VITESSE;
+        if (Math.random() < 0.5) g.parts.push({ x: f.x, y: f.y + f.hh * 0.8, vx: (Math.random() - 0.5) * 40, vy: -20, t: 0.35, c: "#b9a07a" }); // poussière
+        if (f.roulade <= 0) { f.enLair = false; f.esquive = ROULADE_ESQUIVE; normaliser(f); }
+        return;
+      }
+      const m = f.rouladeCd <= 0 && this.menace(f, o, g);
+      if (m) { // sur le point d'être touché : roulade
+        let dx, dy;
+        if (m.zone) { dx = f.x - m.x; dy = f.y - m.y; } // s'éloigne de la zone
+        else { dx = -m.dy; dy = m.dx; if ((f.x + dx * 80 - W / 2) ** 2 + (f.y + dy * 80 - W / 2) ** 2 > (f.x - dx * 80 - W / 2) ** 2 + (f.y - dy * 80 - W / 2) ** 2) { dx = -dx; dy = -dy; } } // sur le côté, vers le centre
+        const d = Math.hypot(dx, dy) || 1;
+        f.rdx = dx / d; f.rdy = dy / d; f.roulade = ROULADE_DUREE; f.rouladeCd = ROULADE_CD; f.enLair = true; son(f, 4);
+        if (f.cd > 0 && f.recharge && !(f.burst > 0)) { f.cd = 0; f.recharge = 0; arreterSon(f, 2); } // la roulade finit son rechargement
+        return;
+      }
       f.cd -= dt;
       // grenade flash : de temps en temps, lancée là où va l'adversaire (pas pendant une rafale)
       f.flashCd = (f.flashCd ?? FLASH_PREMIERE) - dt;
@@ -321,14 +357,15 @@ const CHARS = {
           // la balle part du bout du pistolet de l'image affichée
           f.face = f.dir; majTaille(f);
           const c0 = canonMonde(f);
-          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * BALLE_VITESSE, vy: 0, r: 4, dmg: 9, owner: f, rot: 0, rafale: f.rafale, transperce: true });
+          g.proj.push({ kind: "balle", x: c0.x, y: c0.y, vx: f.dir * BALLE_VITESSE * (f.rafale.rapide ? ROULADE_BONUS : 1), vy: 0, r: 4, dmg: 8, owner: f, rot: 0, rafale: f.rafale, transperce: true });
           if (f.burst === 0) { // rechargement juste après la 6e balle : il ne retire qu'une fois fini
             if (f.rafale.enchaine) f.cd = 0; // coup de chance : il enchaîne directement une autre rafale
             else { son(f, 2); f.cd = f.recharge = RECHARGE; }
           }
         }
       } else if (f.cd <= 0 && (t = cibleDe(f, o)) && Math.abs(t.y - f.y) < t.hh * 0.8) {
-        f.burst = 6; f.burstT = 0; f.rafale = { touches: 0 }; f.horaires = this.horaires(f); f.dir = Math.sign(t.x - f.x) || 1; son(f);
+        f.burst = 6; f.burstT = 0; f.rafale = { touches: 0, rapide: f.esquive > 0 }; f.horaires = this.horaires(f); f.dir = Math.sign(t.x - f.x) || 1; son(f);
+        if (f.rafale.rapide) f.horaires = f.horaires.map(h => h / ROULADE_BONUS); // juste après une roulade : 6 balles 1,5 fois plus vite
       }
       // il se déplace surtout de haut en bas, pour croiser les ennemis sur ses côtés
       const sp = Math.hypot(f.vx, f.vy);
@@ -596,7 +633,7 @@ const CHARS = {
         }
       } else if (f.etat === "stalk") { // immobile, fixe l'adversaire, la jauge monte
         f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1;
-        f.jauge = Math.min(1, f.jauge + dt / 3.7); // jauge pleine en 3,7 s
+        f.jauge = Math.min(1, f.jauge + dt / 3.55); // jauge pleine en 3,55 s
         if (f.jauge >= 1) {
           f.etat = "furie"; arreterSon(f, 2); son(f, 1, true); // son joué en boucle pendant toute la furie
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -1111,7 +1148,7 @@ function majTaille(f) {
   // persos « caler » : image 3+ (ex. « tir » avec l'étincelle) calée sur le dos de l'image 2 : le corps ne bouge pas,
   // seule la partie en plus (l'étincelle) dépasse vers l'avant
   const s2 = c.spr && c.spr[2];
-  f.ox = c.caler && s2 && s !== m && s !== s2 ? (s.tw * f.k - s2.tw * kDe(s2)) / 2 : 0;
+  f.ox = c.caler && s2 && c.spr[3] && s === c.spr[3] ? (s.tw * f.k - s2.tw * kDe(s2)) / 2 : 0;
 }
 function persoDe(cle) { return cle.replace(/-\d$/, ""); }
 function numImage(cle) { const m = /-(\d)$/.exec(cle); return m ? +m[1] : 1; }
@@ -1184,6 +1221,7 @@ function degats(g, cible, n, x, y) {
   const c = CHARS[cible.type];
   if (c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
   // Myers encaisse moins pendant sa furie (arrondi, 1 dégât minimum)
+  if (cible.esquive > 0) n = Math.max(1, Math.round(n * 0.5)); // juste après une roulade de McCree : 50 % de dégâts en moins
   if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction)));
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
   const reaction = CHARS[cible.type].quandTouche;
@@ -1226,7 +1264,7 @@ const CRUSHER_CD = 3.5, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 9, CRUSHER_SONNE
 const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 3;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
 const POISSON_CD = [3.5, 5], POISSON_MONTEE = 1.4, POISSON_PAUSE = 1, POISSON_CHUTE = 0.8, POISSON_HAUT = 70, POISSON_RAYON = 42;
-const POISSON_SOIN = 7; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
+const POISSON_SOIN = 5; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
 const CROQUE_DEGATS = 26, POISSON_CONTACT = 12, POISSON_ECART = 150;
 // hauteur de l'eau (depuis le bas) à la position x : niveau de base, petites ondulations et vagues de la tempête
 function merHauteur(g, x) {
@@ -1413,12 +1451,14 @@ function autodestruction(g, f, o) {
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const FEU_BONUS = 5; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
-const BOUCLIER_PV = 35, FEU_RAYON = 128, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
+const BOUCLIER_PV = 35, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 4; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
 // grenade flash de McCree : aveugle et ralentit énormément l'adversaire touché
-const FLASH_PREMIERE = 4, FLASH_CD = 9, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3;
+const FLASH_PREMIERE = 4, FLASH_CD = 11, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3;
+// roulade de McCree : esquive rapide quand il va être touché
+const ROULADE_CD = 8, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUIVE = 1, ROULADE_BONUS = 1.5;
 const ENCHAINE_CHANCE = 0.02; // chance par balle qui touche de ne pas recharger (McCree)
 const RECHARGE = 1.55; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
@@ -1486,7 +1526,8 @@ function maj(dt) {
     else if (Math.abs(f.vx) > 20) f.face = f.vx > 0 ? 1 : -1;
     // le robot tourne son image vers sa cible tant qu'il charge ou tire
     const angRot = f.charge > 0 || f.tir > 0 ? f.laserAng : f.crusher ? Math.atan2(f.crusher.uy, f.crusher.ux) : null; // Bison en vrille
-    f.rot = angRot === null ? (f.penche || 0) : f.face > 0 ? angRot : angRot - Math.PI; // le bateau du Marin suit la pente des vagues
+    f.rot = angRot === null ? (f.penche || 0) : f.face > 0 ? angRot : angRot - Math.PI;
+    if (f.roulade > 0) f.rot = (1 - f.roulade / ROULADE_DUREE) * Math.PI * 2 * (f.rdx >= 0 ? 1 : -1); // il roule sur lui-même // le bateau du Marin suit la pente des vagues
     f.flash = Math.max(0, f.flash - dt); f.muzzle = Math.max(0, f.muzzle - dt); f.attT = Math.max(0, (f.attT || 0) - dt);
   }
   // collision entre les deux persos (rectangles ajustés à l'image)
@@ -1543,7 +1584,7 @@ function maj(dt) {
           p.dedans = true;
           continue;
         }
-        // balles d'une même rafale : 1 dégât de moins à chaque balle qui touche (9, 8, 7, 6…)
+        // balles d'une même rafale : 1 dégât de moins à chaque balle qui touche (8, 7, 6, 5…)
         degats(g, cible, degatsProj(p), p.x, p.y); if (p.rafale) p.rafale.touches++;
         if (p.rafale && Math.random() < ENCHAINE_CHANCE) enchainer(g, p.owner, p.rafale);
         if (p.kind === "balle" && cible.crusher) { cible.crusher = null; cible.sonne = CRUSHER_SONNE; eclats(g, p.x, p.y, "#b04cff"); } // McCree coupe le Psycho Crusher
@@ -2974,7 +3015,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.31.0", NOTES = "Rework de McCree : plus de ricochets, mais une grenade flash toutes les 9 s (5 dégâts, adversaire très ralenti pendant 1,2 s).";
+const VERSION = "1.32.0", NOTES = "Rework de McCree : roulade quand il va être touché (intouchable, puis -50 % de dégâts 1 s, recharge son arme, rafale 1,5x plus rapide juste après). Compensé : balles à 8, grenade toutes les 11 s. Petits réajustements du Marin, de Myers et du Sorcier.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

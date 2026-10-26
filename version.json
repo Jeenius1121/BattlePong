@@ -1,1 +1,1 @@
-{"version": "1.31.0", "notes": "Rework de McCree : plus de ricochets, mais une grenade flash toutes les 9 s (5 dégâts, adversaire très ralenti pendant 1,2 s)."}
+{"version": "1.32.0", "notes": "Rework de McCree : roulade quand il va être touché (intouchable, puis -50 % de dégâts 1 s, recharge son arme, rafale 1,5x plus rapide juste après). Compensé : balles à 8, grenade toutes les 11 s. Petits réajustements du Marin, de Myers et du Sorcier."}

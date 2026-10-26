@@ -1181,7 +1181,7 @@ const CHARS = {
     nom: "Bouldozer", emoji: "🐹", vitesse: 200, pv: 150, taille: 1.23, images: ["tourelle"],
     // l'image tourelle à l'échelle qui donne la même boule que l'image normale (boule de 119 px contre 138 px dans l'image tourelle)
     echelles: { 2: 119 / 138 },
-    // en sélection et sur la carte de fin : l'image tourelle (où on voit le hamster), cadrée sur sa tête
+    // vignette de la grille et carte de fin : l'image tourelle (où on voit le hamster), cadrée sur sa tête
     portraitImage: 2, portraitAutre: { cx: 0.4, cy: 0.1, taille: 0.26 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
@@ -2838,7 +2838,7 @@ function majSelection(change) {
   document.querySelectorAll(".panneau").forEach(p => {
     const i = +p.dataset.side, c = CHARS[choix[i]], img = p.querySelector(".grand");
     const nomG = p.querySelector(".nomGrand");
-    img.src = imagePortrait(choix[i]).url; nomG.textContent = c.nom; nomG.classList.toggle("deux-lignes", c.nom.length > 14); ajusterNom(nomG);
+    img.src = c.sprite.url; nomG.textContent = c.nom; // grand panneau : toujours l'image normale (pour Bouldozer, la boule) nomG.classList.toggle("deux-lignes", c.nom.length > 14); ajusterNom(nomG);
     p.classList.toggle("actif", i === coteActif);
     if (i === change) { img.classList.remove("entre"); void img.offsetWidth; img.classList.add("entre"); }
   });
@@ -2864,7 +2864,7 @@ function cadreTete(s, portrait) {
   const cx = n ? sx / n : s.tw / 2;
   return (s.tete = { x: cx - S / 2, y: y0 - S * 0.06, S });
 }
-// image de portrait (sélection, carte de fin) : l'image normale, ou une autre image du perso (portraitImage) si elle est là
+// image de portrait (vignette de la grille, carte de fin) : l'image normale, ou une autre image du perso (portraitImage) si elle est là
 function imagePortrait(id) { const c = CHARS[id]; return c.portraitImage && c.spr && c.spr[c.portraitImage] || c.sprite; }
 function cadrePortrait(id) { const c = CHARS[id], s = imagePortrait(id); return cadreTete(s, s === c.sprite ? c.portrait : c.portraitAutre); }
 function dessinerTuile(id) {
@@ -3562,7 +3562,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.37.2", NOTES = "Sélection : Bouldozer apparaît avec son image de tir (le hamster bien visible) dans le grand panneau, et sa vignette est cadrée sur la tête du hamster. Pareil sur la carte de victoire.";
+const VERSION = "1.37.3", NOTES = "Sélection : le grand panneau de Bouldozer montre de nouveau sa boule ; seule sa vignette (et la carte de victoire) est cadrée sur la tête du hamster.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

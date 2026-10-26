@@ -1178,12 +1178,12 @@ const CHARS = {
     }
   },
   hammond: {
-    nom: "Bouldozer", emoji: "🐹", vitesse: 200, taille: 1.12, images: ["tourelle"],
+    nom: "Bouldozer", emoji: "🐹", vitesse: 200, pv: 150, taille: 1.23, images: ["tourelle"],
     // l'image tourelle à l'échelle qui donne la même boule que l'image normale (boule de 119 px contre 138 px dans l'image tourelle)
     echelles: { 2: 119 / 138 },
-    sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu",
+    sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
-    desc: "Une boule de démolition. Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin, rebondit sur les murs et retombe en bas de l’arène : il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (20 % de dégâts en moins), avant de relancer son grappin.",
+    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (20 % de dégâts en moins), avant de relancer son grappin.",
     svg: `<g ${O}>
       <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
       <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
@@ -1220,6 +1220,23 @@ const CHARS = {
         if (f.etatT >= TOURELLE_DUREE && !bloque) { f.visee = 0; this.accrocher(f, g, o); }
         return;
       }
+      if (f.etatH === "stase") { // il s'arrête en hauteur et tremble avant de s'écraser
+        f.enFeu = false; f.bvx = 0; f.bvy = 0;
+        const haut = solHammond(g, f) - STASE_HAUTEUR;
+        if (f.y > haut && !bloque) f.y = Math.max(haut, f.y - STASE_MONTEE * dt);
+        if (f.etatT >= STASE_DUREE && !bloque) { f.etatH = "chute"; f.etatT = 0; f.trajet = false; f.trajetDrones = new Set(); }
+        return;
+      }
+      if (f.etatH === "chute") { // il s'écrase tout droit au sol
+        f.enFeu = false; f.y += HAMMOND_CHUTE * dt;
+        for (let i = 0; i < 2; i++) g.parts.push({ x: f.x + (Math.random() - 0.5) * f.hw, y: f.y - f.hh, vx: 0, vy: -60, t: 0.25, c: i ? "#ffd23f" : "#ff8a2a" });
+        const t = cibleDe(f, o);
+        if (t && !t.drone && !f.trajet && ecart(f, t) < 0) { f.trajet = true; frapper(g, o, t, ECRASE_TRAJET, (f.x + t.x) / 2, (f.y + t.y) / 2); } // il était sur la trajectoire
+        for (const d of [...(o.drones || [])]) if (!f.trajetDrones.has(d) && Math.hypot(d.x - f.x, d.y - f.y) < Math.max(f.hw, f.hh)) { f.trajetDrones.add(d); blesserDrone(g, o, d, ECRASE_TRAJET); }
+        const sol = solHammond(g, f);
+        if (f.y >= sol) { f.y = sol; this.ecraser(f, o, g); f.etatH = "tourelle"; f.etatT = 0; f.sonTir = false; f.rafaleT = 0.35; }
+        return;
+      }
       const vit = Math.hypot(f.bvx, f.bvy);
       f.enFeu = vit >= HAMMOND_FEU_VITESSE;
       if (!bloque) {
@@ -1251,12 +1268,10 @@ const CHARS = {
         const sol = solHammond(g, f);
         if (f.y > sol) {
           f.y = sol;
-          if (f.etatH === "vol" && f.etatT > 0.25 && Math.abs(f.bvy) < HAMMOND_ATTERRIT) { // il atterrit : mode tourelle
-            f.etatH = "tourelle"; f.etatT = 0; f.bvx = 0; f.bvy = 0; f.sonTir = false; f.rafaleT = 0.25; f.enFeu = false;
-            return;
-          }
           f.bvy = -Math.abs(f.bvy) * HAMMOND_REBOND_SOL; f.bvx *= HAMMOND_REBOND_SOL;
         }
+        // après un moment de vol libre (le feu peut encore toucher), il s'arrête en hauteur
+        if (f.etatH === "vol" && f.etatT >= VOL_LIBRE) { f.etatH = "stase"; f.etatT = 0; f.bvx = 0; f.bvy = 0; f.enFeu = false; return; }
         f.penche = (f.penche || 0) + f.bvx * dt / Math.max(10, f.hw); // la boule roule sur elle-même
       }
       // en feu : il blesse ce qu'il percute, appareils du Bombardier compris
@@ -1289,6 +1304,17 @@ const CHARS = {
       const rx = f.x - x, ry = f.y - y, d = Math.hypot(rx, ry) || 1, s = Math.random() < 0.5 ? -1 : 1;
       f.bvx = -ry / d * s * 220; f.bvy = rx / d * s * 220 - 150; f.y -= 2;
       son(f);
+    },
+    // impact au sol : gros dégâts à l'adversaire qui est en bas, pas trop loin
+    ecraser(f, o, g) {
+      const yb = f.y + f.hh * 0.8;
+      g.boums.push({ x: f.x, y: yb, t: 0.6, k: 1.2 }); g.secousse = Math.max(g.secousse, 0.45); son(f, 4);
+      for (let i = 0; i < 36; i++) { const c = i % 2 ? 1 : -1, v = 150 + Math.random() * 450; g.parts.push({ x: f.x + c * Math.random() * 30, y: yb, vx: c * v, vy: -Math.random() * 220, t: 0.55, g: 600, c: ["#c9b48a", "#8a7a5c", "#ffd23f"][i % 3] }); }
+      g.ondesSol = g.ondesSol || []; g.ondesSol.push({ x: f.x, y: yb, t: 0.45 });
+      if (!g.running || o.mort || o.enLair) return;
+      const bas = g.mer ? merSurface(g, o.x) : W;
+      if (o.y + o.hh >= bas - ECRASE_HAUTEUR_SOL && Math.abs(o.x - f.x) < ECRASE_RAYON + o.hw) degats(g, o, ECRASE_SOL, o.x, o.y - o.hh * 0.3);
+      for (const d of [...(o.drones || [])]) if (d.y > W - ECRASE_HAUTEUR_SOL - 30 && Math.abs(d.x - f.x) < ECRASE_RAYON) blesserDrone(g, o, d, ECRASE_SOL);
     },
     // attrapé par la langue du Smoker : il lâche tout et retombera
     attrape(f) { f.etatH = "vol"; f.etatT = 0; f.grappin = null; f.bvx = 0; f.bvy = 0; f.enFeu = false; }
@@ -1727,7 +1753,11 @@ const FINALE_NB = 6, FINALE_ECART = 70, FINALE_MECHE = [0.8, 1.6], FINALE_DEGATS
 // Bouldozer : balancement au bout du grappin, en feu au-delà d'une certaine vitesse, mitraillettes une fois en bas
 const HAMMOND_GRAVITE = 900, HAMMOND_POMPE = 750, HAMMOND_VITESSE_MAX = 820, HAMMOND_VITESSE_PLAFOND = 1000, HAMMOND_FEU_VITESSE = 500, HAMMOND_REBOND = 0.85, HAMMOND_REBOND_SOL = 0.5, HAMMOND_ATTERRIT = 450;
 const HAMMOND_ESSAIS = 6, HAMMOND_VISEE = 0.6; // endroits essayés pour le grappin ; angle (radians) pour lâcher vers l'adversaire
-const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 20, HAMMOND_CHOC_CD = 0.5;
+const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 11, HAMMOND_CHOC_CD = 0.5;
+// après le grappin : vol libre, puis il s'arrête en hauteur (tremble), puis s'écrase au sol
+const VOL_LIBRE = 1, STASE_DUREE = 0.5, STASE_HAUTEUR = 220, STASE_MONTEE = 500, HAMMOND_CHUTE = 1500;
+// écrasement : dégâts à l'adversaire au sol (pas trop loin), et plus petits s'il était sur la trajectoire
+const ECRASE_SOL = 10, ECRASE_TRAJET = 5, ECRASE_RAYON = 170, ECRASE_HAUTEUR_SOL = 60;
 const HAMMOND_BLINDAGE = 0.2; // dégâts en moins quand il est posé en bas (mode tourelle)
 const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.25;
 // mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
@@ -2016,6 +2046,7 @@ function maj(dt) {
   g.txt = g.txt.filter(t => { t.y -= 40 * dt; t.t -= dt; return t.t > 0; });
   g.explos = g.explos.filter(e => (e.t -= dt) > 0);
   g.boums = (g.boums || []).filter(e => (e.t -= dt) > 0);
+  if (g.ondesSol) g.ondesSol = g.ondesSol.filter(e => (e.t -= dt) > 0);
   g.taches = g.taches.filter(e => (e.t -= dt) > 0);
   // zones de feu du Sorcier : brûlent l'adversaire qui passe dedans
   g.ondes = g.ondes.filter(w => {
@@ -2259,6 +2290,16 @@ function dessiner() {
     ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(e.x, e.y, FLASH_RAYON * 1.6, 0, 7); ctx.fill();
   }
   dessinerBombes(g);
+  for (const f of g.f) if ((f.etatH === "stase" || f.etatH === "chute") && !f.mort) { // zone où Bouldozer va s'écraser
+    const yb = W - 14, k = f.etatH === "chute" ? 1 : f.etatT / STASE_DUREE;
+    ctx.save(); ctx.fillStyle = `rgba(255,120,30,${0.12 + 0.2 * k})`; ctx.strokeStyle = "rgba(255,160,60,.8)"; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.ellipse(f.x, yb, ECRASE_RAYON * (0.4 + 0.6 * k), 12, 0, 0, 7); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = "rgba(255,160,60,.35)"; ctx.beginPath(); ctx.moveTo(f.x, f.y + f.hh); ctx.lineTo(f.x, yb); ctx.stroke(); ctx.restore();
+  }
+  for (const o of g.ondesSol || []) { // onde de choc de l'écrasement, au ras du sol
+    const k = 1 - o.t / 0.45; ctx.save(); ctx.strokeStyle = `rgba(255,200,90,${o.t / 0.45})`; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.ellipse(o.x, o.y, ECRASE_RAYON * (0.3 + 0.9 * k), 14 + 10 * k, 0, 0, 7); ctx.stroke(); ctx.restore();
+  }
   for (const f of g.f) if (f.grappin && !f.mort) { // câble du grappin de Bouldozer
     ctx.save(); ctx.strokeStyle = "#d8dce6"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(f.grappin.x, f.grappin.y); ctx.lineTo(f.x, f.y); ctx.stroke();
     ctx.fillStyle = "#8b93a6"; ctx.strokeStyle = "#2a2e38"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(f.grappin.x, f.grappin.y, 7, 0, 7); ctx.fill(); ctx.stroke(); ctx.restore();
@@ -2325,6 +2366,7 @@ function dessiner() {
       }
     }
     ctx.save(); ctx.translate(f.x, f.y);
+    if (f.etatH === "stase") ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6); // Bouldozer qui tremble avant de s'écraser
     if (f.capture) { // il se débat, plus fort quand la langue serre
       const L = f.capture.langue, k = L && L.serre > 0 ? 3 : 1;
       ctx.translate((Math.random() - 0.5) * 4 * k, (Math.random() - 0.5) * 3 * k);
@@ -3510,7 +3552,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.36.3", NOTES = "Bouldozer : sa boule est 12 % plus grosse, et elle garde la même taille quand il se pose en bas pour tirer (il ne rapetisse plus). Posé en bas, il prend 20 % de dégâts en moins.";
+const VERSION = "1.37.0", NOTES = "Bouldozer grossit encore (+10 %) et passe à 150 PV. Nouvelle attaque : après avoir lâché son grappin, il file encore un instant, s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol avec une onde de choc (gros dégâts à l’adversaire au sol près de l’impact, un peu à celui qui était sur sa trajectoire), puis passe en tourelle. Ses autres dégâts baissent en échange.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

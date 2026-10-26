@@ -903,17 +903,21 @@ const CHARS = {
         f.vx = Math.sign(I.x - f.x || 1) * ILE_VITESSE;
         if (Math.abs(f.x - I.x) < ILE_LARGEUR * 0.35 && g.running) { g.ile = true; o.hp = 0; f.surIle = true; } // arrivé chez lui : il gagne
       }
-      this.flotter(f, g);
+      this.flotter(f, g, dt);
     },
     // la coque trempe juste un peu dans l'eau (en plongée, tout le bateau passe dessous) ; arrivé sur l'île, il y reste posé
-    flotter(f, g) {
+    flotter(f, g, dt = 0) {
       if (f.surIle) {
         const I = g.mer.ile; f.x = I.x; f.vx = 0; f.vy = 0; f.penche = 0;
         f.y = ileHaut() - f.hh * 0.75;
         return;
       }
       const enfonce = f.plongee > 0 ? Math.min(1, (PLONGEE_DUREE - f.plongee) / 0.2, f.plongee / 0.2) : 0;
-      f.y = merSurface(g, f.x) - f.hh * (0.72 - 1.5 * enfonce);
+      const cible = merSurface(g, f.x) - f.hh * (0.72 - 1.5 * enfonce);
+      if (f.retombe && f.y < cible - 2 && dt > 0) { // relâché par le Smoker : il retombe vite dans l'eau, mais pas d'un coup
+        f.vChute = (f.vChute || 0) + 2600 * dt; f.y = Math.min(cible, f.y + f.vChute * dt);
+        if (f.y >= cible) { f.retombe = false; f.vChute = 0; this.eclabousser(g, f.x, merSurface(g, f.x)); }
+      } else { f.retombe = false; f.vChute = 0; f.y = cible; }
       if (f.plongee > 0 && Math.random() < 0.4) g.parts.push({ x: f.x + (Math.random() - 0.5) * f.hw, y: merSurface(g, f.x), vx: 0, vy: -40 - Math.random() * 40, t: 0.4, c: "#cfefff" }); // bulles
       f.penche = Math.atan2(merSurface(g, f.x + 25) - merSurface(g, f.x - 25), 50) * 0.8;
     },
@@ -931,6 +935,7 @@ const CHARS = {
         jouerEffet("marin-7", 1); // pile au moment où l'île sort de l'eau
       }
       if (M.ile) M.ile.monte = Math.min(1, M.ile.monte + dt / 1.5);
+      if (f.capture) f.retombe = true; // tiré hors de l'eau par la langue : il retombera en douceur
       if (!g.running && !f.mort) { // combat fini (victoire normale ou sur l'île) : il continue de flotter tranquillement
         f.vy = 0; f.vx = f.surIle ? 0 : (Math.sign(f.vx) || 1) * this.vitesse; this.flotter(f, g);
       }
@@ -985,6 +990,10 @@ const CHARS = {
       // l'adversaire dans l'eau prend un peu de dégâts
       M.tic -= dt;
       if (g.running && !o.mort && M.tic <= 0 && o.y + o.hh * 0.5 > merSurface(g, o.x)) { M.tic = MER_TIC; degats(g, o, MER_DEGATS, o.x, o.y); }
+    },
+    // dès le début (pendant « Ready… Fight »), il est déjà posé sur la mer
+    preparer(f, o, g) {
+      this.monde(f, o, g, 0); f.vx = Math.random() < 0.5 ? -1 : 1; f.vy = 0; this.flotter(f, g);
     },
     eclabousser(g, x, y) {
       for (let i = 0; i < 16; i++) g.parts.push({ x: x + (Math.random() - 0.5) * 40, y, vx: (Math.random() - 0.5) * 220, vy: -150 - Math.random() * 250, t: 0.7, g: 600, c: i % 2 ? "#9fd8ff" : "#e8f6ff" });
@@ -1157,6 +1166,7 @@ function creerCombattant(type, side) {
 function nouveauJeu(running) {
   arreterBoucles(); couper("_marin-4"); // la mer du combat précédent se tait
   jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], feux: [], ondes: [], missiles: [], secousse: 0, running, fin: 0 };
+  for (const [f, o] of [[jeu.f[0], jeu.f[1]], [jeu.f[1], jeu.f[0]]]) if (CHARS[f.type].preparer) CHARS[f.type].preparer(f, o, jeu); // ex. le Marin posé sur la mer
   majHud();
 }
 function degats(g, cible, n, x, y) {
@@ -2935,7 +2945,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.30.6", NOTES = "L'Inconnu regagne 4 PV par téléportation. Très léger coup de pouce au Smoker (vitesse 263) et au Sorcier (flaque de feu 128).";
+const VERSION = "1.30.7", NOTES = "Jeune beau et plein d’avenir : posé sur la mer dès le début du combat, et il retombe en douceur dans l'eau quand le Smoker le relâche.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

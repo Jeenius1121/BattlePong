@@ -506,7 +506,7 @@ const CHARS = {
     attaque(f, o, g, dt) {
       f.copies = f.copies || [];
       f.copieT = (f.copieT ?? 3) - dt;
-      f.teleT = (f.teleT ?? 4.5 + Math.random() * 3) - dt;
+      f.teleT = (f.teleT ?? 3 + Math.random() * 2) - dt;
       // une copie toutes les 2 secondes, 3 maximum
       if (f.copieT <= 0) {
         f.copieT = 3;
@@ -514,7 +514,7 @@ const CHARS = {
       }
       // téléportation à un moment au hasard vers une de ses copies (qui disparaît)
       if (f.teleT <= 0) {
-        f.teleT = 4.5 + Math.random() * 3.5; // entre 4,5 et 8 s entre deux téléportations
+        f.teleT = 3 + Math.random() * 2.5; // entre 3 et 5,5 s entre deux téléportations
         if (f.copies.length && !f.teleEnCours) {
           f.teleEnCours = true; son(f, 2);
           plusTard(g, latenceSon(f, 2), () => {
@@ -2935,7 +2935,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.30.4", NOTES = "L'île de la tortue arrive au hasard à 18, 19 ou 20 secondes.";
+const VERSION = "1.30.5", NOTES = "L'Inconnu se téléporte plus souvent (toutes les 3 à 5,5 s au lieu de 4,5 à 8 s).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

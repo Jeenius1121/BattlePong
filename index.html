@@ -1198,13 +1198,24 @@ const CHARS = {
         f.y = solHammond(g, f); f.penche = 0;
         const t = cibleDe(f, o);
         if (t) f.face = t.x >= f.x ? 1 : -1;
+        // les mitraillettes pivotent peu à peu vers la cible (elles ne visent jamais vers l'arrière ni sous le sol)
+        if (t) {
+          const voulu = Math.atan2(t.y - (f.y - f.hh * 0.2), (t.x - f.x) * f.face);
+          const cible = Math.max(-CANON_ANGLE_MAX, Math.min(CANON_ANGLE_BAS, voulu));
+          f.visee ??= 0;
+          f.visee += Math.max(-CANON_PIVOT * dt, Math.min(CANON_PIVOT * dt, cible - f.visee));
+        }
+        f.reculCanons = (f.reculCanons || [0, 0]).map(r => Math.max(0, r - dt * 10));
         f.rafaleT = (f.rafaleT ?? 0.25) - dt;
         if (t && f.rafaleT <= 0 && f.etatT < TOURELLE_DUREE - 0.2) {
           f.rafaleT = MITRAILLE_CADENCE; if (!f.sonTir) { f.sonTir = true; son(f, 2); }
-          const x0 = f.x + f.face * f.hw * 0.7, y0 = f.y - f.hh * 0.2, a = Math.atan2(t.y - y0, t.x - x0) + (Math.random() - 0.5) * MITRAILLE_DISPERSION;
-          g.proj.push({ kind: "balle", x: x0, y: y0, vx: Math.cos(a) * MITRAILLE_VITESSE, vy: Math.sin(a) * MITRAILLE_VITESSE, r: 3, dmg: MITRAILLE_DEGATS, owner: f, rot: 0, drone: t.drone });
+          const i = f.canon = 1 - (f.canon || 0), b = boutCanon(f, i); // les deux mitraillettes tirent chacune leur tour
+          const a = b.a + (Math.random() - 0.5) * MITRAILLE_DISPERSION;
+          f.reculCanons[i] = 1;
+          g.proj.push({ kind: "balle", x: b.x, y: b.y, vx: Math.cos(a) * MITRAILLE_VITESSE, vy: Math.sin(a) * MITRAILLE_VITESSE, r: 3, dmg: MITRAILLE_DEGATS, owner: f, rot: 0, drone: t.drone });
+          for (let k = 0; k < 3; k++) g.parts.push({ x: b.x, y: b.y, vx: Math.cos(a + (Math.random() - 0.5)) * 160, vy: Math.sin(a + (Math.random() - 0.5)) * 160, t: 0.12, c: k % 2 ? "#ffd23f" : "#fff3c4" });
         }
-        if (f.etatT >= TOURELLE_DUREE && !bloque) this.accrocher(f, g, o);
+        if (f.etatT >= TOURELLE_DUREE && !bloque) { f.visee = 0; this.accrocher(f, g, o); }
         return;
       }
       const vit = Math.hypot(f.bvx, f.bvy);
@@ -1704,7 +1715,7 @@ function autodestruction(g, f, o) {
   for (let i = 0; i < 3; i++) g.boums.push({ x: f.x + (Math.random() - 0.5) * 60, y: f.y + (Math.random() - 0.5) * 60, t: 0.6 });
 }
 // Chacal : grenades qui rebondissent, mine incapacitante, piège d'acier, grenades de la fin
-const GRENADE_CD = 1.35, GRENADE_VITESSE = 430, GRENADE_MECHE = 2.2, GRENADE_REBONDS = 3, GRENADE_DEGATS = 11, GRENADE_RAYON = 55;
+const GRENADE_CD = 1.3, GRENADE_VITESSE = 430, GRENADE_MECHE = 2.2, GRENADE_REBONDS = 3, GRENADE_DEGATS = 11, GRENADE_RAYON = 55;
 const MINE_PREMIERE = 3, MINE_CD = 7, MINE_DEGATS = 8, MINE_RAYON = 28, MINE_PROJETE = 850;
 const PIEGE_PREMIER = 5, PIEGE_CD = 9, PIEGE_DEGATS = 6, PIEGE_DUREE = 1.5, PIEGE_RAYON = 26;
 const FINALE_NB = 6, FINALE_ECART = 70, FINALE_MECHE = [0.8, 1.6], FINALE_DEGATS = 9, FINALE_RAYON = 50;
@@ -1713,6 +1724,43 @@ const HAMMOND_GRAVITE = 900, HAMMOND_POMPE = 750, HAMMOND_VITESSE_MAX = 820, HAM
 const HAMMOND_ESSAIS = 6, HAMMOND_VISEE = 0.6; // endroits essayés pour le grappin ; angle (radians) pour lâcher vers l'adversaire
 const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 20, HAMMOND_CHOC_CD = 0.5;
 const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.25;
+// mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
+// Repère du perso tourné vers l'avant (x vers l'avant) ; u = demi-hauteur de l'image
+const CANON_PIVOT = 5, CANON_ANGLE_MAX = 1.25, CANON_ANGLE_BAS = 0.45; // vitesse de pivot (radians/s), angle max vers le haut et vers le bas
+function canonsHammond(f) {
+  const u = f.hh;
+  return { u, L: u * 1.05, attaches: [{ x: -f.hw * 0.1, y: -u * 0.32 }, { x: f.hw * 0.16, y: -u * 0.08 }] };
+}
+// bout du canon n° i, dans l'arène, et direction du tir
+function boutCanon(f, i) {
+  const c = canonsHammond(f), m = c.attaches[i], a = f.visee || 0, r = (f.reculCanons || [0, 0])[i] * c.u * 0.08;
+  const lx = m.x + Math.cos(a) * (c.L - r), ly = m.y + Math.sin(a) * (c.L - r);
+  return { x: f.x + lx * f.face, y: f.y + ly, a: Math.atan2(Math.sin(a), Math.cos(a) * f.face) };
+}
+// dessine une mitraillette (double canon) dans le repère du perso tourné vers l'avant
+function dessinerCanon(f, i) {
+  const c = canonsHammond(f), m = c.attaches[i], u = c.u, r = (f.reculCanons || [0, 0])[i] * u * 0.08;
+  ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(f.visee || 0);
+  if (i === 0) ctx.filter = "brightness(0.72)"; // celle de derrière, un peu dans l'ombre
+  ctx.lineJoin = "round"; ctx.strokeStyle = "#15171d"; ctx.lineWidth = Math.max(1.5, u * 0.025);
+  // canons (avec le recul)
+  for (const dy of [-u * 0.085, u * 0.085]) {
+    ctx.fillStyle = "#2b2f38"; ctx.beginPath(); ctx.rect(u * 0.2 - r, dy - u * 0.042, c.L - u * 0.26, u * 0.084); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#5a6070"; ctx.fillRect(u * 0.2 - r, dy - u * 0.042, c.L - u * 0.26, u * 0.025); // reflet
+    ctx.fillStyle = "#f2b134"; ctx.beginPath(); ctx.rect(c.L - u * 0.12 - r, dy - u * 0.065, u * 0.14, u * 0.13); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#15171d"; ctx.fillRect(c.L - u * 0.09 - r, dy - u * 0.035, u * 0.08, u * 0.07);
+  }
+  // boîtier avec bandes bleue et orange
+  ctx.fillStyle = "#3b4150"; ctx.beginPath(); ctx.roundRect(-u * 0.18, -u * 0.17, u * 0.48, u * 0.34, u * 0.06); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#6fb7c9"; ctx.beginPath(); ctx.roundRect(-u * 0.14, -u * 0.13, u * 0.17, u * 0.26, u * 0.04); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#e8692a"; ctx.fillRect(u * 0.1, -u * 0.16, u * 0.05, u * 0.32);
+  ctx.fillStyle = "#d0d4dc"; ctx.beginPath(); ctx.arc(-u * 0.055, 0, u * 0.045, 0, 7); ctx.fill(); ctx.stroke();
+  if ((f.reculCanons || [0, 0])[i] > 0.6) { // éclair au bout des canons
+    ctx.fillStyle = "rgba(255,230,120,.95)";
+    for (const dy of [-u * 0.085, u * 0.085]) { ctx.beginPath(); ctx.moveTo(c.L, dy - u * 0.06); ctx.lineTo(c.L + u * 0.22, dy); ctx.lineTo(c.L, dy + u * 0.06); ctx.fill(); }
+  }
+  ctx.restore();
+}
 // le bas de l'arène pour Bouldozer (la mer du Marin s'il y en a une)
 function solHammond(g, f) { return g.mer ? merSurface(g, f.x) - f.hh * 0.6 : W - f.hh; }
 // explosion d'une bombe de Chacal : blesse l'adversaire (et les appareils) dans le rayon
@@ -2327,7 +2375,10 @@ function dessiner() {
       ctx.shadowColor = `rgba(255,40,40,${0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 1000 * vite))})`; ctx.shadowBlur = 26;
     }
     if (f.type === "bison") { ctx.shadowColor = "rgba(170,70,255,.85)"; ctx.shadowBlur = f.crusher ? 32 : 14; } // aura psychique
+    const canons = f.type === "hammond" && f.etatH === "tourelle";
+    if (canons) dessinerCanon(f, 0); // mitraillette de derrière, cachée en partie par la boule
     ctx.drawImage(s.img, -f.hw, -f.hh, f.hw * 2, f.hh * 2);
+    if (canons) dessinerCanon(f, 1); // mitraillette de devant
     ctx.shadowBlur = 0;
     if (f.etat === "furie" && !spriteImage(f.type + "-2")) { // couteau qui frappe (sauf si une image de furie est fournie)
       const swing = f.coupT > 0 ? 1.6 * (1 - f.coupT / 0.15) : 0;
@@ -3438,7 +3489,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.36.0", NOTES = "Deux nouveaux persos : Chacal (grenades qui rebondissent, mine, piège d’acier, et des grenades lâchées à sa mort qui peuvent finir en égalité) et Bouldozer (se balance au grappin, prend feu à pleine vitesse, mitraille une fois en bas). Rééquilibrage de tout le roster.";
+const VERSION = "1.36.1", NOTES = "Bouldozer en mode tourelle : nouvelle image, avec deux mitraillettes (devant et derrière) qui pivotent vers la cible ; les balles partent du bout des canons, avec recul et éclair. Petit buff de Chacal (une grenade toutes les 1,3 s).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

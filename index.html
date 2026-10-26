@@ -588,7 +588,7 @@ const CHARS = {
           const G = 900, x0 = f.x, y0 = f.y - f.hh * 0.3, c = t.drone || o;
           const dx = c.x - x0, dy = c.y - y0, T = 0.55 + Math.hypot(dx, dy) / 650;
           g.proj.push({ kind: "mortier", x: x0, y: y0, vx: dx / T, vy: dy / T - 0.5 * G * T, gravite: G,
-            r: 30, dmg: 13, owner: f, rot: 0, perce: true });
+            r: 30, dmg: 12, owner: f, rot: 0, perce: true });
         });
       }
     }
@@ -643,7 +643,7 @@ const CHARS = {
           f.vx = dx / d; f.vy = dy / d;
         }
       } else { // furie : couteau sorti, plus rapide, fonce sur l'adversaire
-        f.jauge -= dt / 7.2; // la furie dure 7,2 s
+        f.jauge -= dt / 7.45; // la furie dure 7,45 s
         const t = cibleDe(f, o) || o; // fonce sur l'ennemi le plus proche (adversaire ou appareil)
         const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1, k = Math.min(1, dt * 5);
         const n0 = Math.hypot(f.vx, f.vy) || 1;
@@ -662,7 +662,7 @@ const CHARS = {
     }
   },
   smoker: {
-    nom: "Smoker", emoji: "👅", vitesse: 263, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
+    nom: "Smoker", emoji: "👅", vitesse: 268, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
     // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
@@ -1130,6 +1130,155 @@ const CHARS = {
         for (let i = 0; i < 20; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 260; g.parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.5, g: 500, c: i % 2 ? "#c9b48a" : "#8a7a5c" }); }
       }
     }
+  },
+  chacal: {
+    nom: "Chacal", emoji: "💣", vitesse: 230, images: ["tir"],
+    sonNom: "grenade", son2: "explosion", son3: "mine", son4: "piège", son6: "grenades de la fin",
+    imageDe: f => f.attT > 0 ? 2 : 1,
+    desc: "Lance des grenades vers l’adversaire : elles rebondissent sur les murs et explosent au contact, ou au bout de quelques instants. De temps en temps, il pose une mine incapacitante (elle explose quand l’adversaire passe dessus et le projette au loin) et un piège d’acier (l’adversaire qui marche dedans est bloqué sur place un moment). Quand il meurt, il lâche une poignée de petites grenades autour de lui : tant qu’elles n’ont pas explosé, le combat n’est pas fini, et si elles tuent l’adversaire, c’est une égalité.",
+    svg: `<g ${O}>
+      <rect x='46' y='108' width='11' height='32' fill='#5a4632'/><path d='M63 108 h11 v24 h-4 v8 h-7z' fill='#5a4632'/>
+      <rect x='42' y='136' width='17' height='8' rx='2' fill='#2a2a2e'/><rect x='66' y='138' width='4' height='6' fill='#8a8f99'/>
+      <path d='M38 62 Q60 54 82 62 L84 112 H36Z' fill='#e2b08a'/><path d='M38 96 H84 V112 H36Z' fill='#6b5238'/>
+      <path d='M40 64 L80 100 M80 64 L40 100' stroke='#3d2f20' stroke-width='4'/>
+      <circle cx='60' cy='38' r='17' fill='#e2b08a'/>
+      <path d='M44 30 Q46 12 60 14 Q66 6 72 14 Q80 16 78 30 Q70 22 60 26 Q50 22 44 30Z' fill='#f2b134'/>
+      <circle cx='54' cy='38' r='2.4' fill='#1b2033' stroke='none'/><circle cx='67' cy='38' r='2.4' fill='#1b2033' stroke='none'/>
+      <path d='M52 48 Q60 54 68 48' fill='none'/>
+      <rect x='80' y='70' width='34' height='14' rx='5' fill='#4a5d3a'/><circle cx='114' cy='77' r='6' fill='#2a2a2e'/>
+      <circle cx='30' cy='90' r='8' fill='#4a5d3a'/><path d='M30 82 v-6' stroke='#ffd23f' stroke-width='2'/></g>`,
+    attaque(f, o, g, dt) {
+      f.grenadeCd = (f.grenadeCd ?? 0.8) - dt;
+      f.mineCd = (f.mineCd ?? MINE_PREMIERE) - dt;
+      f.piegeCd = (f.piegeCd ?? PIEGE_PREMIER) - dt;
+      const t = cibleDe(f, o);
+      if (t && f.grenadeCd <= 0) { // grenade lancée vers l'adversaire, qui rebondira sur les murs
+        f.grenadeCd = GRENADE_CD; f.attT = 0.25; son(f);
+        const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1, a = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.25;
+        g.bombes.push({ sorte: "grenade", x: f.x + dx / d * f.hw * 0.6, y: f.y + dy / d * f.hh * 0.3, vx: Math.cos(a) * GRENADE_VITESSE, vy: Math.sin(a) * GRENADE_VITESSE, t: GRENADE_MECHE, rebonds: 0, owner: f, rate: rateTir(f), rot: 0 });
+      }
+      if (f.mineCd <= 0) { // mine incapacitante posée là où il est (une seule à la fois)
+        f.mineCd = MINE_CD; son(f, 3);
+        g.bombes = g.bombes.filter(b => !(b.owner === f && b.sorte === "mine"));
+        g.bombes.push({ sorte: "mine", x: f.x, y: f.y + f.hh * 0.5, arme: 0.6, owner: f });
+      }
+      if (f.piegeCd <= 0) { // piège d'acier posé là où il est (un seul à la fois)
+        f.piegeCd = PIEGE_CD; son(f, 4);
+        g.bombes = g.bombes.filter(b => !(b.owner === f && b.sorte === "piege"));
+        g.bombes.push({ sorte: "piege", x: f.x, y: f.y + f.hh * 0.5, arme: 0.6, owner: f });
+      }
+    },
+    // à sa mort : une poignée de petites grenades restent posées autour de lui, puis explosent
+    finale(g, f) {
+      jouerEffet("chacal-6", 1);
+      for (let i = 0; i < FINALE_NB; i++) {
+        const a = i / FINALE_NB * Math.PI * 2 + Math.random() * 0.5, r = 25 + Math.random() * FINALE_ECART;
+        g.bombes.push({ sorte: "finale", x: Math.min(W - 10, Math.max(10, f.x + Math.cos(a) * r)), y: Math.min(W - 10, Math.max(10, f.y + Math.sin(a) * r)), t: FINALE_MECHE[0] + Math.random() * (FINALE_MECHE[1] - FINALE_MECHE[0]), owner: f, rot: Math.random() * 6 });
+      }
+    }
+  },
+  hammond: {
+    nom: "Bouldozer", emoji: "🐹", vitesse: 200, images: ["tourelle"],
+    sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu",
+    imageDe: f => f.etatH === "tourelle" ? 2 : 1,
+    desc: "Une boule de démolition. Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin, rebondit sur les murs et retombe en bas de l’arène : il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), avant de relancer son grappin.",
+    svg: `<g ${O}>
+      <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
+      <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
+      <circle cx='60' cy='62' r='20' fill='#bfe3ff' stroke='#4a5160' stroke-width='4'/>
+      <circle cx='60' cy='66' r='12' fill='#e2a25a' stroke='none'/><circle cx='55' cy='63' r='2' fill='#1b2033' stroke='none'/><circle cx='65' cy='63' r='2' fill='#1b2033' stroke='none'/>
+      <circle cx='51' cy='56' r='4' fill='#e2a25a' stroke='none'/><circle cx='69' cy='56' r='4' fill='#e2a25a' stroke='none'/>
+      <circle cx='60' cy='106' r='8' fill='#f2b134'/></g>`,
+    // le mécanisme : en boule au bout du grappin, en vol libre, ou posé en bas en mode tourelle
+    attaque(f, o, g, dt) {
+      f.vx = 0; f.vy = 0; // il gère lui-même son mouvement
+      f.etatH ??= "vol"; f.bvx ??= 0; f.bvy ??= 0; f.etatT = (f.etatT || 0) + dt; f.chocCd = Math.max(0, (f.chocCd || 0) - dt);
+      const bloque = f.piege > 0;
+      if (f.etatH === "tourelle") { // posé en bas : il sort ses mitraillettes et tire vers l'adversaire
+        f.y = solHammond(g, f); f.penche = 0;
+        const t = cibleDe(f, o);
+        if (t) f.face = t.x >= f.x ? 1 : -1;
+        f.rafaleT = (f.rafaleT ?? 0.25) - dt;
+        if (t && f.rafaleT <= 0 && f.etatT < TOURELLE_DUREE - 0.2) {
+          f.rafaleT = MITRAILLE_CADENCE; if (!f.sonTir) { f.sonTir = true; son(f, 2); }
+          const x0 = f.x + f.face * f.hw * 0.7, y0 = f.y - f.hh * 0.2, a = Math.atan2(t.y - y0, t.x - x0) + (Math.random() - 0.5) * MITRAILLE_DISPERSION;
+          g.proj.push({ kind: "balle", x: x0, y: y0, vx: Math.cos(a) * MITRAILLE_VITESSE, vy: Math.sin(a) * MITRAILLE_VITESSE, r: 3, dmg: MITRAILLE_DEGATS, owner: f, rot: 0, drone: t.drone });
+        }
+        if (f.etatT >= TOURELLE_DUREE && !bloque) this.accrocher(f, g, o);
+        return;
+      }
+      const vit = Math.hypot(f.bvx, f.bvy);
+      f.enFeu = vit >= HAMMOND_FEU_VITESSE;
+      if (!bloque) {
+        f.bvy += HAMMOND_GRAVITE * dt;
+        if (f.etatH === "balance") { // il se balance au bout du câble et accélère à chaque passage
+          const G = f.grappin, rx = f.x - G.x, ry = f.y - G.y, d = Math.hypot(rx, ry) || 1;
+          const tx = -ry / d, ty = rx / d, vt = f.bvx * tx + f.bvy * ty, sens = Math.sign(vt) || 1;
+          if (vit < HAMMOND_VITESSE_MAX) { f.bvx += tx * sens * HAMMOND_POMPE * dt; f.bvy += ty * sens * HAMMOND_POMPE * dt; }
+          // il enroule son câble : vite s'il est trop long pour se balancer au-dessus du sol, puis tout doucement
+          const Lmax = Math.max(HAMMOND_CABLE_MIN, solHammond(g, f) - G.y - 30);
+          G.L = Math.max(HAMMOND_CABLE_MIN, G.L > Lmax ? Math.max(Lmax, G.L - HAMMOND_ENROULE_VITE * dt) : G.L - HAMMOND_ENROULE * dt);
+          f.x += f.bvx * dt; f.y += f.bvy * dt;
+          const rx2 = f.x - G.x, ry2 = f.y - G.y, d2 = Math.hypot(rx2, ry2) || 1;
+          if (d2 > G.L) { // câble tendu : il reste à distance du grappin et ne garde que sa vitesse le long du cercle
+            f.x = G.x + rx2 / d2 * G.L; f.y = G.y + ry2 / d2 * G.L;
+            const vr = (f.bvx * rx2 + f.bvy * ry2) / d2;
+            if (vr > 0) { f.bvx -= vr * rx2 / d2; f.bvy -= vr * ry2 / d2; }
+          }
+          // il lâche le grappin au bout d'un moment, de préférence quand il file vers l'adversaire
+          const t = cibleDe(f, o), versLui = t && f.enFeu && (f.bvx * (t.x - f.x) + f.bvy * (t.y - f.y)) > Math.cos(HAMMOND_VISEE) * vit * Math.hypot(t.x - f.x, t.y - f.y);
+          if (f.etatT >= BALANCE_DUREE[1] || (f.etatT >= BALANCE_DUREE[0] && versLui)) { f.etatH = "vol"; f.etatT = 0; f.grappin = null; }
+        } else { f.x += f.bvx * dt; f.y += f.bvy * dt; }
+        const v2 = Math.hypot(f.bvx, f.bvy); // vitesse plafonnée
+        if (v2 > HAMMOND_VITESSE_PLAFOND) { f.bvx *= HAMMOND_VITESSE_PLAFOND / v2; f.bvy *= HAMMOND_VITESSE_PLAFOND / v2; }
+        // rebonds sur les murs
+        if (f.x < f.hw) { f.x = f.hw; f.bvx = Math.abs(f.bvx) * HAMMOND_REBOND; }
+        if (f.x > W - f.hw) { f.x = W - f.hw; f.bvx = -Math.abs(f.bvx) * HAMMOND_REBOND; }
+        if (f.y < f.hh) { f.y = f.hh; f.bvy = Math.abs(f.bvy) * HAMMOND_REBOND; }
+        const sol = solHammond(g, f);
+        if (f.y > sol) {
+          f.y = sol;
+          if (f.etatH === "vol" && f.etatT > 0.25 && Math.abs(f.bvy) < HAMMOND_ATTERRIT) { // il atterrit : mode tourelle
+            f.etatH = "tourelle"; f.etatT = 0; f.bvx = 0; f.bvy = 0; f.sonTir = false; f.rafaleT = 0.25; f.enFeu = false;
+            return;
+          }
+          f.bvy = -Math.abs(f.bvy) * HAMMOND_REBOND_SOL; f.bvx *= HAMMOND_REBOND_SOL;
+        }
+        f.penche = (f.penche || 0) + f.bvx * dt / Math.max(10, f.hw); // la boule roule sur elle-même
+      }
+      // en feu : il blesse ce qu'il percute, appareils du Bombardier compris
+      if (f.enFeu) for (const d of [...(o.drones || [])]) if (!(d.chocH > 0) && Math.hypot(d.x - f.x, d.y - f.y) < Math.max(f.hw, f.hh) + 14) { d.chocH = HAMMOND_CHOC_CD; blesserDrone(g, o, d, HAMMOND_CHOC); }
+      for (const d of o.drones || []) if (d.chocH > 0) d.chocH -= dt;
+      if (f.enFeu && f.chocCd <= 0) {
+        const t = cibleDe(f, o);
+        if (t && ecart(f, t) < 2) {
+          f.chocCd = HAMMOND_CHOC_CD; son(f, 3); g.secousse = Math.max(g.secousse, 0.15);
+          frapper(g, o, t, HAMMOND_CHOC, (f.x + t.x) / 2, (f.y + t.y) / 2);
+          if (!t.drone && !o.capture) { const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1; o.recul = 0.2; o.rvx = dx / d * 500; o.rvy = dy / d * 500; }
+        }
+      }
+    },
+    // grappin accroché à un endroit au hasard sur un mur (haut, gauche ou droite), pas trop près de lui ;
+    // parmi quelques endroits tirés au hasard, il garde celui dont le balancement passe le plus près de l'adversaire
+    accrocher(f, g, o) {
+      let x = W / 2, y = 0, mieux = Infinity;
+      for (let n = 0; n < HAMMOND_ESSAIS; n++) {
+        const m = Math.random();
+        const cx = m < 0.4 ? 40 + Math.random() * (W - 80) : m < 0.7 ? 0 : W, cy = m < 0.4 ? 0 : 20 + Math.random() * W * 0.45;
+        const L = Math.hypot(cx - f.x, cy - f.y);
+        if (L < HAMMOND_CABLE_MIN + 60) continue;
+        const ecartArc = o && !o.mort ? Math.abs(Math.hypot(o.x - cx, o.y - cy) - L) : 0;
+        if (ecartArc < mieux) { mieux = ecartArc; x = cx; y = cy; }
+      }
+      f.grappin = { x, y, L: Math.max(HAMMOND_CABLE_MIN, Math.hypot(x - f.x, y - f.y)) };
+      f.etatH = "balance"; f.etatT = 0;
+      // petite impulsion de départ sur le côté pour lancer le balancement
+      const rx = f.x - x, ry = f.y - y, d = Math.hypot(rx, ry) || 1, s = Math.random() < 0.5 ? -1 : 1;
+      f.bvx = -ry / d * s * 220; f.bvy = rx / d * s * 220 - 150; f.y -= 2;
+      son(f);
+    },
+    // attrapé par la langue du Smoker : il lâche tout et retombera
+    attrape(f) { f.etatH = "vol"; f.etatT = 0; f.grappin = null; f.bvx = 0; f.bvy = 0; f.enFeu = false; }
   }
 };
 
@@ -1298,7 +1447,7 @@ function creerCombattant(type, side) {
 }
 function nouveauJeu(running) {
   arreterBoucles(); couper("_marin-4"); couper("_gigachad-4"); // la mer et la musique de GigaChad du combat précédent se tait
-  jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], feux: [], ondes: [], missiles: [], grenades: [], flashs: [], secousse: 0, running, fin: 0 };
+  jeu = { f: [creerCombattant(choix[0], 0), creerCombattant(choix[1], 1)], proj: [], parts: [], txt: [], retards: [], explos: [], taches: [], boums: [], feux: [], ondes: [], missiles: [], grenades: [], flashs: [], bombes: [], secousse: 0, running, fin: 0 };
   for (const [f, o] of [[jeu.f[0], jeu.f[1]], [jeu.f[1], jeu.f[0]]]) if (CHARS[f.type].preparer) CHARS[f.type].preparer(f, o, jeu); // ex. le Marin posé sur la mer
   majHud();
 }
@@ -1352,7 +1501,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (33 → 6,6 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
 // laser du robot : de plus en plus fort, un palier tous les LASER_TIC (très petit, petit, moyen, gros, très gros)
-const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 5.45;
+const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 5.6;
 // dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
 function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1)); }
 // GigaChad : pose de 1 s, 1 s de marche entre deux poses ; +1 en attaque par pose (5 max)
@@ -1363,15 +1512,15 @@ const GIGA_LANGUE_GLISSE = 0.5; // chance que la langue du Smoker glisse sur lui
 const GIGA_APPROCHE = 1.5; // à 5 poses, il tourne peu à peu vers l'adversaire (radians par seconde)
 const GIGA_VIRAGE = 0.8; // en se baladant, il tourne doucement (radians par seconde, au plus)
 // coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
-const GIGA_COUP = 6, GIGA_COUP_POSE = 11, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
+const GIGA_COUP = 6, GIGA_COUP_POSE = 10, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
 // Bison
-const CRUSHER_CD = 3.3, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 9, CRUSHER_SONNE = 0.5;
+const CRUSHER_CD = 3.3, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
 const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 3;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
 const POISSON_CD = [3.5, 5], POISSON_MONTEE = 1.4, POISSON_PAUSE = 1, POISSON_CHUTE = 0.8, POISSON_HAUT = 70, POISSON_RAYON = 42;
 const POISSON_SOIN = 5; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
-const CROQUE_DEGATS = 27, POISSON_CONTACT = 12, POISSON_ECART = 150;
+const CROQUE_DEGATS = 30, POISSON_CONTACT = 12, POISSON_ECART = 150;
 // hauteur de l'eau (depuis le bas) à la position x : niveau de base, petites ondulations et vagues de la tempête
 function merHauteur(g, x) {
   let h = W * MER_NIVEAU + Math.sin(g.mer.t * 2 + x / 45) * 4;
@@ -1387,14 +1536,14 @@ const PLONGEE_DUREE = 1.2, PLONGEE_CD = 6, PLONGEE_MISSILE = 0.35; // plongée d
 const ILE_DELAI = [18, 20], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
-const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 11, GENOU_CD = 2, GENOU_DEGATS = 4;
+const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 12, GENOU_CD = 2, GENOU_DEGATS = 4;
 // Psycho Absorption : chance d'absorber un projectile (plus faible pour les balles de McCree) ; il regagne une part de ses dégâts
 const REFLET_CHANCE = { balle: 0.05, feu: 0.6, mortier: 0.25 };
 const ABSORPTION_SOIN = 0.5;
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
 const DRONE_LIEN = 0.04; // part des PV max du Bombardier perdue quand un de ses appareils est détruit
-const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 2.8, MISSILE_DELAI = 1.5, MISSILE_RAYON = 190, MISSILE_DEGATS = 42;
+const DRONE_PV = 25, DRONE_RETOUR = 8, MISSILE_CD = 2.9, MISSILE_DELAI = 1.5, MISSILE_RAYON = 190, MISSILE_DEGATS = 40;
 const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
 // appareils : ils patrouillent au hasard (faisceau bleu) ; quand l'adversaire passe dans leur faisceau,
 // ils le repèrent (faisceau rouge) et volent près de lui en le gardant en visée
@@ -1479,7 +1628,7 @@ function droneTouche(g, f, x, y, rad, n, deja) {
 }
 /* ===== CRI DU HURLEUR =====
    Une onde de choc en anneau part de lui et grandit ; elle blesse une fois l'adversaire qu'elle traverse. */
-const HURLEUR_DEGATS = 12, HURLEUR_CRI_SORTIE = 22, HURLEUR_INVIS_CD = 5.3, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
+const HURLEUR_DEGATS = 12, HURLEUR_CRI_SORTIE = 22, HURLEUR_INVIS_CD = 5.2, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
 function crier(g, f, dmg, portee, epais) {
   g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
 }
@@ -1554,10 +1703,80 @@ function autodestruction(g, f, o) {
   g.autodestruction = true; o.hp = 0; g.secousse = 0.9;
   for (let i = 0; i < 3; i++) g.boums.push({ x: f.x + (Math.random() - 0.5) * 60, y: f.y + (Math.random() - 0.5) * 60, t: 0.6 });
 }
+// Chacal : grenades qui rebondissent, mine incapacitante, piège d'acier, grenades de la fin
+const GRENADE_CD = 1.35, GRENADE_VITESSE = 430, GRENADE_MECHE = 2.2, GRENADE_REBONDS = 3, GRENADE_DEGATS = 11, GRENADE_RAYON = 55;
+const MINE_PREMIERE = 3, MINE_CD = 7, MINE_DEGATS = 8, MINE_RAYON = 28, MINE_PROJETE = 850;
+const PIEGE_PREMIER = 5, PIEGE_CD = 9, PIEGE_DEGATS = 6, PIEGE_DUREE = 1.5, PIEGE_RAYON = 26;
+const FINALE_NB = 6, FINALE_ECART = 70, FINALE_MECHE = [0.8, 1.6], FINALE_DEGATS = 9, FINALE_RAYON = 50;
+// Bouldozer : balancement au bout du grappin, en feu au-delà d'une certaine vitesse, mitraillettes une fois en bas
+const HAMMOND_GRAVITE = 900, HAMMOND_POMPE = 750, HAMMOND_VITESSE_MAX = 820, HAMMOND_VITESSE_PLAFOND = 1000, HAMMOND_FEU_VITESSE = 500, HAMMOND_REBOND = 0.85, HAMMOND_REBOND_SOL = 0.5, HAMMOND_ATTERRIT = 450;
+const HAMMOND_ESSAIS = 6, HAMMOND_VISEE = 0.6; // endroits essayés pour le grappin ; angle (radians) pour lâcher vers l'adversaire
+const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 20, HAMMOND_CHOC_CD = 0.5;
+const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.25;
+// le bas de l'arène pour Bouldozer (la mer du Marin s'il y en a une)
+function solHammond(g, f) { return g.mer ? merSurface(g, f.x) - f.hh * 0.6 : W - f.hh; }
+// explosion d'une bombe de Chacal : blesse l'adversaire (et les appareils) dans le rayon
+function boumChacal(g, b, cible, dmg, rayon) {
+  g.boums.push({ x: b.x, y: b.y, t: 0.6, k: rayon / 90 }); son(b.owner, 2);
+  g.secousse = Math.max(g.secousse, 0.12);
+  for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 200; g.parts.push({ x: b.x, y: b.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.45, c: ["#ffd23f", "#ff8a2a", "#5b5b66"][i % 3] }); }
+  if (!cible) return false;
+  let touche = false;
+  const dx = Math.max(Math.abs(cible.x - b.x) - cible.hw * 0.6, 0), dy = Math.max(Math.abs(cible.y - b.y) - cible.hh * 0.6, 0);
+  coupRate = !!b.rate;
+  if (!cible.mort && Math.hypot(dx, dy) < rayon) { degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3); touche = true; }
+  coupRate = false;
+  for (const d of [...(cible.drones || [])]) if (Math.hypot(d.x - b.x, d.y - b.y) < rayon + 10) blesserDrone(g, cible, d, dmg);
+  return touche;
+}
+// grenades, mines, pièges et grenades de la fin de Chacal (même après sa mort)
+function majBombes(g, dt) {
+  g.bombes = g.bombes.filter(b => {
+    const cible = g.f.find(x => x !== b.owner);
+    if (b.sorte === "grenade") {
+      b.t -= dt; b.rot += dt * 10;
+      const n = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 8));
+      for (let i = 0; i < n; i++) {
+        b.x += b.vx * dt / n; b.y += b.vy * dt / n;
+        if (dansLaMer(g, b.x, b.y)) { plouf(g, b.x, merSurface(g, b.x)); return false; }
+        let mur = false;
+        if (b.x < 8) { b.x = 8; b.vx = Math.abs(b.vx); mur = true; }
+        if (b.x > W - 8) { b.x = W - 8; b.vx = -Math.abs(b.vx); mur = true; }
+        if (b.y < 8) { b.y = 8; b.vy = Math.abs(b.vy); mur = true; }
+        if (b.y > W - 8) { b.y = W - 8; b.vy = -Math.abs(b.vy); mur = true; }
+        if (mur && ++b.rebonds > GRENADE_REBONDS) { boumChacal(g, b, g.running && cible, GRENADE_DEGATS, GRENADE_RAYON); return false; }
+        const dr = cible && !b.rate && cible.drones && cible.drones.find(d => Math.hypot(d.x - b.x, d.y - b.y) < 20);
+        if (g.running && cible && !cible.mort && (dr || (!b.rate && touche(cible, b.x, b.y, 6)))) { boumChacal(g, b, cible, GRENADE_DEGATS, GRENADE_RAYON); return false; }
+      }
+      if (b.t <= 0) { boumChacal(g, b, g.running && cible, GRENADE_DEGATS, GRENADE_RAYON); return false; }
+      return true;
+    }
+    if (b.sorte === "finale") { // posée au sol, mèche qui brûle, puis boum
+      b.t -= dt;
+      if (b.t <= 0) { boumChacal(g, b, cible, FINALE_DEGATS, FINALE_RAYON); return false; }
+      return true;
+    }
+    // mine et piège : armés au bout d'un instant, déclenchés quand l'adversaire passe dessus
+    b.arme -= dt;
+    if (b.owner.mort || !g.running) return !b.owner.mort;
+    if (b.arme > 0 || !cible || cible.mort || cible.enLair || cible.capture) return true;
+    const dx = Math.max(Math.abs(cible.x - b.x) - cible.hw * 0.5, 0), dy = Math.max(Math.abs(cible.y - b.y) - cible.hh * 0.5, 0);
+    if (Math.hypot(dx, dy) > (b.sorte === "mine" ? MINE_RAYON : PIEGE_RAYON)) return true;
+    if (b.sorte === "mine") { // mine incapacitante : petits dégâts et l'adversaire est projeté au loin
+      boumChacal(g, b, cible, MINE_DEGATS, MINE_RAYON + 20);
+      const ddx = cible.x - b.x, ddy = cible.y - b.y, d = Math.hypot(ddx, ddy) || 1;
+      cible.recul = 0.35; cible.rvx = ddx / d * MINE_PROJETE; cible.rvy = ddy / d * MINE_PROJETE;
+    } else { // piège d'acier : il se referme, l'adversaire est bloqué sur place
+      degats(g, cible, PIEGE_DEGATS, cible.x, cible.y - cible.hh * 0.3); cible.piege = PIEGE_DUREE; son(b.owner, 4);
+      eclats(g, b.x, b.y, "#c9ccd6");
+    }
+    return false;
+  });
+}
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const FEU_BONUS = 3; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
-const BOUCLIER_PV = 33, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
+const BOUCLIER_PV = 35, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 4; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
@@ -1568,7 +1787,7 @@ const ROULADE_CD = 8, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUI
 // les 6 images de roulade de McCree sont-elles toutes là ?
 function rouladeAnimee() { const s = CHARS.cowboy.spr; return !!s && [4, 5, 6, 7, 8, 9].every(n => s[n]); }
 const ENCHAINE_CHANCE = 0.02; // chance par balle qui touche de ne pas recharger (McCree)
-const RECHARGE = 1.55; // rechargement du Cowboy après chaque rafale (secondes)
+const RECHARGE = 1.4; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
 const FIN = 3.2, ANNONCE_DELAI = 1; // durée de la séquence de fin, attente avant d'annoncer le gagnant (secondes réelles)
@@ -1621,7 +1840,8 @@ function maj(dt) {
     f.lent = Math.max(0, (f.lent || 0) - dt);
     f.flou = Math.max(0, (f.flou || 0) - dt);
     if (f.aveugle > 0 && (f.aveugle -= dt) <= 0) { f.aveugle = 0; f.flou = FLASH_FLOU; } // après l'aveuglement : vue trouble 2 s
-    if (!f.capture) { f.x += f.vx * dt * lenteur; f.y += f.vy * dt * lenteur; }
+    if (f.piege > 0) f.piege -= dt; // pris dans le piège d'acier de Chacal : il ne bouge plus (mais attaque encore)
+    else if (!f.capture) { f.x += f.vx * dt * lenteur; f.y += f.vy * dt * lenteur; }
     if (f.recul > 0) { f.recul -= dt; f.x += f.rvx * dt; f.y += f.rvy * dt; } // projeté par le Smoker
     let rebond = false;
     if (f.x < f.hw) { f.x = f.hw; f.vx = Math.abs(f.vx); rebond = true; }
@@ -1702,7 +1922,7 @@ function maj(dt) {
         // balles d'une même rafale : 1 dégât de moins à chaque balle qui touche (8, 7, 6, 5…)
         degats(g, cible, degatsProj(p), p.x, p.y); if (p.rafale) p.rafale.touches++;
         if (p.rafale && Math.random() < ENCHAINE_CHANCE) enchainer(g, p.owner, p.rafale);
-        if (p.kind === "balle" && cible.crusher) { cible.crusher = null; cible.sonne = CRUSHER_SONNE; eclats(g, p.x, p.y, "#b04cff"); } // McCree coupe le Psycho Crusher
+        if (p.kind === "balle" && p.owner.type === "cowboy" && cible.crusher) { cible.crusher = null; cible.sonne = CRUSHER_SONNE; eclats(g, p.x, p.y, "#b04cff"); } // McCree coupe le Psycho Crusher
         if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
         if (p.transperce) { p.dejaCible = true; continue; } // la balle traverse et continue sa route
         return false;
@@ -1788,13 +2008,19 @@ function maj(dt) {
   });
   g.secousse = Math.max(0, g.secousse - dt);
 
-  if (g.running && (a.hp <= 0 || b.hp <= 0)) {
+  majBombes(g, dt);
+  // Chacal qui meurt : il lâche ses grenades de la fin, et le combat attend qu'elles aient toutes explosé
+  for (const f of [a, b]) if (g.running && f.hp <= 0 && f.type === "chacal" && !f.finale && !g.ile) {
+    f.finale = true; CHARS.chacal.finale(g, f); exploser(g, f); g.finaleChacal = true;
+  }
+  const finaleEnCours = g.bombes.some(x => x.sorte === "finale");
+  if (g.running && !finaleEnCours && (a.hp <= 0 || b.hp <= 0)) {
     g.running = false; g.fin = FIN; arreterBoucles(); couper("_marin-4"); couper("_gigachad-4");
     document.body.classList.add("fin-combat"); // plus de « Recommencer » ni de retour : on attend la carte de fin
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
-    g.texteFin = g.ile ? `${CHARS.marin.nom} est rentré chez lui ! 🐢` : gagnant ? `${CHARS[gagnant.type].nom} gagne !` : "Double KO !";
+    g.texteFin = g.ile ? `${CHARS.marin.nom} est rentré chez lui ! 🐢` : gagnant ? `${CHARS[gagnant.type].nom} gagne !` : g.finaleChacal ? "Égalité !" : "Double KO !";
     const wt = document.getElementById("winText"); wt.textContent = g.texteFin; wt.classList.toggle("long", g.texteFin.length > 24);
-    for (const f of g.f) if (f.hp <= 0 && !g.ile) exploser(g, f);
+    for (const f of g.f) if (f.hp <= 0 && !g.ile && !f.mort) exploser(g, f);
     g.gagnant = gagnant;
     if (gagnant) {
       g.zoom = gagnant; calmer(gagnant);
@@ -1818,6 +2044,28 @@ function majHud() {
   });
 }
 
+// bombes de Chacal : grenades qui volent, mines, pièges d'acier, grenades de la fin qui clignotent
+function dessinerBombes(g) {
+  const now = performance.now();
+  for (const b of g.bombes) {
+    ctx.save(); ctx.translate(b.x, b.y);
+    if (b.sorte === "mine") {
+      ctx.fillStyle = "#5a5670"; ctx.strokeStyle = "#c9ccd6"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, 16, 9, 0, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = b.arme > 0 ? "#888" : Math.sin(now / 120) > 0 ? "#ff3b3b" : "#7a1a1a"; ctx.beginPath(); ctx.arc(0, -2, 3.5, 0, 7); ctx.fill();
+    } else if (b.sorte === "piege") {
+      ctx.strokeStyle = "#8a8f99"; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(0, 0, 18, 10, 0, 0, 7); ctx.stroke();
+      ctx.fillStyle = "#c9ccd6"; for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, x = Math.cos(a) * 18, y = Math.sin(a) * 10; ctx.beginPath(); ctx.moveTo(x - 3, y); ctx.lineTo(x * 0.7, y * 0.7); ctx.lineTo(x + 3, y); ctx.fill(); }
+    } else { // grenade (qui vole) ou grenade de la fin (posée, plus petite, qui clignote de plus en plus vite)
+      const r = b.sorte === "finale" ? 7 : 9;
+      ctx.rotate(b.rot || 0);
+      ctx.fillStyle = "#6b8a4e"; ctx.strokeStyle = "#e8eef5"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#2a2a2e"; ctx.fillRect(-3, -r - 4, 6, 5);
+      const vite = b.sorte === "finale" ? 40 + 160 * Math.max(0, b.t) : 90;
+      if (Math.sin(now / vite) > 0) { ctx.fillStyle = "#ffd23f"; ctx.beginPath(); ctx.arc(0, -r - 5, 3, 0, 7); ctx.fill(); }
+    }
+    ctx.restore();
+  }
+}
 // la mer du Marin (par-dessus les persos qui y trempent), la pluie de la tempête et le gros poisson
 function dessinerMer(g) {
   const M = g.mer;
@@ -1942,6 +2190,11 @@ function dessiner() {
     gr.addColorStop(0, `rgba(255,255,255,${k})`); gr.addColorStop(0.5, `rgba(255,252,220,${0.6 * k})`); gr.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(e.x, e.y, FLASH_RAYON * 1.6, 0, 7); ctx.fill();
   }
+  dessinerBombes(g);
+  for (const f of g.f) if (f.grappin && !f.mort) { // câble du grappin de Bouldozer
+    ctx.save(); ctx.strokeStyle = "#d8dce6"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(f.grappin.x, f.grappin.y); ctx.lineTo(f.x, f.y); ctx.stroke();
+    ctx.fillStyle = "#8b93a6"; ctx.strokeStyle = "#2a2e38"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(f.grappin.x, f.grappin.y, 7, 0, 7); ctx.fill(); ctx.stroke(); ctx.restore();
+  }
   for (const m of g.missiles) { // cible au sol du missile du Titan, puis le missile qui tombe
     const k = 1 - m.t / MISSILE_DELAI, pulse = 0.5 + 0.5 * Math.sin(performance.now() / 70);
     ctx.save();
@@ -2029,6 +2282,22 @@ function dessiner() {
       ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, (Math.max(f.hw, f.hh) + 30) * k, 0, 7); ctx.fill();
       ctx.fillStyle = "rgba(255,240,170,.9)";
       for (let i = 0; i < 6; i++) { const a = tt * 0.5 + i * Math.PI / 3, r = (Math.max(f.hw, f.hh) + 14) * k; ctx.beginPath(); ctx.arc(Math.cos(a) * r, Math.sin(a) * r * 0.8, 2.5, 0, 7); ctx.fill(); }
+    }
+    if (f.enFeu) { // Bouldozer lancé à pleine vitesse : il prend feu
+      const tt = performance.now() / 80, r = Math.max(f.hw, f.hh);
+      const gr = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, r + 22);
+      gr.addColorStop(0, "rgba(255,200,60,0)"); gr.addColorStop(0.7, `rgba(255,120,30,${0.45 + 0.1 * Math.sin(tt)})`); gr.addColorStop(1, "rgba(255,60,20,0)");
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, r + 22, 0, 7); ctx.fill();
+      const ang = Math.atan2(-(f.bvy || 0), -(f.bvx || 0)); // les flammes partent vers l'arrière
+      for (let i = 0; i < 6; i++) {
+        const a = ang + (i - 2.5) * 0.35, l = r + 14 + 8 * Math.sin(tt * 2 + i);
+        ctx.fillStyle = i % 2 ? "rgba(255,210,63,.85)" : "rgba(255,110,30,.85)";
+        ctx.beginPath(); ctx.moveTo(Math.cos(a - 0.2) * r * 0.8, Math.sin(a - 0.2) * r * 0.8); ctx.lineTo(Math.cos(a) * l, Math.sin(a) * l); ctx.lineTo(Math.cos(a + 0.2) * r * 0.8, Math.sin(a + 0.2) * r * 0.8); ctx.closePath(); ctx.fill();
+      }
+    }
+    if (f.piege > 0) { // pris dans le piège d'acier : mâchoires refermées à ses pieds
+      ctx.strokeStyle = "#c9ccd6"; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(0, f.hh * 0.85, f.hw * 0.6, 9, 0, 0, 7); ctx.stroke();
+      ctx.fillStyle = "#8a8f99"; for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(i * f.hw * 0.17 - 4, f.hh * 0.85); ctx.lineTo(i * f.hw * 0.17, f.hh * 0.85 - 9); ctx.lineTo(i * f.hw * 0.17 + 4, f.hh * 0.85); ctx.fill(); }
     }
     if (f.flou > 0 && !(f.aveugle > 0)) { // vue encore trouble après la grenade flash
       ctx.fillStyle = `rgba(255,255,240,${0.08 + 0.05 * Math.sin(performance.now() / 90)})`; ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 6, f.hh + 6, 0, 0, 7); ctx.fill();
@@ -2253,7 +2522,7 @@ function dessiner() {
   }
   ctx.globalAlpha = 1;
   for (const e of g.boums) { // explosion du perdant : boule de feu puis fumée
-    const age = 0.6 - e.t, k = Math.min(1, age / 0.08), R = 30 + 80 * k, fade = Math.min(1, e.t / 0.35);
+    const age = 0.6 - e.t, k = Math.min(1, age / 0.08), R = (30 + 80 * k) * (e.k || 1), fade = Math.min(1, e.t / 0.35);
     const gr = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, R);
     gr.addColorStop(0, `rgba(255,250,220,${fade})`); gr.addColorStop(0.35, `rgba(255,200,60,${0.95 * fade})`);
     gr.addColorStop(0.7, `rgba(240,90,30,${0.8 * fade})`); gr.addColorStop(1, "rgba(80,70,80,0)");
@@ -2356,7 +2625,7 @@ function montrerFin() {
   const g = jeu, w = g.gagnant, carte = document.getElementById("finCarte"), cv = document.getElementById("finPortrait"), x = cv.getContext("2d");
   carte.style.setProperty("--team", w ? (w.side ? "var(--droite)" : "var(--gauche)") : "var(--muted)");
   document.getElementById("finSur").textContent = w && g.ile ? "Retour à la maison" : w ? "Victoire" : "Fin du combat";
-  document.getElementById("finScore").textContent = w && g.ile ? "Arrivé sur l’île de la tortue" : w && g.autodestruction ? "Autodestruction réussie !" : w ? `Il lui reste ${Math.ceil(w.hp)} PV` : "Les deux sont tombés en même temps";
+  document.getElementById("finScore").textContent = w && g.ile ? "Arrivé sur l’île de la tortue" : w && g.autodestruction ? "Autodestruction réussie !" : w ? `Il lui reste ${Math.ceil(w.hp)} PV` : g.finaleChacal ? "Emporté par les grenades de Chacal" : "Les deux sont tombés en même temps";
   x.clearRect(0, 0, cv.width, cv.height);
   const persos = w ? [w] : g.f, part = cv.width / persos.length;
   persos.forEach((f, i) => {
@@ -3169,7 +3438,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.35.1", NOTES = "GigaChad repasse à 100 PV (seul le Bombardier a plus de 100 PV). En échange, chaque pose ajoute 11 dégâts à son coup de poing au lieu de 9.";
+const VERSION = "1.36.0", NOTES = "Deux nouveaux persos : Chacal (grenades qui rebondissent, mine, piège d’acier, et des grenades lâchées à sa mort qui peuvent finir en égalité) et Bouldozer (se balance au grappin, prend feu à pleine vitesse, mitraille une fois en bas). Rééquilibrage de tout le roster.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

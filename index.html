@@ -1122,6 +1122,7 @@ const CHARS = {
     // coup de poing (il faut au moins 1 pose) : dépense toutes les poses ; un gros coup envoie l'adversaire s'écraser contre le mur
     coup(f, o, g, t) {
       const n = f.poses; f.poses = 0; f.coupCd = GIGA_COUP_CD; f.poing = 0.3;
+      f.faceCoup = t.x >= f.x ? 1 : -1; // il frappe vers l'adversaire (son image de coup de poing regarde vers la droite)
       f.marche = GIGA_MARCHE;
       const dmg = GIGA_COUP + GIGA_COUP_POSE * n, x = (f.x + t.x) / 2, y = (f.y + t.y) / 2;
       son(f, n >= GIGA_GROS ? 3 : 2); g.secousse = Math.max(g.secousse, 0.08 + 0.04 * n);
@@ -2292,6 +2293,7 @@ function maj(dt) {
     }
     if (f.burst > 0) f.face = f.dir;
     else if (f.charge > 0 || f.tir > 0) f.face = f.laserFace;
+    else if (f.poing > 0 && f.faceCoup) f.face = f.faceCoup; // GigaChad tourné vers celui qu'il frappe
     else if (Math.abs(f.vx) > 20) f.face = f.vx > 0 ? 1 : -1;
     // le robot tourne son image vers sa cible tant qu'il charge ou tire
     const angRot = f.charge > 0 || f.tir > 0 ? f.laserAng : f.crusher ? Math.atan2(f.crusher.uy, f.crusher.ux) : null; // Bison en vrille
@@ -3918,7 +3920,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.45.0", NOTES = "Quand la Chose Impie gagne, la caméra zoome sur son corps (son image), plus sur la main à l’œil. GigaChad : deux poses en plus (pose 6 et pose 7) à ajouter dans l’éditeur ; comme la pose 5, elles entrent dans le cycle des poses dès qu’elles ont une image.";
+const VERSION = "1.45.1", NOTES = "GigaChad : quand il donne son coup de poing, il se tourne vers l’adversaire et frappe dans sa direction.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -1,1 +1,1 @@
-{"version": "1.45.0", "notes": "Quand la Chose Impie gagne, la caméra zoome sur son corps (son image), plus sur la main à l’œil. GigaChad : deux poses en plus (pose 6 et pose 7) à ajouter dans l’éditeur ; comme la pose 5, elles entrent dans le cycle des poses dès qu’elles ont une image."}
+{"version": "1.45.1", "notes": "GigaChad : quand il donne son coup de poing, il se tourne vers l’adversaire et frappe dans sa direction."}

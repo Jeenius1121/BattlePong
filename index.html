@@ -295,7 +295,7 @@ const CHARS = {
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     // roulade : les images 4 à 9 s'enchaînent comme une animation (si elles sont fournies)
     imageDe: f => f.roulade > 0 && rouladeAnimee() ? 4 + Math.min(5, Math.floor((1 - f.roulade / ROULADE_DUREE) * 6)) : f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis. Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui aveugle l’adversaire (la Chose Impie, qui n’est qu’un œil, est aveuglée plus longtemps et la lumière lui brûle l’œil) : quelques dégâts et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
+    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis. Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui aveugle l’adversaire : quelques dégâts et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
     // va-t-il être touché ? renvoie la direction du danger (projectile, laser, langue) ou sa source (zone, corps à corps)
     menace(f, o, g) {
       for (const p of g.proj) if (p.owner === o) {
@@ -307,11 +307,6 @@ const CHARS = {
         if (distSeg(f.x, f.y, c0.x, c0.y, c0.x + ca * 900, c0.y + sa * 900) < Math.max(f.hw, f.hh) * 0.7) return { dx: ca, dy: sa };
       }
       if (o.langue && o.langue.etat === "tire" && Math.hypot(o.langue.x - f.x, o.langue.y - f.y) < 130) return { x: o.x, y: o.y, zone: true };
-      if (o.type === "oeil" && o.rayon) { // rayon de la Chose Impie pointé sur lui
-        const e = CHARS.oeil.posOeil(o), ca = Math.cos(o.rayon.a), sa = Math.sin(o.rayon.a);
-        if (distSeg(f.x, f.y, e.x, e.y, e.x + ca * 900, e.y + sa * 900) < Math.max(f.hw, f.hh) * 0.7) return { dx: ca, dy: sa };
-      }
-      for (const b of o.drones || []) if (b.saisie && b.saisie.phase === "vole" && Math.hypot(b.x - f.x, b.y - f.y) < 130) return { x: b.x, y: b.y, zone: true }; // main qui vient l'attraper
       for (const m of g.missiles) if (m.owner === o && m.t < 0.5 && Math.hypot(m.x - f.x, m.y - f.y) < MISSILE_RAYON + f.hw * 0.4) return { x: m.x, y: m.y, zone: true };
       for (const w of g.ondes) if (w.owner === o && Math.hypot(f.x - w.x, f.y - w.y) - w.r > 0 && Math.hypot(f.x - w.x, f.y - w.y) - w.r < 70) return { x: w.x, y: w.y, zone: true };
       if (o.crusher && Math.hypot(o.x - f.x, o.y - f.y) < 220) return { dx: o.crusher.ux, dy: o.crusher.uy };
@@ -363,7 +358,7 @@ const CHARS = {
       f.cd -= dt;
       // grenade flash : de temps en temps, lancée là où va l'adversaire (pas pendant une rafale)
       f.flashCd = (f.flashCd ?? FLASH_PREMIERE) - dt;
-      if (f.flashCd <= 0 && !(f.burst > 0) && (t = o.type === "oeil" ? o : cibleDe(f, o)) && !t.drone) { // contre la Chose Impie : sur son œil
+      if (f.flashCd <= 0 && !(f.burst > 0) && (t = cibleDe(f, o)) && !t.drone) {
         f.flashCd = FLASH_CD; son(f, 3);
         const tx = Math.min(W - 20, Math.max(20, t.x + (t.vx || 0) * 0.35)), ty = Math.min(W - 20, Math.max(20, t.y + (t.vy || 0) * 0.35));
         const d = Math.hypot(tx - f.x, ty - f.y) || 1, duree = Math.max(0.25, d / FLASH_VITESSE);
@@ -382,8 +377,7 @@ const CHARS = {
             else { son(f, 2); f.cd = f.recharge = RECHARGE; }
           }
         }
-      // contre la Chose Impie : il tire quand le bras à l'œil passe à sa hauteur
-      } else if (f.cd <= 0 && (t = o.type === "oeil" ? brasAHauteur(o, f) : cibleDe(f, o)) && Math.abs(t.y - f.y) < t.hh * 0.8) {
+      } else if (f.cd <= 0 && (t = cibleDe(f, o)) && Math.abs(t.y - f.y) < t.hh * 0.8) {
         f.burst = 6; f.burstT = 0; f.rafale = { touches: 0, rapide: f.esquive > 0 }; f.horaires = this.horaires(f); f.dir = Math.sign(t.x - f.x) || 1; son(f);
         if (f.rafale.rapide) f.horaires = f.horaires.map(h => h / ROULADE_BONUS); // juste après une roulade : 6 balles 1,5 fois plus vite
       }
@@ -563,7 +557,7 @@ const CHARS = {
   inconnu: {
     nom: "L’Inconnu", emoji: "👁️", vitesse: 230, son2: "téléportation", images: ["attaque"],
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit l’adversaire (déplacements et attaques), puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter : à chaque téléportation, il regagne 3 PV.",
+    desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit l’adversaire (déplacements et attaques), puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter : à chaque téléportation, il regagne 4 PV.",
     svg: `<g ${O}>
       <path d='M36 60 Q60 50 84 60 L94 140 Q86 132 78 142 Q70 132 60 144 Q50 132 42 142 Q34 132 26 140Z' fill='#2a2440'/>
       <path d='M80 74 Q96 78 104 70' fill='none' stroke='#2a2440' stroke-width='11'/>
@@ -683,7 +677,7 @@ const CHARS = {
     }
   },
   smoker: {
-    nom: "Smoker", emoji: "👅", vitesse: 268, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
+    nom: "Smoker", emoji: "👅", vitesse: 263, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
     // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
@@ -832,13 +826,12 @@ const CHARS = {
         if (f.droneT <= 0) { f.droneT = DRONE_RETOUR; f.drones.push(nouvelAppareil(f, f.drones.length)); }
       } else f.droneT = DRONE_RETOUR;
       // il ne tire que si au moins un appareil a repéré l'adversaire (faisceau rouge)
-      const reperes = o.type === "oeil" ? (f.drones.length ? 1 : 0) : f.drones.filter(d => d.repere).length; // contre l'Œil : il vise directement la main à l'œil
+      const reperes = f.drones.filter(d => d.repere).length;
       f.cd -= dt;
       if (reperes && f.cd <= 0) { // missile tiré vers le ciel, qui retombe là où est l'adversaire
         f.cd = MISSILE_CD; f.attT = 0.4; son(f);
-        const k = MISSILE_DELAI * MISSILE_VISEE * reperes, c = o.type === "oeil" && o.brasActif && o.drones.includes(o.brasActif) ? o.brasActif : null;
-        if (c) g.missiles.push({ x: c.x, y: c.y, t: MISSILE_DELAI, owner: f }); // contre l'Œil : sur la main qui porte l'œil
-        else g.missiles.push({ x: Math.min(W, Math.max(0, o.x + o.vx * k)), y: Math.min(W, Math.max(0, o.y + o.vy * k)), t: MISSILE_DELAI, owner: f });
+        const k = MISSILE_DELAI * MISSILE_VISEE * reperes;
+        g.missiles.push({ x: Math.min(W, Math.max(0, o.x + o.vx * k)), y: Math.min(W, Math.max(0, o.y + o.vy * k)), t: MISSILE_DELAI, owner: f });
         // sifflement du missile qui tombe, calé pour finir pile à l'impact
         const s4 = sons["titan-4"];
         if (s4) plusTard(g, Math.max(0, MISSILE_DELAI - s4.buffer.duration), () => { if (!f.mort && g.running) son(f, 4); });
@@ -889,7 +882,7 @@ const CHARS = {
           f.stomp = null; f.enLair = false; f.haut = 0; f.vis = 1; g.secousse = Math.max(g.secousse, 0.2);
           for (let i = 0; i < 18; i++) { const a = Math.random() * Math.PI * 2, v = 120 + Math.random() * 200; g.parts.push({ x: f.x, y: f.y + f.hh * 0.7, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.4, t: 0.45, c: i % 2 ? "#b04cff" : "#e6c8ff" }); }
           if (!o.mort && !cache(o) && ecart(f, o) < 25) degats(g, o, STOMP_DEGATS, o.x, o.y - o.hh * 0.4);
-          for (const d of [...(o.drones || [])]) if (distDrone(o, d, f.x, f.y) < 80) blesserDrone(g, o, d, STOMP_DEGATS);
+          for (const d of [...(o.drones || [])]) if (Math.hypot(d.x - f.x, d.y - f.y) < 80) blesserDrone(g, o, d, STOMP_DEGATS);
           const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy); // rebondit plus loin
           if (d > 1) { f.vx = dx / d; f.vy = dy / d; } else { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); }
           normaliser(f); redresser(f);
@@ -905,7 +898,7 @@ const CHARS = {
           if (o.bouclier > 0 && CHARS[o.type].casser) CHARS[o.type].casser(o, g);
           else degats(g, o, CRUSHER_DEGATS, (f.x + o.x) / 2, (f.y + o.y) / 2);
         }
-        for (const d of [...(o.drones || [])]) if (!C.drones.has(d) && distDrone(o, d, f.x, f.y) < Math.max(f.hw, f.hh) * 0.8) { C.drones.add(d); blesserDrone(g, o, d, CRUSHER_DEGATS); }
+        for (const d of [...(o.drones || [])]) if (!C.drones.has(d) && Math.hypot(d.x - f.x, d.y - f.y) < Math.max(f.hw, f.hh) * 0.8) { C.drones.add(d); blesserDrone(g, o, d, CRUSHER_DEGATS); }
         for (let i = 0; i < 2; i++) g.parts.push({ x: f.x - C.ux * f.hw * 0.6 + (Math.random() - 0.5) * f.hh, y: f.y - C.uy * f.hw * 0.6 + (Math.random() - 0.5) * f.hh,
           vx: -C.ux * 120 + (Math.random() - 0.5) * 80, vy: -C.uy * 120 + (Math.random() - 0.5) * 80, t: 0.35, c: Math.random() < 0.5 ? "#b04cff" : "#ff5af0" });
         const auMur = f.x <= f.hw + 1 || f.x >= W - f.hw - 1 || f.y <= f.hh + 1 || f.y >= W - f.hh - 1;
@@ -1032,9 +1025,7 @@ const CHARS = {
       M.poissonCd -= dt;
       if (!M.poisson && M.poissonCd <= 0 && g.running) {
         M.poissonCd = hasard(...POISSON_CD);
-        // au hasard, pas trop loin de l'adversaire (contre l'Œil : près de la main qui porte l'œil)
-        const vise = o.type === "oeil" && o.brasActif ? o.brasActif : o;
-        const x = Math.min(W - 50, Math.max(50, vise.x + hasard(-POISSON_ECART, POISSON_ECART)));
+        const x = Math.min(W - 50, Math.max(50, o.x + hasard(-POISSON_ECART, POISSON_ECART))); // au hasard, pas trop loin de l'adversaire
         M.poisson = { x, y: merSurface(g, x) + 30, t: 0, phase: "monte", deja: {}, drones: new Set() };
         son(f, 2); this.eclabousser(g, x, merSurface(g, x));
       }
@@ -1063,7 +1054,7 @@ const CHARS = {
             if (!o.capture) { o.recul = 0.45; o.rvx = 0; o.rvy = Math.max(0, merSurface(g, o.x) - o.y) / 0.45; }
           }
         }
-        for (const d of [...(o.drones || [])]) if (!P.drones.has(d) && distDrone(o, d, P.x, P.y) < POISSON_RAYON) { P.drones.add(d); blesserDrone(g, o, d, CROQUE_DEGATS); }
+        for (const d of [...(o.drones || [])]) if (!P.drones.has(d) && Math.hypot(d.x - P.x, d.y - P.y) < POISSON_RAYON) { P.drones.add(d); blesserDrone(g, o, d, CROQUE_DEGATS); }
       }
       // l'adversaire dans l'eau prend un peu de dégâts
       M.tic -= dt;
@@ -1138,7 +1129,7 @@ const CHARS = {
       if (n >= GIGA_GROS && !t.drone && o.bouclier > 0 && CHARS[o.type].casser) CHARS[o.type].casser(o, g);
       else frapper(g, o, t, dmg, x, y);
       // le poing balaie aussi les appareils du Bombardier à portée
-      for (const d of [...(o.drones || [])]) if (d !== t.drone && distDrone(o, d, f.x, f.y) < Math.max(f.hw, f.hh) + GIGA_PORTEE_APPAREIL) blesserDrone(g, o, d, dmg);
+      for (const d of [...(o.drones || [])]) if (d !== t.drone && Math.hypot(d.x - f.x, d.y - f.y) < Math.max(f.hw, f.hh) + GIGA_PORTEE_APPAREIL) blesserDrone(g, o, d, dmg);
       for (let i = 0; i < 8 + n * 4; i++) { const a = Math.random() * Math.PI * 2, v = 100 + Math.random() * (120 + 40 * n); g.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.4, c: i % 2 ? "#ffd23f" : "#fff3c4" }); }
       if (t.drone || o.mort || o.capture) return;
       const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -1261,7 +1252,7 @@ const CHARS = {
         for (let i = 0; i < 2; i++) g.parts.push({ x: f.x + (Math.random() - 0.5) * f.hw, y: f.y - f.hh, vx: 0, vy: -60, t: 0.25, c: i ? "#ffd23f" : "#ff8a2a" });
         const t = cibleDe(f, o);
         if (t && !t.drone && !f.trajet && ecart(f, t) < 0) { f.trajet = true; frapper(g, o, t, ECRASE_TRAJET, (f.x + t.x) / 2, (f.y + t.y) / 2); } // il était sur la trajectoire
-        for (const d of [...(o.drones || [])]) if (!f.trajetDrones.has(d) && distDrone(o, d, f.x, f.y) < Math.max(f.hw, f.hh)) { f.trajetDrones.add(d); blesserDrone(g, o, d, ECRASE_TRAJET); }
+        for (const d of [...(o.drones || [])]) if (!f.trajetDrones.has(d) && Math.hypot(d.x - f.x, d.y - f.y) < Math.max(f.hw, f.hh)) { f.trajetDrones.add(d); blesserDrone(g, o, d, ECRASE_TRAJET); }
         const sol = solHammond(g, f);
         if (f.y >= sol) { f.y = sol; this.ecraser(f, o, g); f.etatH = "tourelle"; f.etatT = 0; f.sonTir = false; f.rafaleT = 0.35; f.enFeu = false; f.bvy = 0; }
         return;
@@ -1305,7 +1296,7 @@ const CHARS = {
         f.penche = (f.penche || 0) + f.bvx * dt / Math.max(10, f.hw); // la boule roule sur elle-même
       }
       // en feu : il blesse ce qu'il percute, appareils du Bombardier compris
-      if (f.enFeu) for (const d of [...(o.drones || [])]) if (!(d.chocH > 0) && distDrone(o, d, f.x, f.y) < Math.max(f.hw, f.hh) + 14) { d.chocH = HAMMOND_CHOC_CD; blesserDrone(g, o, d, HAMMOND_CHOC); }
+      if (f.enFeu) for (const d of [...(o.drones || [])]) if (!(d.chocH > 0) && Math.hypot(d.x - f.x, d.y - f.y) < Math.max(f.hw, f.hh) + 14) { d.chocH = HAMMOND_CHOC_CD; blesserDrone(g, o, d, HAMMOND_CHOC); }
       for (const d of o.drones || []) if (d.chocH > 0) d.chocH -= dt;
       if (f.enFeu && f.chocCd <= 0) {
         const t = cibleDe(f, o);
@@ -1354,107 +1345,136 @@ const CHARS = {
   },
   oeil: {
     creation: true,
-    nom: "Chose Impie", emoji: "👁️", vitesse: 40, taille: 2.3, images: [], voitInvisible: true,
+    nom: "Chose Impie", emoji: "👁️", vitesse: 0, images: ["main à l’œil"], voitInvisible: true,
+    get hauteurs() { return { 2: MAIN_HAUTEUR }; }, // la main à l'œil (ce que les autres frappent) a une taille fixe
     sonNom: "rayon", son2: "saisie", son3: "bras arraché", son4: "chute",
-    imageDe: () => 1,
-    desc: "Une créature suspendue au milieu de l’arène, accrochée aux murs par ses 6 bras. On ne peut pas la toucher directement : un œil s’ouvre sur une de ses mains, et seul ce bras-là peut être touché (un même coup ne lui fait pas plus de 10 dégâts). Toutes les 4 à 5 secondes, dès que ce bras est détruit, ou après un gros coup (12 dégâts ou plus), l’œil passe sur une autre main (après une fuite, il reste fermé un instant : plus rien n’est touchable). Il voit les persos invisibles. Chaque coup sur ce bras lui fait perdre des PV, et un bras détruit se détache ; quand il n’a plus de bras, il tombe. Son œil suit toujours l’adversaire. De temps en temps, il charge un rayon pourpre qui balaie l’arène en suivant l’adversaire. Le bras qui porte l’œil peut aussi aller attraper l’adversaire : il le bloque sur place et lui fait de petits dégâts tant que l’adversaire n’a pas assez frappé ce bras pour s’en libérer.",
+    imageDe: () => 2, blindage: 0.5,
+    desc: "Une créature suspendue au milieu de l’arène, accrochée aux murs par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains, et c’est cette main qu’il faut frapper, et elle est dure comme de la corne (elle encaisse moitié moins de dégâts). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Chaque bras encaisse une part de ses PV : quand c’est fait, il est arraché. Son grand œil suit toujours l’adversaire et voit les persos invisibles. De temps en temps, il charge un rayon pourpre qui balaie l’arène en suivant l’adversaire. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place et lui fait de petits dégâts, jusqu’à ce qu’il l’ait assez frappée pour se libérer. Quand il n’a plus de PV, il tombe.",
     svg: `<g ${O}>
       <path d='M60 40 Q30 60 34 110 Q40 140 60 146 Q80 140 86 110 Q90 60 60 40Z' fill='#e9c9c0' stroke='#7a1a22'/>
       <path d='M44 70 Q60 90 76 70 M46 100 Q60 116 74 100' fill='none' stroke='#b52a35' stroke-width='3'/>
       <ellipse cx='63' cy='33' rx='22' ry='19' fill='#f4e6e0' stroke='#7a1a22'/>
       <circle cx='72' cy='32' r='9' fill='#9a1622' stroke='none'/></g>`,
-    // il dérive doucement au milieu de l'arène, comme s'il se hissait sur ses bras
+    // main à l'œil (l'image que les autres frappent) : paume avec un œil, 4 doigts griffus vers le haut
+    svgMain: `<g stroke='#4a0c14' stroke-width='5' stroke-linejoin='round' stroke-linecap='round'>
+      <path d='M26 66 Q18 46 24 30 M46 52 Q42 32 48 18 M74 52 Q78 32 72 18 M94 66 Q102 46 96 30' fill='none' stroke-width='17'/>
+      <path d='M26 66 Q18 46 24 30 M46 52 Q42 32 48 18 M74 52 Q78 32 72 18 M94 66 Q102 46 96 30' fill='none' stroke='#efd0c6' stroke-width='10'/>
+      <path d='M19 32 L24 16 L30 32Z M42 20 L48 4 L54 20Z M66 20 L72 4 L78 20Z M90 32 L96 16 L101 32Z' fill='#b52a35' stroke-width='3'/>
+      <ellipse cx='60' cy='94' rx='50' ry='46' fill='#efd0c6'/>
+      <path d='M24 118 Q60 142 96 118 M28 80 Q40 70 46 82' fill='none' stroke='#b52a35' stroke-width='3'/>
+      <ellipse cx='60' cy='94' rx='30' ry='23' fill='#fff3ee'/>
+      <circle cx='64' cy='94' r='14' fill='#9a1622' stroke-width='3'/><circle cx='64' cy='94' r='6' fill='#2a0508' stroke='none'/>
+      <circle cx='59' cy='89' r='3' fill='#fff' stroke='none'/></g>`,
+    // pour les autres persos, la Chose Impie, c'est la main où l'œil est ouvert : elle se tient au mur (ou attrape l'adversaire)
     attaque(f, o, g, dt) {
-      f.enLair = true; // le corps est intouchable : il faut viser ses bras
-      if (!f.drones) this.preparer(f, o, g);
-      f.butT = (f.butT || 0) - dt;
-      if (!f.but || f.butT <= 0 || Math.hypot(f.but.x - f.x, f.but.y - f.y) < 10) { f.but = { x: W * (0.32 + Math.random() * 0.36), y: W * (0.3 + Math.random() * 0.36) }; f.butT = 3 + Math.random() * 3; }
-      const dx = f.but.x - f.x, dy = f.but.y - f.y, d = Math.hypot(dx, dy) || 1;
-      f.vx = dx / d * this.vitesse; f.vy = dy / d * this.vitesse;
-      // les mains glissent un peu le long de leur mur
-      for (const b of f.drones) if (!b.saisie) { b.t += dt; this.placerMain(b); }
-      // l'œil ouvert sur une main : seul ce bras peut être visé ; il change de main toutes les 4 à 5 s (jamais pendant une saisie)
-      f.oeilT = (f.oeilT ?? 0) - dt; f.ouverture = Math.min(1, (f.ouverture || 0) + dt / OEIL_OUVERTURE);
-      // la main a encaissé trop de coups pendant que l'œil y était ouvert : il se referme et file sur une autre main
-      // (après une fuite, l'œil reste fermé un moment : aucun bras n'est touchable)
-      if (f.oeilFerme > 0) { f.oeilFerme -= dt; if (f.oeilFerme <= 0) this.changerOeil(f); }
-      else {
-        const fuite = f.brasActif && (f.degatsOeil || 0) >= OEIL_FUITE && f.drones.length > 1 && !f.brasActif.saisie;
-        if (fuite) { g.txt.push({ x: f.brasActif.x, y: f.brasActif.y - 30, t: 0.8, s: "L’œil fuit !" }); f.brasActif = null; f.oeilFerme = OEIL_FERME; }
-        else if (!f.drones.includes(f.brasActif) || (f.oeilT <= 0 && !(f.brasActif && f.brasActif.saisie))) this.changerOeil(f);
-      }
-      // rayon : charge, puis balaie en suivant l'adversaire
+      if (!f.bras) this.preparer(f, o, g);
+      const A = f.brasActif;
+      // l'œil fermé après un gros coup : plus rien n'est touchable, puis il se rouvre sur une autre main
+      if (f.oeilFerme > 0) { f.oeilFerme -= dt; f.vis = 0.35; if (f.oeilFerme <= 0) { f.enLair = false; f.vis = 1; this.changerOeil(f); } return; }
+      // rayon : le grand œil charge, puis balaie en suivant l'adversaire
       f.rayonCd = (f.rayonCd ?? RAYON_PREMIER) - dt;
       const R = f.rayon, oeil = this.posOeil(f);
       if (R) {
         R.t += dt;
         const vu = !o.mort && !cache(o, f), voulu = vu ? Math.atan2(o.y - oeil.y, o.x - oeil.x) : R.a;
-        const diff = ((voulu - R.a) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
-        R.a += Math.max(-(R.tir ? RAYON_SUIVI : 4) * dt, Math.min((R.tir ? RAYON_SUIVI : 4) * dt, diff));
+        const diff = ((voulu - R.a) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI, v = R.tir ? RAYON_SUIVI : 4;
+        R.a += Math.max(-v * dt, Math.min(v * dt, diff));
         if (!R.tir && R.t >= RAYON_CHARGE) { R.tir = true; R.t = 0; R.tic = 0; son(f); }
         if (R.tir) {
           R.tic -= dt;
           if (R.tic <= 0) {
             R.tic = RAYON_TIC;
-            // l'adversaire est-il sur la trajectoire du rayon ?
             const ux = Math.cos(R.a), uy = Math.sin(R.a), px = o.x - oeil.x, py = o.y - oeil.y, le = px * ux + py * uy;
-            if (vu && le > 0 && Math.abs(px * uy - py * ux) < RAYON_LARGEUR / 2 + Math.min(o.hw, o.hh) * 0.6) degats(g, o, RAYON_DEGATS, o.x, o.y - o.hh * 0.3);
+            if (vu && le > 0 && Math.abs(px * uy - py * ux) < RAYON_LARGEUR / 2 + Math.min(o.hw, o.hh) * 0.3) degats(g, o, RAYON_DEGATS, o.x, o.y - o.hh * 0.3);
           }
           if (R.t >= RAYON_DUREE) { f.rayon = null; f.rayonCd = RAYON_CD; }
         }
-      } else if (f.rayonCd <= 0 && !o.mort && !cache(o, f)) f.rayon = { t: 0, a: Math.atan2(o.y - oeil.y, o.x - oeil.x), tir: false };
-      // saisie : un bras va attraper l'adversaire
+      } else if (f.rayonCd <= 0 && !f.saisie && !o.mort && !cache(o, f)) f.rayon = { t: 0, a: Math.atan2(o.y - oeil.y, o.x - oeil.x), tir: false };
+      // saisie : la main à l'œil quitte le mur et va attraper l'adversaire
       f.saisieCd = (f.saisieCd ?? SAISIE_PREMIERE) - dt;
-      // c'est le bras qui porte l'œil qui attrape (l'adversaire peut s'en libérer en le frappant)
-      if (f.saisieCd <= 0 && f.brasActif && !f.drones.some(b => b.saisie) && !o.mort && !cache(o, f) && !o.capture && f.drones.length > 1) {
-        f.brasActif.saisie = { phase: "vole", degats: 0, tic: 0, t: 0 }; f.saisieCd = SAISIE_CD; son(f, 2);
-      }
-      for (const b of f.drones) if (b.saisie) this.majSaisie(f, o, g, b, dt);
+      if (f.saisieCd <= 0 && !f.saisie && !f.rayon && A && !o.mort && !cache(o, f) && !o.capture && !o.enLair) { f.saisie = { phase: "vole", t: 0, tic: 0, recu: 0 }; f.saisieCd = SAISIE_CD; son(f, 2); }
+      if (f.saisie) this.majSaisie(f, o, g, dt);
+      else if (A) { const m = this.coordMain(A); f.x = m.x; f.y = m.y; f.penche = this.angleMur(A); } // la main reste agrippée à son mur
+      f.vx = 0; f.vy = 0; f.face = 1;
+      // changement de main toutes les 4 à 5 s (jamais pendant une saisie)
+      f.oeilT -= dt;
+      if (f.oeilT <= 0 && !f.saisie) this.changerOeil(f);
     },
-    majSaisie(f, o, g, b, dt) {
-      const S = b.saisie; S.t += dt;
-      const aller = (x, y, v) => { const dx = x - b.x, dy = y - b.y, d = Math.hypot(dx, dy); if (d < 2) return true; const pas = Math.min(d, v * dt); b.x += dx / d * pas; b.y += dy / d * pas; return pas >= d - 1; };
+    majSaisie(f, o, g, dt) {
+      const S = f.saisie; S.t += dt; f.traverse = true;
+      const aller = (x, y, v) => { const dx = x - f.x, dy = y - f.y, d = Math.hypot(dx, dy); if (d < 2) return true; const pas = Math.min(d, v * dt); f.x += dx / d * pas; f.y += dy / d * pas; f.penche = Math.atan2(dy, dx) + Math.PI / 2; return pas >= d - 1; };
       if (S.phase === "vole") {
-        if (o.mort || cache(o, f) || o.capture || S.t > 2) { S.phase = "retour"; return; }
-        if (aller(o.x, o.y, SAISIE_VITESSE) || Math.hypot(b.x - o.x, b.y - o.y) < Math.max(o.hw, o.hh) * 0.6) { S.phase = "tient"; S.t = 0; son(f, 2); }
+        if (o.mort || cache(o, f) || o.capture || o.enLair || S.t > 2) { S.phase = "retour"; return; }
+        if (aller(o.x, o.y, SAISIE_VITESSE) || Math.hypot(f.x - o.x, f.y - o.y) < Math.max(o.hw, o.hh) * 0.6) { S.phase = "tient"; S.t = 0; son(f, 2); }
         return;
       }
-      if (S.phase === "tient") { // il le bloque sur place et lui fait de petits dégâts réguliers
-        if (o.mort || o.capture || o.enLair || S.degats >= SAISIE_SEUIL || S.t > SAISIE_MAX) { S.phase = "retour"; o.piege = 0; return; }
-        b.x = o.x; b.y = o.y; o.piege = Math.max(o.piege || 0, 0.05);
+      if (S.phase === "tient") { // il bloque l'adversaire sur place et lui fait de petits dégâts réguliers
+        if (o.mort || o.capture || o.enLair || S.recu >= SAISIE_SEUIL || S.t > SAISIE_MAX) { S.phase = "retour"; o.piege = 0; return; }
+        // la main lui attrape le bras par-dessus (doigts vers le bas), devant lui (côté choisi en l'attrapant), la paume à hauteur des épaules
+        S.cote ??= o.face || 1;
+        f.x = o.x + S.cote * (o.hw * 0.9 + Math.abs(o.ox || 0)); f.y = o.y - o.hh * 0.27; f.penche = Math.PI; o.piege = Math.max(o.piege || 0, 0.05);
         S.tic -= dt; if (S.tic <= 0) { S.tic = SAISIE_TIC; degats(g, o, SAISIE_DEGATS, o.x, o.y - o.hh * 0.3); }
         return;
       }
-      // retour au mur
-      const m = this.coordMain(b);
-      if (aller(m.x, m.y, SAISIE_VITESSE * 0.7)) b.saisie = null;
+      const m = this.coordMain(f.brasActif); // retour au mur
+      if (aller(m.x, m.y, SAISIE_VITESSE * 0.7)) { f.saisie = null; f.traverse = false; }
     },
-    // l'œil se referme et se rouvre sur une autre main (au hasard)
+    // dégâts reçus (par n'importe quoi) : ils comptent sur le bras à l'œil ; gros coup = l'œil se ferme ; bras arraché quand sa part est encaissée
+    monde(f, o, g, dt) {
+      if (!f.bras) return;
+      this.majCorps(f, dt);
+      const perdu = Math.max(0, (f.hpAvant ?? f.hp) - f.hp); f.hpAvant = f.hp;
+      for (const b of f.bras) if (b !== f.brasActif || !f.saisie) b.t += dt; // les mains glissent un peu le long de leur mur
+      if (!perdu || !f.brasActif || f.mort) return;
+      if (f.saisie) f.saisie.recu += perdu;
+      const B = f.brasActif; B.pv -= perdu;
+      if (B.pv <= 0 && f.bras.length > 1) { // bras arraché
+        const p = { x: f.x, y: f.y }; f.bras = f.bras.filter(x => x !== B); son(f, 3);
+        for (let i = 0; i < 18; i++) g.parts.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.5) * 260 - 60, t: 0.7, g: 500, c: i % 2 ? "#efd0c6" : "#b52a35" });
+        if (f.saisie) { o.piege = 0; f.saisie = null; f.traverse = false; }
+        this.changerOeil(f);
+      } else if (perdu >= OEIL_GROS_COUP && f.bras.length > 1 && !f.saisie && !f.capture) { // gros coup : l'œil se referme un instant
+        g.txt.push({ x: f.x, y: f.y - 30, t: 0.8, s: "L’œil se ferme !" });
+        f.oeilFerme = OEIL_FERME; f.enLair = true; f.rayon = null;
+      }
+    },
+    // le corps dérive doucement au milieu de l'arène
+    majCorps(f, dt) {
+      const C = f.corps; C.butT -= dt;
+      if (!C.but || C.butT <= 0 || Math.hypot(C.but.x - C.x, C.but.y - C.y) < 10) { C.but = { x: W * (0.35 + Math.random() * 0.3), y: W * (0.32 + Math.random() * 0.3) }; C.butT = 3 + Math.random() * 3; }
+      const dx = C.but.x - C.x, dy = C.but.y - C.y, d = Math.hypot(dx, dy) || 1, pas = Math.min(d, CORPS_VITESSE * dt);
+      C.x += dx / d * pas; C.y += dy / d * pas;
+    },
+    // l'œil se rouvre sur une autre main (au hasard)
     changerOeil(f) {
-      const autres = f.drones.filter(b => b !== f.brasActif), choix = autres.length ? autres : f.drones;
-      f.brasActif = choix.length ? choix[Math.floor(Math.random() * choix.length)] : null;
-      f.oeilT = OEIL_DUREE[0] + Math.random() * (OEIL_DUREE[1] - OEIL_DUREE[0]); f.ouverture = 0; f.degatsOeil = 0;
+      const autres = f.bras.filter(b => b !== f.brasActif), choix = autres.length ? autres : f.bras;
+      f.brasActif = choix[Math.floor(Math.random() * choix.length)];
+      f.oeilT = OEIL_DUREE[0] + Math.random() * (OEIL_DUREE[1] - OEIL_DUREE[0]);
+      const m = this.coordMain(f.brasActif); f.x = m.x; f.y = m.y; f.penche = this.angleMur(f.brasActif);
     },
     // une main sur un mur : mur (g, d, h, b), position le long du mur (0 à 1) qui oscille un peu
     coordMain(b) {
       const v = Math.min(0.94, Math.max(0.06, b.pos + Math.sin(b.t * b.vit + b.phase) * BRAS_GLISSE));
       return b.mur === "g" ? { x: MAIN_MUR, y: v * W } : b.mur === "d" ? { x: W - MAIN_MUR, y: v * W } : b.mur === "h" ? { x: v * W, y: MAIN_MUR } : { x: v * W, y: W - MAIN_MUR };
     },
-    placerMain(b) { const m = this.coordMain(b); b.x = m.x; b.y = m.y; },
-    // 6 mains réparties au hasard sur les murs, pas trop près les unes des autres
+    angleMur(b) { return b.mur === "g" ? -Math.PI / 2 : b.mur === "d" ? Math.PI / 2 : b.mur === "h" ? 0 : Math.PI; }, // doigts vers le mur
+    // 6 mains réparties au hasard sur les murs, chacune encaisse une part des PV
     preparer(f, o, g) {
       const murs = o && o.type === "marin" ? ["g", "d", "h"] : ["g", "d", "h", "b"], bras = [];
       for (let i = 0; i < BRAS_NB; i++) {
         let b, n = 0;
         do { b = { mur: murs[Math.floor(Math.random() * murs.length)], pos: 0.12 + Math.random() * 0.76 }; n++; }
         while (n < 40 && bras.some(x => x.mur === b.mur && Math.abs(x.pos - b.pos) < 0.22));
-        Object.assign(b, { hp: BRAS_PV, t: 0, vit: 0.4 + Math.random() * 0.4, phase: Math.random() * 6, bras: true, nouveau: 0 });
-        this.placerMain(b); bras.push(b);
+        Object.assign(b, { pv: f.hpMax / BRAS_NB, t: 0, vit: 0.4 + Math.random() * 0.4, phase: Math.random() * 6 });
+        bras.push(b);
       }
-      f.drones = bras; f.enLair = true; f.face = 1; this.changerOeil(f);
+      f.bras = bras; f.corps = { x: W / 2, y: W * 0.45, butT: 0 }; f.hpAvant = f.hp; f.face = 1;
+      this.changerOeil(f); majTaille(f);
     },
-    // position de l'œil dans l'arène (sur l'image : 52,7 % de la largeur, 21,7 % de la hauteur)
-    posOeil(f) { return { x: f.x + (OEIL_POS.x * 2 - 1) * f.hw * f.face, y: f.y + (OEIL_POS.y * 2 - 1) * f.hh }; }
+    // attrapé par la langue du Smoker : la saisie en cours est annulée
+    attrape(f, o) { if (f.saisie) { o.piege = 0; f.saisie = null; f.traverse = false; } },
+    // position du grand œil dans l'arène (sur l'image du corps : 52,7 % de la largeur, 21,7 % de la hauteur)
+    posOeil(f) { const C = f.corps, k = corpsEchelle(f); return { x: C.x + (OEIL_POS.x - 0.5) * CHARS.oeil.sprite.tw * k, y: C.y + (OEIL_POS.y - 0.5) * CHARS.oeil.sprite.th * k }; }
   }
 };
 
@@ -1556,9 +1576,11 @@ function majTaille(f) {
   // memeEchelle : toutes ses images à la même échelle que l'image normale (le perso garde la même taille quelle que soit sa pose)
   // echelles : une image en plus affichée à une échelle donnée par rapport à l'image normale (au lieu de la même hauteur)
   const ech = c.echelles && c.imageDe ? c.echelles[c.imageDe(f)] : 0;
-  const kDe = x => x === m || c.memeEchelle ? echelle(m) : ech ? echelle(m) * ech : Math.min(m.th * echelle(m) / x.th, TAILLE_MAX * 1.3 / x.tw);
+  // hauteurs : une image en plus affichée à une hauteur fixe (en pixels de l'arène)
+  const haut = c.hauteurs && c.imageDe ? c.hauteurs[c.imageDe(f)] : 0;
+  const kDe = x => x === m || c.memeEchelle ? echelle(m) : haut && x !== m ? haut / x.th : ech ? echelle(m) * ech : Math.min(m.th * echelle(m) / x.th, TAILLE_MAX * 1.3 / x.tw);
   const fois = c.tailles && c.imageDe ? c.tailles[c.imageDe(f)] || 1 : 1;
-  f.sp = s; f.k = kDe(s) * (s === m ? 1 : fois) * (c.taille || 1); // taille : réglage de taille propre au perso
+  f.sp = s; f.k = kDe(s) * (s === m ? 1 : fois) * (haut && s !== m ? 1 : c.taille || 1); // taille : réglage de taille propre au perso
   f.hw = s.tw * f.k / 2; f.hh = s.th * f.k / 2;
   // persos « caler » : image 3+ (ex. « tir » avec l'étincelle) calée sur le dos de l'image 2 : le corps ne bouge pas,
   // seule la partie en plus (l'étincelle) dépasse vers l'avant
@@ -1649,6 +1671,8 @@ function degats(g, cible, n, x, y) {
   const foudroyant = attaquant && (attaquant.etat === "furie" || attaquant.crusher || attaquant.stomp);
   if (c.imperturbable && cible.pose > 0 && !coupDirect) n = Math.max(1, Math.round(n * (1 - (coupFoudroyant ? GIGA_IMPERTURBABLE_CRI : foudroyant ? GIGA_IMPERTURBABLE_FURIE : GIGA_IMPERTURBABLE))));
   if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction)));
+  // blindage : dégâts toujours réduits de cette part (la main de la Chose Impie, dure comme de la corne)
+  if (c.blindage) n = Math.max(1, Math.round(n * (1 - c.blindage)));
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
   const reaction = CHARS[cible.type].quandTouche;
   if (reaction && !cible.capture) reaction(cible, g); // attrapé par le Smoker : aucune réaction (Myers ne file pas dans un coin)
@@ -1676,12 +1700,12 @@ function explosion(g, x, y, cible, dmg, ang) {
   }
   const dx = Math.max(Math.abs(cible.x - x) - cible.hw, 0), dy = Math.max(Math.abs(cible.y - y) - cible.hh, 0);
   if (Math.hypot(dx, dy) < 140) degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3);
-  for (const d of [...(cible.drones || [])]) if (distDrone(cible, d, x, y) < 150) blesserDrone(g, cible, d, dmg);
+  for (const d of [...(cible.drones || [])]) { const p = dronePos(cible, d); if (Math.hypot(p.x - x, p.y - y) < 150) blesserDrone(g, cible, d, dmg); }
 }
-const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (40 → 8 s max)
+const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (38 → 7,6 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
 // laser du robot : de plus en plus fort, un palier tous les LASER_TIC (très petit, petit, moyen, gros, très gros)
-const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 5.2;
+const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 5.6;
 // dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
 function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1)); }
 // GigaChad : pose de 1 s, 1 s de marche entre deux poses ; +1 en attaque par pose (5 max)
@@ -1691,9 +1715,9 @@ const GIGA_IMPERTURBABLE = 0.6, GIGA_IMPERTURBABLE_FURIE = 0.25, GIGA_IMPERTURBA
 const GIGA_APPROCHE = 1.5; // à 5 poses, il tourne peu à peu vers l'adversaire (radians par seconde)
 const GIGA_VIRAGE = 0.8; // en se baladant, il tourne doucement (radians par seconde, au plus)
 // coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
-const GIGA_COUP = 6, GIGA_COUP_POSE = 10, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
+const GIGA_COUP = 5, GIGA_COUP_POSE = 10, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
 // Bison
-const CRUSHER_CD = 3.1, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
+const CRUSHER_CD = 3.3, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
 const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 3;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
@@ -1712,7 +1736,7 @@ function vapeur(g, x, y) { for (let i = 0; i < 18; i++) g.parts.push({ x: x + (M
 function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (Math.random() - 0.5) * 120, vy: -60 - Math.random() * 120, t: 0.45, g: 500, c: i % 2 ? "#9fd8ff" : "#e8f6ff" }); }
 // l'île de la tortue : au bout d'un moment, le Marin rentre chez lui (c'est une victoire pour lui)
 const PLONGEE_DUREE = 1.2, PLONGEE_CD = 6, PLONGEE_MISSILE = 0.35; // plongée du Marin face au laser ou aux missiles
-const ILE_DELAI = [18, 20], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
+const ILE_DELAI = [17, 19], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
 const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 12, GENOU_CD = 2, GENOU_DEGATS = 4;
@@ -1754,8 +1778,6 @@ function bougerAppareil(f, o, d, dt) {
   d.dir += Math.max(-4 * dt, Math.min(4 * dt, diff));
 }
 function dronePos(f, d) { return { x: d.x, y: d.y }; }
-// distance d'un point à un appareil du Bombardier, ou au bras entier de l'Œil (de l'épaule à la main)
-function distDrone(f, d, x, y) { return d.bras ? pointBras(f, d, x, y).d : Math.hypot(d.x - x, d.y - y); }
 // cible visée : toujours l'adversaire en priorité ; les appareils du Bombardier ne sont visés
 // que si on ne le voit pas (un appareil est renvoyé sous forme de cible avec .drone)
 function cibleDe(f, o) {
@@ -1764,30 +1786,12 @@ function cibleDe(f, o) {
   if (!o.mort) for (const d of o.drones || []) {
     if (d.nouveau > 0) continue;
     const dd = Math.hypot(d.x - f.x, d.y - f.y);
-    if (d.bras && d !== o.brasActif) continue; // l'Œil : seul le bras où l'œil est ouvert peut être visé
-    if (d.bras) { const p = pointBras(o, d, f.x, f.y); if (p.d < dBest) { dBest = p.d; best = { x: p.x, y: p.y, vx: 0, vy: 0, hw: 12, hh: 12, drone: d }; } continue; } // tout le bras de l'Œil est une cible
     if (dd < dBest) { dBest = dd; best = { x: d.x, y: d.y, vx: 0, vy: 0, hw: 14, hh: 14, drone: d }; }
   }
   return best;
 }
 // frappe la cible choisie : l'adversaire ou un appareil
-// Chose Impie : point où le bras à l'œil croise la hauteur de f (le plus proche de lui), ou rien
-function brasAHauteur(o, f) {
-  const b = o.brasActif; if (!b || !o.drones.includes(b)) return null;
-  const G = geomBras(o, b), P = [];
-  for (let i = 0; i <= 24; i++) { const t = i / 24, u = 1 - t; P.push({ x: u * u * G.sx + 2 * u * t * G.cx + t * t * b.x, y: u * u * G.sy + 2 * u * t * G.cy + t * t * b.y }); }
-  let best = null;
-  for (let i = 0; i < 24; i++) {
-    const a = P[i], c = P[i + 1];
-    if ((a.y - f.y) * (c.y - f.y) > 0 || a.y === c.y) continue;
-    const x = a.x + (c.x - a.x) * (f.y - a.y) / (c.y - a.y);
-    if (!best || Math.abs(x - f.x) < Math.abs(best.x - f.x)) best = { x, y: f.y, vx: 0, vy: 0, hw: 12, hh: 12, drone: b };
-  }
-  return best;
-}
-// coupMelee : coup porté au contact (les mains de l'Œil n'esquivent pas ceux-là)
-let coupMelee = false;
-function frapper(g, o, t, n, x, y) { if (t.drone) { coupMelee = true; blesserDrone(g, o, t.drone, n); coupMelee = false; } else degats(g, o, n, x, y); }
+function frapper(g, o, t, n, x, y) { if (t.drone) blesserDrone(g, o, t.drone, n); else degats(g, o, n, x, y); }
 // McCree : chaque balle d'une rafale qui touche l'adversaire a une petite chance d'éviter le prochain rechargement
 function enchainer(g, f, rafale) {
   if (f.rafale !== rafale || f.mort) return; // balle d'une ancienne rafale
@@ -1808,23 +1812,6 @@ function absorber(g, p, f) {
 function degatsProj(p) { return p.rafale ? Math.max(1, p.dmg - p.rafale.touches) : p.dmg; }
 function blesserDrone(g, f, d, n) {
   const p = dronePos(f, d);
-  if (d.bras && d !== f.brasActif) return; // l'Œil : les bras sans œil ne craignent rien
-  if (d.bras) { // bras de l'Œil : chaque coup lui fait perdre autant de PV ; un bras détruit se détache
-    // une main esquive parfois un tir à distance (jamais un coup au contact)
-    if (!coupMelee && Math.random() < BRAS_ESQUIVE) { rate(g, p.x, p.y); return; }
-    n = Math.min(n, BRAS_COUP_MAX); // un bras ne prend pas plus de BRAS_COUP_MAX dégâts d'un même coup
-    const k = f.hpMax / (BRAS_NB * BRAS_PV), coup = Math.min(n, d.hp);
-    d.hp -= n; f.hp = Math.max(0, f.hp - coup * k); f.flash = 0.1; if (n >= OEIL_GROS_COUP) f.degatsOeil = (f.degatsOeil || 0) + coup; // seuls les gros coups font fuir l'œil
-    if (d.saisie) d.saisie.degats += n;
-    g.txt.push({ x: p.x, y: p.y - 14, t: 0.6, s: "-" + n }); eclats(g, p.x, p.y, "#b52a35");
-    if (d.hp <= 0) {
-      f.drones = f.drones.filter(x => x !== d); son(f, 3);
-      for (const x of g.f) if (x !== f && d.saisie && d.saisie.phase === "tient") x.piege = 0;
-      for (let i = 0; i < 18; i++) g.parts.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.5) * 260 - 60, t: 0.7, g: 500, c: i % 2 ? "#efd0c6" : "#b52a35" });
-      if (!f.drones.length) f.hp = 0; // plus de bras : il tombe
-    }
-    return;
-  }
   d.hp -= n; g.txt.push({ x: p.x, y: p.y - 14, t: 0.6, s: "-" + n }); eclats(g, p.x, p.y, "#8b93a6");
   if (d.hp <= 0) { // appareil détruit : le Bombardier perd un petit pourcentage de ses PV
     f.drones = f.drones.filter(x => x !== d); son(f, 3);
@@ -1838,20 +1825,18 @@ function droneTouche(g, f, x, y, rad, n, deja) {
   for (const d of f.drones) {
     if (deja && deja.has(d)) continue;
     const p = dronePos(f, d);
-    if (d.bras && d !== f.brasActif) continue;
-    const dist = d.bras ? pointBras(f, d, x, y).d : Math.hypot(p.x - x, p.y - y);
-    if (dist < rad + (d.bras ? 12 : 13)) { if (deja) deja.add(d); blesserDrone(g, f, d, n); return true; }
+    if (Math.hypot(p.x - x, p.y - y) < rad + 13) { if (deja) deja.add(d); blesserDrone(g, f, d, n); return true; }
   }
   return false;
 }
 /* ===== CRI DU HURLEUR =====
    Une onde de choc en anneau part de lui et grandit ; elle blesse une fois l'adversaire qu'elle traverse. */
-const HURLEUR_DEGATS = 12, HURLEUR_CRI_SORTIE = 22, HURLEUR_INVIS_CD = 4.95, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
+const HURLEUR_DEGATS = 13, HURLEUR_CRI_SORTIE = 22, HURLEUR_INVIS_CD = 5.2, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
 function crier(g, f, dmg, portee, epais) {
   g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
 }
 /* ===== LANGUE DU SMOKER ===== */
-const LANGUE_PENALITE = 1.5; // secondes d'attente en plus quand sa langue a été annulée (coupée, tranchée, glissée…)
+const LANGUE_PENALITE = 1.75; // secondes d'attente en plus quand sa langue a été annulée (coupée, tranchée, glissée…)
 const LANGUE_CD = 3.45, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
 // langue annulée pile au moment où elle touche (Myers en furie, GigaChad en pose) : une part des dégâts d'un étranglement complet (7 à-coups, 42)
 const LANGUE_ANNULEE_PART = 0.25;
@@ -1934,7 +1919,7 @@ const MINE_PREMIERE = 3, MINE_CD = 7, MINE_DEGATS = 8, MINE_RAYON = 28, MINE_PRO
 const PIEGE_PREMIER = 5, PIEGE_CD = 9, PIEGE_DEGATS = 6, PIEGE_DUREE = 1.5, PIEGE_RAYON = 26;
 const FINALE_NB = 6, FINALE_ECART = 70, FINALE_MECHE = [0.8, 1.6], FINALE_DEGATS = 9, FINALE_RAYON = 50;
 // Bouldozer : balancement au bout du grappin, en feu au-delà d'une certaine vitesse, mitraillettes une fois en bas
-const HAMMOND_GRAVITE = 900, HAMMOND_POMPE = 950, HAMMOND_VITESSE_MAX = 1020, HAMMOND_VITESSE_PLAFOND = 1250, HAMMOND_FEU_VITESSE = 740, HAMMOND_REBOND = 0.85, HAMMOND_REBOND_SOL = 0.5, HAMMOND_ATTERRIT = 450;
+const HAMMOND_GRAVITE = 900, HAMMOND_POMPE = 950, HAMMOND_VITESSE_MAX = 1020, HAMMOND_VITESSE_PLAFOND = 1250, HAMMOND_FEU_VITESSE = 700, HAMMOND_REBOND = 0.85, HAMMOND_REBOND_SOL = 0.5, HAMMOND_ATTERRIT = 450;
 const HAMMOND_ESSAIS = 6, HAMMOND_VISEE = 0.6; // endroits essayés pour le grappin ; angle (radians) pour lâcher vers l'adversaire
 const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 8, HAMMOND_CHOC_CD = 0.5;
 // après le grappin : vol libre, puis il s'arrête en hauteur (tremble), puis s'écrase au sol
@@ -2008,7 +1993,7 @@ function boumChacal(g, b, cible, dmg, rayon) {
   coupRate = !!b.rate;
   if (!cible.mort && Math.hypot(dx, dy) < rayon) { degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3); touche = true; }
   coupRate = false;
-  for (const d of [...(cible.drones || [])]) if (distDrone(cible, d, b.x, b.y) < rayon + 10) blesserDrone(g, cible, d, dmg);
+  for (const d of [...(cible.drones || [])]) if (Math.hypot(d.x - b.x, d.y - b.y) < rayon + 10) blesserDrone(g, cible, d, dmg);
   return touche;
 }
 // grenades, mines, pièges et grenades de la fin de Chacal (même après sa mort)
@@ -2027,7 +2012,7 @@ function majBombes(g, dt) {
         if (b.y < 8) { b.y = 8; b.vy = Math.abs(b.vy); mur = true; }
         if (b.y > W - 8) { b.y = W - 8; b.vy = -Math.abs(b.vy); mur = true; }
         if (mur && ++b.rebonds > GRENADE_REBONDS) { boumChacal(g, b, g.running && cible, GRENADE_DEGATS, GRENADE_RAYON); return false; }
-        const dr = cible && !b.rate && cible.drones && cible.drones.find(d => distDrone(cible, d, b.x, b.y) < 20);
+        const dr = cible && !b.rate && cible.drones && cible.drones.find(d => Math.hypot(d.x - b.x, d.y - b.y) < 20);
         if (g.running && cible && !cible.mort && (dr || (!b.rate && touche(cible, b.x, b.y, 6)))) { boumChacal(g, b, cible, GRENADE_DEGATS, GRENADE_RAYON); return false; }
       }
       if (b.t <= 0) { boumChacal(g, b, g.running && cible, GRENADE_DEGATS, GRENADE_RAYON); return false; }
@@ -2055,121 +2040,95 @@ function majBombes(g, dt) {
     return false;
   });
 }
-// L'Œil : 6 bras accrochés aux murs (les seules cibles), un rayon qui balaie, une main qui attrape
-const BRAS_NB = 6, BRAS_PV = 29, BRAS_GLISSE = 0.06, BRAS_COUP_MAX = 20, BRAS_ESQUIVE = 0; // nombre de bras, PV de chaque bras, amplitude du glissement le long du mur
-const RAYON_PREMIER = 3, RAYON_CD = 5.5, RAYON_CHARGE = 0.9, RAYON_DUREE = 1.6, RAYON_SUIVI = 0.9, RAYON_TIC = 0.2, RAYON_DEGATS = 4, RAYON_LARGEUR = 22;
-const SAISIE_PREMIERE = 5, SAISIE_CD = 8, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 2, SAISIE_SEUIL = 10, SAISIE_MAX = 2;
-const OEIL_POS = { x: 0.527, y: 0.217, rx: 0.09, ry: 0.079 }; // l'œil sur l'image (proportions)
-const MAIN_MUR = 24; // distance des mains au bord (pour qu'on les voie en entier)
-// temps passé par l'œil sur une main avant d'en changer, durée d'ouverture, dégâts encaissés par la main à l'œil avant qu'il fuie
-const OEIL_DUREE = [4, 5], OEIL_OUVERTURE = 0.35, OEIL_FUITE = 13, OEIL_FERME = 2, OEIL_GROS_COUP = 12; // … et durée où l'œil reste fermé après une fuite
-// géométrie d'un bras : épaule sur le corps, point de pli (coude), main au mur ; ondule un peu si on donne l'heure
-function geomBras(f, b, now) {
-  const a = Math.atan2(b.y - f.y, b.x - f.x), r0 = Math.min(f.hw, f.hh) * 0.45;
-  const sx = f.x + Math.cos(a) * r0, sy = f.y + Math.sin(a) * r0, d = Math.hypot(b.x - sx, b.y - sy) || 1;
-  const pli = (b.phase % 2 > 1 ? 1 : -1) * Math.min(60, d * 0.18) * (1 + (now === undefined ? 0 : 0.15 * Math.sin(now * 1.5 + b.phase)));
-  return { sx, sy, cx: (sx + b.x) / 2 - (b.y - sy) / d * pli, cy: (sy + b.y) / 2 + (b.x - sx) / d * pli };
+// Chose Impie : 6 bras accrochés aux murs ; la main où l'œil est ouvert est ce que les autres frappent
+const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_MUR = 60, MAIN_HAUTEUR = 140, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;
+const OEIL_DUREE = [4, 5], OEIL_FERME = 2, OEIL_GROS_COUP = 12; // temps de l'œil sur une main, temps fermé après un gros coup, ce qu'est un gros coup
+const RAYON_PREMIER = 3, RAYON_CD = 5, RAYON_CHARGE = 0.9, RAYON_DUREE = 1.6, RAYON_SUIVI = 0.6, RAYON_TIC = 0.2, RAYON_DEGATS = 6, RAYON_LARGEUR = 22;
+const SAISIE_PREMIERE = 5, SAISIE_CD = 6, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 5, SAISIE_SEUIL = 12, SAISIE_MAX = 2;
+const OEIL_POS = { x: 0.527, y: 0.217, rx: 0.09, ry: 0.079 }; // le grand œil sur l'image du corps (proportions)
+function corpsEchelle(f) { return CORPS_HAUTEUR / CHARS.oeil.sprite.th; }
+// géométrie d'un bras : épaule sur le corps, point de pli (coude), main (x, y)
+function geomBras(C, b, x, y, now) {
+  const a = Math.atan2(y - C.y, x - C.x), r0 = CORPS_HAUTEUR * 0.18;
+  const sx = C.x + Math.cos(a) * r0, sy = C.y + Math.sin(a) * r0, d = Math.hypot(x - sx, y - sy) || 1;
+  const pli = (b.phase % 2 > 1 ? 1 : -1) * Math.min(60, d * 0.18) * (1 + 0.15 * Math.sin(now * 1.5 + b.phase));
+  return { sx, sy, cx: (sx + x) / 2 - (y - sy) / d * pli, cy: (sy + y) / 2 + (x - sx) / d * pli };
 }
-// point du bras le plus proche de (x, y) (le long de la courbe, de l'épaule à la main) et sa distance
-function pointBras(f, b, x, y) {
-  const G = geomBras(f, b); let best = { x: b.x, y: b.y, d: Math.hypot(b.x - x, b.y - y) };
-  for (let i = 0; i < 12; i++) {
-    const t = i / 12, u = 1 - t, px = u * u * G.sx + 2 * u * t * G.cx + t * t * b.x, py = u * u * G.sy + 2 * u * t * G.cy + t * t * b.y, d = Math.hypot(px - x, py - y);
-    if (d < best.d) best = { x: px, y: py, d };
-  }
-  return best;
-}
-// un bras : épaule sur le corps, coude plié, main griffue agrippée au mur (ou à l'adversaire)
-function dessinerBras(f, b, now) {
-  const { sx, sy, cx, cy } = geomBras(f, b, now);
+// un bras de la Chose Impie, du corps jusqu'à la main (main dessinée seulement si ce n'est pas la main à l'œil)
+function dessinerBras(f, b, x, y, now, actif) {
+  const { sx, sy, cx, cy } = geomBras(f.corps, b, x, y, now);
   ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
-  if (b === f.brasActif) { ctx.strokeStyle = `rgba(255,70,110,${0.25 + 0.15 * Math.sin(now * 5)})`; ctx.lineWidth = 30; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cx, cy, b.x, b.y); ctx.stroke(); }
-  for (const [w, c] of [[20, "#4a0c14"], [15, "#efd0c6"]]) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cx, cy, b.x, b.y); ctx.stroke(); }
-  // veines rouges le long du bras
-  ctx.strokeStyle = "#b52a35"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cx + 3, cy + 3, b.x, b.y); ctx.stroke();
-  // main : paume tournée vers le mur, 4 doigts griffus
-  const ah = b.saisie && b.saisie.phase === "tient" ? Math.atan2(b.y - cy, b.x - cx) : b.mur === "g" ? Math.PI : b.mur === "d" ? 0 : b.mur === "h" ? -Math.PI / 2 : Math.PI / 2;
-  ctx.translate(b.x, b.y); ctx.rotate(ah); ctx.scale(1.35, 1.35);
-  ctx.fillStyle = "#efd0c6"; ctx.strokeStyle = "#4a0c14"; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.ellipse(-6, 0, 11, 10, 0, 0, 7); ctx.fill(); ctx.stroke();
-  for (let i = 0; i < 4; i++) {
-    const da = (i - 1.5) * 0.42, l = 15 + (i === 1 || i === 2 ? 3 : 0), fx = Math.cos(da) * l, fy = Math.sin(da) * l;
-    ctx.strokeStyle = "#4a0c14"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(fx * 0.6, fy * 0.6 - 3, fx, fy); ctx.stroke();
-    ctx.strokeStyle = "#efd0c6"; ctx.lineWidth = 3.5; ctx.stroke();
-    ctx.fillStyle = "#b52a35"; ctx.beginPath(); ctx.moveTo(fx - 2, fy - 2); ctx.lineTo(fx + 6 * Math.cos(da), fy + 6 * Math.sin(da)); ctx.lineTo(fx + 2, fy + 2); ctx.fill(); // griffe
-  }
-  if (b === f.brasActif) { // l'œil ouvert sur cette main, qui regarde l'adversaire
-    const k = f.ouverture ?? 1, o = jeu && jeu.f.find(x => x !== f);
-    ctx.rotate(-ah); // œil toujours droit
-    ctx.fillStyle = `rgba(255,60,90,${0.25 + 0.15 * Math.sin(now * 6)})`; ctx.beginPath(); ctx.arc(0, 0, 20, 0, 7); ctx.fill();
-    ctx.fillStyle = "#fff3ee"; ctx.strokeStyle = "#4a0c14"; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.ellipse(0, 0, 9, 7 * k + 0.5, 0, 0, 7); ctx.fill(); ctx.stroke();
-    if (k > 0.3 && o) {
-      const a = Math.atan2(o.y - b.y, o.x - b.x), px = Math.cos(a) * 3.5, py = Math.sin(a) * 2.5 * k;
-      ctx.fillStyle = "#9a1622"; ctx.beginPath(); ctx.arc(px, py, 4 * Math.min(1, k * 1.3), 0, 7); ctx.fill();
-      ctx.fillStyle = "#2a0508"; ctx.beginPath(); ctx.arc(px, py, 1.8, 0, 7); ctx.fill();
+  if (actif) { ctx.strokeStyle = `rgba(255,70,110,${0.25 + 0.15 * Math.sin(now * 5)})`; ctx.lineWidth = 30; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cx, cy, x, y); ctx.stroke(); }
+  for (const [w, c] of [[20, "#4a0c14"], [15, "#efd0c6"]]) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cx, cy, x, y); ctx.stroke(); }
+  ctx.strokeStyle = "#b52a35"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cx + 3, cy + 3, x, y); ctx.stroke(); // veine
+  if (!actif) { // main griffue agrippée au mur
+    ctx.translate(x, y); ctx.rotate(CHARS.oeil.angleMur(b) - Math.PI / 2); ctx.scale(1.35, 1.35);
+    ctx.fillStyle = "#efd0c6"; ctx.strokeStyle = "#4a0c14"; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.ellipse(-6, 0, 11, 10, 0, 0, 7); ctx.fill(); ctx.stroke();
+    for (let i = 0; i < 4; i++) {
+      const da = (i - 1.5) * 0.42, l = 15 + (i === 1 || i === 2 ? 3 : 0), fx = Math.cos(da) * l, fy = Math.sin(da) * l;
+      ctx.strokeStyle = "#4a0c14"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(fx * 0.6, fy * 0.6 - 3, fx, fy); ctx.stroke();
+      ctx.strokeStyle = "#efd0c6"; ctx.lineWidth = 3.5; ctx.stroke();
+      ctx.fillStyle = "#b52a35"; ctx.beginPath(); ctx.moveTo(fx - 2, fy - 2); ctx.lineTo(fx + 6 * Math.cos(da), fy + 6 * Math.sin(da)); ctx.lineTo(fx + 2, fy + 2); ctx.fill();
     }
   }
   ctx.restore();
-  if (b.hp < BRAS_PV) { // barre de vie du bras
-    ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(b.x - 13, b.y - 26, 26, 4);
-    ctx.fillStyle = "#3fae5a"; ctx.fillRect(b.x - 13, b.y - 26, 26 * Math.max(0, b.hp) / BRAS_PV, 4);
-  }
 }
-// l'œil redessiné par-dessus l'image : la pupille regarde l'adversaire (repère du perso, avant le miroir)
-function dessinerOeil(f, o) {
-  const ex = (OEIL_POS.x * 2 - 1) * f.hw, ey = (OEIL_POS.y * 2 - 1) * f.hh, rx = OEIL_POS.rx * 2 * f.hw, ry = OEIL_POS.ry * 2 * f.hh;
+// le corps (image du perso) au milieu, avec le grand œil redessiné qui regarde l'adversaire
+function dessinerCorps(f, o) {
+  const C = f.corps, s = CHARS.oeil.sprite, k = corpsEchelle(f), w = s.tw * k, h = s.th * k;
+  ctx.drawImage(s.img, C.x - w / 2, C.y - h / 2, w, h);
+  if (!CHARS.oeil.perso) return;
+  const ex = C.x + (OEIL_POS.x - 0.5) * w, ey = C.y + (OEIL_POS.y - 0.5) * h, rx = OEIL_POS.rx * w, ry = OEIL_POS.ry * h;
   const gr = ctx.createRadialGradient(ex - rx * 0.3, ey - ry * 0.3, 1, ex, ey, rx);
   gr.addColorStop(0, "#fff6f2"); gr.addColorStop(0.75, "#f1dcd5"); gr.addColorStop(1, "#d9a7a0");
   ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(ex, ey, rx, ry, 0, 0, 7); ctx.fill();
-  ctx.strokeStyle = "rgba(181,42,53,.55)"; ctx.lineWidth = 1; // petites veines
+  ctx.strokeStyle = "rgba(181,42,53,.55)"; ctx.lineWidth = 1;
   for (let i = 0; i < 6; i++) { const a = i * 1.05 + 0.3; ctx.beginPath(); ctx.moveTo(ex + Math.cos(a) * rx * 0.95, ey + Math.sin(a) * ry * 0.95); ctx.lineTo(ex + Math.cos(a + 0.2) * rx * 0.55, ey + Math.sin(a + 0.2) * ry * 0.55); ctx.stroke(); }
-  let dx = 0, dy = 0;
-  if (o && !o.mort) { const oe = CHARS.oeil.posOeil(f), a = Math.atan2(o.y - oe.y, (o.x - oe.x) * f.face); dx = Math.cos(a) * (rx - rx * 0.42) * 0.85; dy = Math.sin(a) * (ry - rx * 0.42) * 0.85; }
-  const charge = f.rayon && !f.rayon.tir ? f.rayon.t / RAYON_CHARGE : f.rayon ? 1 : 0, ir = rx * 0.42;
+  const ir = rx * 0.42; let dx = 0, dy = 0;
+  if (o && !o.mort) { const a = Math.atan2(o.y - ey, o.x - ex); dx = Math.cos(a) * (rx - ir) * 0.85; dy = Math.sin(a) * (ry - ir) * 0.85; }
+  const charge = f.rayon && !f.rayon.tir ? f.rayon.t / RAYON_CHARGE : f.rayon ? 1 : 0;
   ctx.fillStyle = charge ? `rgb(${154 + 100 * charge},${22 + 30 * charge},${60 + 60 * charge})` : "#9a1622";
-  ctx.beginPath(); ctx.arc(ex + dx, ey + dy, ir, 0, 7); ctx.fill();
-  ctx.strokeStyle = "#5a0a12"; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(ex + dx, ey + dy, ir, 0, 7); ctx.fill(); ctx.strokeStyle = "#5a0a12"; ctx.lineWidth = 1.2; ctx.stroke();
   ctx.fillStyle = "#2a0508"; ctx.beginPath(); ctx.arc(ex + dx, ey + dy, ir * 0.45, 0, 7); ctx.fill();
   ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(ex + dx - ir * 0.35, ey + dy - ir * 0.35, ir * 0.2, 0, 7); ctx.fill();
 }
-// rayon de l'Œil : visée fine pendant la charge, puis rayon pourpre ondulant qui balaie jusqu'au mur
+// rayon : visée fine pendant la charge, puis rayon pourpre ondulant qui balaie jusqu'au mur
 function dessinerRayonOeil(f) {
   const R = f.rayon, e = CHARS.oeil.posOeil(f), now = performance.now() / 1000, ux = Math.cos(R.a), uy = Math.sin(R.a);
   let L = 0; while (L < W * 1.5) { const x = e.x + ux * L, y = e.y + uy * L; if (x < 0 || x > W || y < 0 || y > W) break; L += 6; }
   ctx.save(); ctx.lineCap = "round";
-  if (!R.tir) { // visée qui clignote
+  if (!R.tir) {
     ctx.strokeStyle = `rgba(214,40,110,${0.3 + 0.4 * Math.abs(Math.sin(now * 14))})`; ctx.lineWidth = 2; ctx.setLineDash([10, 8]);
     ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + ux * L, e.y + uy * L); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = `rgba(255,80,140,${0.3 + 0.5 * R.t / RAYON_CHARGE})`; ctx.beginPath(); ctx.arc(e.x, e.y, 6 + 10 * R.t / RAYON_CHARGE, 0, 7); ctx.fill();
-  } else { // rayon ondulant, plusieurs épaisseurs
+  } else {
     const nx = -uy, ny = ux;
     for (const [w, c] of [[RAYON_LARGEUR + 10, "rgba(120,10,70,.35)"], [RAYON_LARGEUR, "rgba(214,40,110,.75)"], [RAYON_LARGEUR * 0.35, "rgba(255,220,235,.95)"]]) {
       ctx.fillStyle = c; ctx.beginPath();
-      for (let k = 0; k <= 40; k++) { const t = k / 40, l = t * L, o2 = w / 2 * (1 + 0.25 * Math.sin(l * 0.08 - now * 30)); ctx.lineTo(e.x + ux * l + nx * o2, e.y + uy * l + ny * o2); }
-      for (let k = 40; k >= 0; k--) { const t = k / 40, l = t * L, o2 = w / 2 * (1 + 0.25 * Math.sin(l * 0.08 - now * 30 + 2)); ctx.lineTo(e.x + ux * l - nx * o2, e.y + uy * l - ny * o2); }
+      for (let k = 0; k <= 40; k++) { const l = k / 40 * L, o2 = w / 2 * (1 + 0.25 * Math.sin(l * 0.08 - now * 30)); ctx.lineTo(e.x + ux * l + nx * o2, e.y + uy * l + ny * o2); }
+      for (let k = 40; k >= 0; k--) { const l = k / 40 * L, o2 = w / 2 * (1 + 0.25 * Math.sin(l * 0.08 - now * 30 + 2)); ctx.lineTo(e.x + ux * l - nx * o2, e.y + uy * l - ny * o2); }
       ctx.closePath(); ctx.fill();
     }
-    ctx.fillStyle = "rgba(255,120,180,.6)"; ctx.beginPath(); ctx.arc(e.x + ux * L, e.y + uy * L, RAYON_LARGEUR * 0.8, 0, 7); ctx.fill(); // impact sur le mur
+    ctx.fillStyle = "rgba(255,120,180,.6)"; ctx.beginPath(); ctx.arc(e.x + ux * L, e.y + uy * L, RAYON_LARGEUR * 0.8, 0, 7); ctx.fill();
   }
   ctx.restore();
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
-const FEU_BONUS = 3; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
+const FEU_BONUS = 4; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 40, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
-const INCONNU_SOIN = 3; // PV regagnés par l'Inconnu à chaque téléportation
+const INCONNU_SOIN = 2; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
 // grenade flash de McCree : aveugle et ralentit énormément l'adversaire touché
-const FLASH_DUREE_OEIL = 2.5, FLASH_OEIL_DEGATS = 7; // la Chose Impie (un œil) reste aveuglée plus longtemps, et la lumière lui brûle l'œil
 const FLASH_PREMIERE = 4, FLASH_CD = 16, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3, FLASH_FLOU = 2, FLASH_PRECISION = 0.2;
 // roulade de McCree : esquive rapide quand il va être touché
 const ROULADE_CD = 8, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUIVE = 1, ROULADE_BONUS = 1.5;
 // les 6 images de roulade de McCree sont-elles toutes là ?
 function rouladeAnimee() { const s = CHARS.cowboy.spr; return !!s && [4, 5, 6, 7, 8, 9].every(n => s[n]); }
 const ENCHAINE_CHANCE = 0.02; // chance par balle qui touche de ne pas recharger (McCree)
-const RECHARGE = 1.35; // rechargement du Cowboy après chaque rafale (secondes)
+const RECHARGE = 1.4; // rechargement du Cowboy après chaque rafale (secondes)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
 const FIN = 3.2, ANNONCE_DELAI = 1; // durée de la séquence de fin, attente avant d'annoncer le gagnant (secondes réelles)
@@ -2178,8 +2137,9 @@ function exploser(g, f) {
   arreterSons(f); if (f.type !== "oeil") jouerGeneral("explosion");
   for (const x of g.f) if (x.capture === f) x.capture = null; // le Smoker mort lâche sa prise
   g.proj = g.proj.filter(p => p.owner !== f);
-  if (f.type === "oeil") { // l'Œil n'explose pas : privé de ses bras, il tombe
-    f.rayon = null; g.chuteOeil = { x: f.x, y: f.y, vy: -120, rot: 0, sens: Math.random() < 0.5 ? -1 : 1, s: spriteDe(f), hw: f.hw, hh: f.hh, face: f.face };
+  if (f.type === "oeil" && f.corps) { // la Chose Impie n'explose pas : elle tombe
+    const s = CHARS.oeil.sprite, k = corpsEchelle(f);
+    f.rayon = null; g.chuteOeil = { x: f.corps.x, y: f.corps.y, vy: -120, rot: 0, sens: Math.random() < 0.5 ? -1 : 1, s, w: s.tw * k, h: s.th * k };
     son(f, 4); g.secousse = 0.3;
     return;
   }
@@ -2254,7 +2214,7 @@ function maj(dt) {
   const dx = b.x - a.x, dy = b.y - a.y;
   const ox = a.hw + b.hw - Math.abs(dx), oy = a.hh + b.hh - Math.abs(dy);
   // pas de collision pendant le Psycho Crusher de Bison ni pendant que Bouldozer s'écrase au sol (il traverse l'adversaire)
-  const traverse = a.crusher || b.crusher || a.etatH === "chute" || b.etatH === "chute";
+  const traverse = a.crusher || b.crusher || a.etatH === "chute" || b.etatH === "chute" || a.traverse || b.traverse;
   if (ox > 0 && oy > 0 && !a.mort && !b.mort && !traverse && !a.enLair && !b.enLair) {
     if (ox < oy) {
       const s = Math.sign(dx) || 1; a.x -= s * ox / 2; b.x += s * ox / 2;
@@ -2337,8 +2297,8 @@ function maj(dt) {
   g.txt = g.txt.filter(t => { t.y -= 40 * dt; t.t -= dt; return t.t > 0; });
   g.explos = g.explos.filter(e => (e.t -= dt) > 0);
   g.boums = (g.boums || []).filter(e => (e.t -= dt) > 0);
-  const C = g.chuteOeil; // l'Œil qui tombe, en tournant un peu, jusqu'en bas de l'arène
-  if (C && C.y < W + C.hh) { C.vy += 1400 * dt; C.y += C.vy * dt; C.rot += C.sens * 1.6 * dt; if (C.y >= W - C.hh * 0.5 && !C.sol) { C.sol = true; g.secousse = 0.4; for (let i = 0; i < 24; i++) g.parts.push({ x: C.x + (Math.random() - 0.5) * C.hw, y: W - 4, vx: (Math.random() - 0.5) * 300, vy: -Math.random() * 260, t: 0.6, g: 600, c: i % 2 ? "#efd0c6" : "#b52a35" }); } }
+  const C = g.chuteOeil; // la Chose Impie qui tombe en tournant jusqu'en bas de l'arène
+  if (C && C.y < W + C.h) { C.vy += 1400 * dt; C.y += C.vy * dt; C.rot += C.sens * 1.6 * dt; if (C.y >= W - C.h * 0.25 && !C.sol) { C.sol = true; g.secousse = 0.4; for (let i = 0; i < 24; i++) g.parts.push({ x: C.x + (Math.random() - 0.5) * C.w * 0.5, y: W - 4, vx: (Math.random() - 0.5) * 300, vy: -Math.random() * 260, t: 0.6, g: 600, c: i % 2 ? "#efd0c6" : "#b52a35" }); } }
   if (g.ondesSol) g.ondesSol = g.ondesSol.filter(e => (e.t -= dt) > 0);
   g.taches = g.taches.filter(e => (e.t -= dt) > 0);
   // zones de feu du Sorcier : brûlent l'adversaire qui passe dedans
@@ -2351,7 +2311,7 @@ function maj(dt) {
     }
     for (const d of [...(o && o.drones || [])]) {
       const p = dronePos(o, d); w.drones ||= new Set();
-      if (!w.drones.has(d) && Math.abs(distDrone(o, d, w.x, w.y) - w.r) < w.epais + 12) { w.drones.add(d); blesserDrone(g, o, d, w.dmg); }
+      if (!w.drones.has(d) && Math.abs(Math.hypot(p.x - w.x, p.y - w.y) - w.r) < w.epais + 12) { w.drones.add(d); blesserDrone(g, o, d, w.dmg); }
     }
     return w.r < w.max;
   });
@@ -2364,11 +2324,9 @@ function maj(dt) {
     g.flashs.push({ x: n.x, y: n.y, t: 0.35 });
     if (g.running && o && !o.mort && dedans(o)) {
       degats(g, o, FLASH_DEGATS, o.x, o.y - o.hh * 0.3);
-      // (la Chose Impie, intouchable, est quand même aveuglée : c'est un œil)
-      if ((!o.enLair || o.type === "oeil") && !(o.langue && o.langue.etat === "etreinte" && g.f.some(x => x.capture === o))) o.aveugle = o.type === "oeil" ? FLASH_DUREE_OEIL : FLASH_DUREE;
-      if (o.type === "oeil") { o.hp = Math.max(0, o.hp - FLASH_OEIL_DEGATS); o.flash = 0.15; g.txt.push({ x: o.x, y: o.y - o.hh * 0.5, t: 0.8, s: "-" + FLASH_OEIL_DEGATS }); } // la lumière lui brûle l'œil
+      if (!o.enLair && !(o.langue && o.langue.etat === "etreinte" && g.f.some(x => x.capture === o))) o.aveugle = FLASH_DUREE;
     }
-    if (o) for (const d of [...(o.drones || [])]) if (distDrone(o, d, n.x, n.y) < FLASH_RAYON) blesserDrone(g, o, d, FLASH_DEGATS);
+    if (o) for (const d of [...(o.drones || [])]) if (Math.hypot(d.x - n.x, d.y - n.y) < FLASH_RAYON) blesserDrone(g, o, d, FLASH_DEGATS);
     return false;
   });
   g.flashs = g.flashs.filter(e => (e.t -= dt) > 0);
@@ -2383,7 +2341,7 @@ function maj(dt) {
     coupRate = m.rate; // missile lancé à l'aveugle : il tombe à côté
     if (g.running && o && Math.hypot(o.x - m.x, o.y - m.y) < MISSILE_RAYON + Math.max(o.hw, o.hh) * 0.4) degats(g, o, MISSILE_DEGATS, o.x, o.y - o.hh * 0.3);
     coupRate = false;
-    if (g.running && o) for (const d of [...(o.drones || [])]) if (distDrone(o, d, m.x, m.y) < MISSILE_RAYON) blesserDrone(g, o, d, MISSILE_DEGATS);
+    if (g.running && o) for (const d of [...(o.drones || [])]) if (Math.hypot(d.x - m.x, d.y - m.y) < MISSILE_RAYON) blesserDrone(g, o, d, MISSILE_DEGATS);
     return false;
   });
   g.feux = g.feux.filter(z => {
@@ -2641,10 +2599,11 @@ function dessiner() {
     for (let i = 0; i < 6; i++) { const a = tc.rot + i * 1.05; goutte(ctx, tc.x + Math.cos(a) * 75, tc.y + Math.sin(a) * 75, 10, a); }
   }
   ctx.globalAlpha = 1;
-  for (const f of g.f) { // bras de l'Œil, dessinés avant les persos (ils partent de derrière son corps)
-    if (f.type !== "oeil" || f.mort || !f.drones) continue;
+  if (g.chuteOeil) { const C = g.chuteOeil; ctx.save(); ctx.translate(C.x, C.y); ctx.rotate(C.rot); ctx.drawImage(C.s.img, -C.w / 2, -C.h / 2, C.w, C.h); ctx.restore(); }
+  for (const f of g.f) if (f.type === "oeil" && f.bras && !f.mort) { // Chose Impie : bras, mains au mur, corps au milieu (derrière les persos)
     const now = performance.now() / 1000;
-    for (const b of f.drones) dessinerBras(f, b, now);
+    for (const b of f.bras) { const m = b === f.brasActif ? { x: f.x, y: f.y } : CHARS.oeil.coordMain(b); dessinerBras(f, b, m.x, m.y, now, b === f.brasActif); }
+    dessinerCorps(f, g.f.find(x => x !== f));
   }
   for (const f of g.f) {
     if (f.copies) for (const c of f.copies) { // copies de l'Inconnu
@@ -2742,7 +2701,6 @@ function dessiner() {
     if (canons && CHARS.hammond.pn[2] && s === CHARS.hammond.spr[2]) dessinerTeteHammond(f, s); // sa tête suit la visée
     else ctx.drawImage(s.img, -f.hw, -f.hh, f.hw * 2, f.hh * 2);
     if (canons) dessinerCanon(f, 1); // mitraillette de devant
-    if (f.type === "oeil" && CHARS.oeil.perso) dessinerOeil(f, g.f.find(x => x !== f)); // l'œil suit l'adversaire
     ctx.shadowBlur = 0;
     if (f.etat === "furie" && !spriteImage(f.type + "-2")) { // couteau qui frappe (sauf si une image de furie est fournie)
       const swing = f.coupT > 0 ? 1.6 * (1 - f.coupT / 0.15) : 0;
@@ -2818,9 +2776,8 @@ function dessiner() {
       ctx.restore();
     }
   }
-  if (g.chuteOeil) { const C = g.chuteOeil; ctx.save(); ctx.translate(C.x, C.y); ctx.rotate(C.rot); ctx.scale(C.face, 1); ctx.drawImage(C.s.img, -C.hw, -C.hh, C.hw * 2, C.hh * 2); ctx.restore(); }
   for (const f of g.f) { // appareils du Titan : faisceau bleu quand ils cherchent, rouge quand ils ont repéré
-    if (!f.drones || f.mort || f.type !== "titan") continue;
+    if (!f.drones || f.mort) continue;
     const img = spriteImage(f.type + "-3"), o = g.f.find(x => x !== f);
     for (const d of f.drones) {
       const p = dronePos(f, d), bob = Math.sin(performance.now() / 200 + d.bob) * 3;
@@ -2957,7 +2914,7 @@ function dessiner() {
   for (const f of g.f) if (f.type === "oeil" && f.rayon && !f.mort) dessinerRayonOeil(f); // rayon de la Chose Impie, au premier plan
   // étiquette « J1 » / « J2 » au-dessus de chaque perso, dans la couleur de son joueur (cachée s'il est invisible)
   if (!(g.fin > 0 || g.finVoix > 0)) for (const f of g.f) {
-    if (f.mort || (f.vis ?? 1) < 0.5 || (f.enLair && f.type !== "oeil")) continue;
+    if (f.mort || (f.vis ?? 1) < 0.5 || f.enLair) continue;
     const coul = f.side ? couleurs.droite : couleurs.gauche, y = Math.max(20, f.y - f.hh - (f.haut || 0) - 20), x = Math.min(W - 26, Math.max(26, f.x));
     ctx.save(); ctx.globalAlpha = 0.92;
     ctx.fillStyle = coul; ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 2;
@@ -3820,6 +3777,7 @@ async function init() {
       try { src2 = localStorage.getItem("duel-img:" + k); } catch (e) {}
       try { if (src2) { c.spr[numImage(k)] = traiter(await chargerImage(src2)); c.pn[numImage(k)] = true; } } catch (e) {}
     }
+    if (c.svgMain && !c.spr[2]) c.spr[2] = traiter(await chargerImage(svgUrl(c.svgMain))); // main à l'œil dessinée par défaut
   }
   for (const k of [...Object.keys(CHARS).flatMap(clesSon), ...Object.keys(SONS_GENERAUX)]) {
     try { const v = await bddGet(k); if (v && v.blob) await chargerSon(k, v.blob, v.nom); } catch (e) {}
@@ -3869,7 +3827,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.41.2", NOTES = "Chose Impie : son rayon passe maintenant devant son corps et ses bras. McCree garde sa façon de jouer contre elle : il tire à l’horizontale quand un bras passe à sa hauteur, fait ses roulades pour esquiver le rayon, et sa grenade flash aveugle son œil plus longtemps et le brûle. Petits ajustements d’équilibre (McCree, Robot).";
+const VERSION = "1.42.0", NOTES = "Chose Impie refaite pour qu’elle s’intègre au jeu : tous les autres persos jouent contre elle exactement comme d’habitude (toutes les adaptations faites sur eux pour elle ont été retirées). On frappe la main où l’œil est ouvert, une cible normale : le Smoker lui tire la langue, McCree lui tire dessus quand elle est à sa hauteur, etc. Sa main est dure (moitié moins de dégâts), elle attrape l’adversaire par le bras, et ne fait pas son rayon pendant qu’elle tient quelqu’un. Équilibre de tout le jeu (pour tous les persos, contre tous) : Bombardier missiles un peu moins souvent (3,1 s), l’Inconnu regagne 2 PV par téléportation (au lieu de 4) et son obus fait 11, Smoker un peu moins rapide, Steve crie un peu plus fort (13), île du Jeune beau un peu plus tôt, Sorcier : bouclier 40 et boule de feu enflammée +4.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

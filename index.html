@@ -1971,7 +1971,9 @@ function maj(dt) {
   // collision entre les deux persos (rectangles ajustés à l'image)
   const dx = b.x - a.x, dy = b.y - a.y;
   const ox = a.hw + b.hw - Math.abs(dx), oy = a.hh + b.hh - Math.abs(dy);
-  if (ox > 0 && oy > 0 && !a.mort && !b.mort && !a.crusher && !b.crusher && !a.enLair && !b.enLair) {
+  // pas de collision pendant le Psycho Crusher de Bison ni pendant que Bouldozer s'écrase au sol (il traverse l'adversaire)
+  const traverse = a.crusher || b.crusher || a.etatH === "chute" || b.etatH === "chute";
+  if (ox > 0 && oy > 0 && !a.mort && !b.mort && !traverse && !a.enLair && !b.enLair) {
     if (ox < oy) {
       const s = Math.sign(dx) || 1; a.x -= s * ox / 2; b.x += s * ox / 2;
       if ((a.vx - b.vx) * s > 0) { const t = a.vx; a.vx = b.vx; b.vx = t; }
@@ -3562,7 +3564,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.38.1", NOTES = "Le Général Grievous est retiré du jeu : retour au roster et aux réglages de la version 1.37.3.";
+const VERSION = "1.38.2", NOTES = "Bouldozer ne se coince plus sur l’adversaire quand il s’écrase au sol : il le transperce (et lui fait toujours les dégâts de la chute).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -1,1 +1,1 @@
-{"version": "1.38.4", "notes": "GigaChad a un emplacement pour une 5e pose (« pose 5 », dans le menu propriétaire). Tant qu’elle est vide, il continue d’alterner ses 4 poses."}
+{"version": "1.38.5", "notes": "Quand GigaChad prend la pose, la langue du Smoker glisse toujours sur lui (avant : une fois sur deux). Pour compenser : son coup de poing de base passe de 6 à 5, et le Smoker se déplace un peu plus vite."}

@@ -662,7 +662,7 @@ const CHARS = {
     }
   },
   smoker: {
-    nom: "Smoker", emoji: "👅", vitesse: 268, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
+    nom: "Smoker", emoji: "👅", vitesse: 295, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
     // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
@@ -714,7 +714,7 @@ const CHARS = {
         L.x += dx / d * pas; L.y += dy / d * pas;
         const atteint = d < Math.max(o.hw, o.hh) * 0.5 || touche(o, L.x, L.y, 6);
         if (atteint && o.etat === "furie") { couperLangue(f, o, g, L.x, L.y); return; } // Myers en furie tranche la langue
-        if (atteint && CHARS[o.type].imperturbable && o.pose > 0 && (L.glisse ??= Math.random() < GIGA_LANGUE_GLISSE)) { // GigaChad en pleine pose : la langue glisse parfois sur lui
+        if (atteint && CHARS[o.type].imperturbable && o.pose > 0) { // GigaChad en pleine pose : la langue glisse sur lui
           L.etat = "rentre"; g.txt.push({ x: o.x, y: o.y - o.hh - 30, t: 0.9, s: "Imperturbable !" }); return;
         }
         if (atteint) { // attrapé !
@@ -1056,7 +1056,7 @@ const CHARS = {
     imperturbable: true,
     // poses : images 2 à 5, puis 7 (pose 5, rangée après le coup de poing) si elle est fournie ; image 6 : coup de poing
     imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...(CHARS.gigachad.spr && CHARS.gigachad.spr[7] ? [7] : [])]; return p[(f.numPose || 0) % p.length]; },
-    desc: "Se balade tranquillement dans l’arène sans chercher l’adversaire, et s’arrête de temps en temps pour prendre la pose 1 seconde : chaque pose réussie lui donne +1 en attaque (5 max). Une fois à 5 poses, il se rapproche petit à petit de l’adversaire. Imperturbable : pendant qu’il pose, il prend 60 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse une fois sur deux sur lui. Il prend la pose exprès quand un missile va lui tomber dessus ou qu’un laser se prépare. Aura de charisme : pendant la pose, l’adversaire est attiré doucement vers lui, d’autant plus fort qu’il a cumulé de poses. Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
+    desc: "Se balade tranquillement dans l’arène sans chercher l’adversaire, et s’arrête de temps en temps pour prendre la pose 1 seconde : chaque pose réussie lui donne +1 en attaque (5 max). Une fois à 5 poses, il se rapproche petit à petit de l’adversaire. Imperturbable : pendant qu’il pose, il prend 60 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui. Il prend la pose exprès quand un missile va lui tomber dessus ou qu’un laser se prépare. Aura de charisme : pendant la pose, l’adversaire est attiré doucement vers lui, d’autant plus fort qu’il a cumulé de poses. Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
     svg: `<g ${O}>
       <rect x='46' y='110' width='12' height='30' fill='#2b3a5c'/><rect x='62' y='110' width='12' height='30' fill='#2b3a5c'/>
       <rect x='42' y='136' width='18' height='8' rx='2' fill='#1b1b22'/><rect x='60' y='136' width='18' height='8' rx='2' fill='#1b1b22'/>
@@ -1556,11 +1556,10 @@ function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs
 const GIGA_POSE = 1, GIGA_MARCHE = 1, GIGA_POSES_MAX = 5, GIGA_AURA = 30, GIGA_AURA_POSE = 14;
 const GIGA_PORTEE_APPAREIL = 20, GIGA_LASER_VU = 0.6; // portée du poing sur les appareils (en plus de sa taille) ; part des lasers qu'il voit venir
 const GIGA_IMPERTURBABLE = 0.6, GIGA_IMPERTURBABLE_FURIE = 0.25, GIGA_IMPERTURBABLE_CRI = 0; // réduction des dégâts pendant la pose (contre les attaques foudroyantes : moins)
-const GIGA_LANGUE_GLISSE = 0.5; // chance que la langue du Smoker glisse sur lui pendant une pose
 const GIGA_APPROCHE = 1.5; // à 5 poses, il tourne peu à peu vers l'adversaire (radians par seconde)
 const GIGA_VIRAGE = 0.8; // en se baladant, il tourne doucement (radians par seconde, au plus)
 // coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
-const GIGA_COUP = 6, GIGA_COUP_POSE = 10, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
+const GIGA_COUP = 5, GIGA_COUP_POSE = 10, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
 // Bison
 const CRUSHER_CD = 3.3, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
@@ -3564,7 +3563,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.38.4", NOTES = "GigaChad a un emplacement pour une 5e pose (« pose 5 », dans le menu propriétaire). Tant qu’elle est vide, il continue d’alterner ses 4 poses.";
+const VERSION = "1.38.5", NOTES = "Quand GigaChad prend la pose, la langue du Smoker glisse toujours sur lui (avant : une fois sur deux). Pour compenser : son coup de poing de base passe de 6 à 5, et le Smoker se déplace un peu plus vite.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

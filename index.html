@@ -1069,11 +1069,11 @@ const CHARS = {
     }
   },
   gigachad: {
-    nom: "GigaChad", emoji: "🗿", vitesse: 160, images: ["pose 1", "pose 2", "pose 3", "pose 4", "coup de poing", "pose 5"], memeEchelle: true,
+    nom: "GigaChad", emoji: "🗿", vitesse: 160, images: ["pose 1", "pose 2", "pose 3", "pose 4", "coup de poing", "pose 5", "pose 6", "pose 7"], memeEchelle: true,
     sonNom: "pose", son2: "coup de poing", son3: "gros coup de poing (contre le mur)", son4: "musique (en boucle, tout le combat)", sonsMusique: [4],
     imperturbable: true,
-    // poses : images 2 à 5, puis 7 (pose 5, rangée après le coup de poing) si elle est fournie ; image 6 : coup de poing
-    imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...(CHARS.gigachad.spr && CHARS.gigachad.spr[7] ? [7] : [])]; return p[(f.numPose || 0) % p.length]; },
+    // poses : images 2 à 5, puis 7 à 9 (poses 5 à 7, rangées après le coup de poing) si elles sont fournies ; image 6 : coup de poing
+    imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...[7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n])]; return p[(f.numPose || 0) % p.length]; },
     desc: "Se balade tranquillement dans l’arène sans chercher l’adversaire, et s’arrête de temps en temps pour prendre la pose 1 seconde : chaque pose réussie lui donne +1 en attaque (5 max). Une fois à 5 poses, il se rapproche petit à petit de l’adversaire. Imperturbable : pendant qu’il pose, il prend 65 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Il prend la pose exprès quand un missile va lui tomber dessus ou qu’un laser se prépare. Aura de charisme : pendant la pose, l’adversaire est attiré doucement vers lui, d’autant plus fort qu’il a cumulé de poses. Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
     svg: `<g ${O}>
       <rect x='46' y='110' width='12' height='30' fill='#2b3a5c'/><rect x='62' y='110' width='12' height='30' fill='#2b3a5c'/>
@@ -1519,6 +1519,8 @@ const CHARS = {
       f.bras = bras; f.corps = { x: W / 2, y: W * 0.45, butT: 0 }; f.hpAvant = f.hp; f.face = 1;
       this.changerOeil(f); majTaille(f);
     },
+    // victoire : la caméra zoome sur son corps (l'image du perso), pas sur la main à l'œil
+    zoomSur: f => f.corps || f,
     // attrapé par la langue du Smoker : la saisie en cours est annulée
     attrape(f, o) { if (f.saisie) { o.piege = 0; f.saisie = null; f.traverse = false; } },
     // position du grand œil dans l'arène (sur l'image du corps : 52,7 % de la largeur, 21,7 % de la hauteur)
@@ -2463,7 +2465,8 @@ function maj(dt) {
     for (const f of g.f) if (f.hp <= 0 && !g.ile && !f.mort) exploser(g, f);
     g.gagnant = gagnant;
     if (gagnant) {
-      g.zoom = gagnant; calmer(gagnant);
+      // zoomSur : le point à suivre si ce n'est pas le perso lui-même (la Chose Impie : son corps, pas la main à l'œil)
+      g.zoom = CHARS[gagnant.type].zoomSur ? CHARS[gagnant.type].zoomSur(gagnant) : gagnant; calmer(gagnant);
       // après l'explosion, une seconde de silence, puis « McCree… » et « Wins ! »
       const d = annoncerNom(gagnant.type, ANNONCE_DELAI);
       const cleWins = g.ile && sons["marin-9"] ? "marin-9" : "wins"; // retour sur l'île : son spécial à la place de « Wins »
@@ -3915,7 +3918,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.44.0", NOTES = "Chose Impie : ses bras et ses mains ne font plus qu’un. Le bras arrive pile au poignet, dans l’axe de l’avant-bras et à sa largeur, et il est peint avec la peau de l’avant-bras de son image : plus de raccord ni d’effet de rotule. Les bras forment une seule courbe souple du corps jusqu’à la main. La main à l’œil est un peu plus grande pour garder l’équilibre.";
+const VERSION = "1.45.0", NOTES = "Quand la Chose Impie gagne, la caméra zoome sur son corps (son image), plus sur la main à l’œil. GigaChad : deux poses en plus (pose 6 et pose 7) à ajouter dans l’éditeur ; comme la pose 5, elles entrent dans le cycle des poses dès qu’elles ont une image.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

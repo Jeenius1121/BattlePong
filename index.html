@@ -643,7 +643,7 @@ const CHARS = {
           f.vx = dx / d; f.vy = dy / d;
         }
       } else { // furie : couteau sorti, plus rapide, fonce sur l'adversaire
-        f.jauge -= dt / 7.45; // la furie dure 7,45 s
+        f.jauge -= dt / 7.6; // la furie dure 7,6 s
         const t = cibleDe(f, o) || o; // fonce sur l'ennemi le plus proche (adversaire ou appareil)
         const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1, k = Math.min(1, dt * 5);
         const n0 = Math.hypot(f.vx, f.vy) || 1;
@@ -662,12 +662,12 @@ const CHARS = {
     }
   },
   smoker: {
-    nom: "Smoker", emoji: "👅", vitesse: 295, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
+    nom: "Smoker", emoji: "👅", vitesse: 268, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
     // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 3,5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise. Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât.",
+    desc: "Frappe au corps à corps. Toutes les 3,5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise. Quand sa langue est annulée, il attend un peu plus longtemps avant de la relancer. Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose), l’adversaire prend quand même la moitié des dégâts de l’étranglement.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -713,8 +713,10 @@ const CHARS = {
         const dx = o.x - L.x, dy = o.y - L.y, d = Math.hypot(dx, dy) || 1, pas = Math.min(d, LANGUE_VITESSE * dt);
         L.x += dx / d * pas; L.y += dy / d * pas;
         const atteint = d < Math.max(o.hw, o.hh) * 0.5 || touche(o, L.x, L.y, 6);
-        if (atteint && o.etat === "furie") { couperLangue(f, o, g, L.x, L.y); return; } // Myers en furie tranche la langue
+        // langue annulée au moment où elle touche : l'adversaire prend quand même la moitié des dégâts d'un étranglement complet
+        if (atteint && o.etat === "furie") { langueAnnulee(g, o); couperLangue(f, o, g, L.x, L.y); return; } // Myers en furie tranche la langue
         if (atteint && CHARS[o.type].imperturbable && o.pose > 0) { // GigaChad en pleine pose : la langue glisse sur lui
+          langueAnnulee(g, o); L.annulee = true;
           L.etat = "rentre"; g.txt.push({ x: o.x, y: o.y - o.hh - 30, t: 0.9, s: "Imperturbable !" }); return;
         }
         if (atteint) { // attrapé !
@@ -729,7 +731,7 @@ const CHARS = {
       } else if (L.etat === "etreinte") { // 2 s d'étranglement : la langue serre, l'adversaire perd des PV par à-coups
         L.t -= dt; L.coup -= dt;
         // un à-coup de 4 PV toutes les 0,625 s tant que dure l'étranglement
-        if (L.coup <= 0) { L.coup = ETREINTE_TIC; L.serre = 0.18; degats(g, o, 6, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
+        if (L.coup <= 0) { L.coup = ETREINTE_TIC; L.serre = 0.18; degats(g, o, ETREINTE_COUP, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
         L.serre = Math.max(0, (L.serre || 0) - dt);
         if (L.t <= 0) { // il le relâche un peu plus loin
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
@@ -739,7 +741,8 @@ const CHARS = {
       } else { // la langue revient dans la bouche
         const m = bouche(f), dx = m.x - L.x, dy = m.y - L.y, d = Math.hypot(dx, dy) || 1, pas = Math.min(d, 1300 * dt);
         L.x += dx / d * pas; L.y += dy / d * pas;
-        if (d < 8) { f.langue = null; f.langueCd = LANGUE_CD; const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); }
+        // langue rentrée (si elle a été annulée, il attend un peu plus avant de la relancer)
+        if (d < 8) { f.langue = null; f.langueCd = LANGUE_CD + (L.annulee ? LANGUE_PENALITE : 0); const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); }
       }
     }
   },
@@ -1056,7 +1059,7 @@ const CHARS = {
     imperturbable: true,
     // poses : images 2 à 5, puis 7 (pose 5, rangée après le coup de poing) si elle est fournie ; image 6 : coup de poing
     imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...(CHARS.gigachad.spr && CHARS.gigachad.spr[7] ? [7] : [])]; return p[(f.numPose || 0) % p.length]; },
-    desc: "Se balade tranquillement dans l’arène sans chercher l’adversaire, et s’arrête de temps en temps pour prendre la pose 1 seconde : chaque pose réussie lui donne +1 en attaque (5 max). Une fois à 5 poses, il se rapproche petit à petit de l’adversaire. Imperturbable : pendant qu’il pose, il prend 60 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui. Il prend la pose exprès quand un missile va lui tomber dessus ou qu’un laser se prépare. Aura de charisme : pendant la pose, l’adversaire est attiré doucement vers lui, d’autant plus fort qu’il a cumulé de poses. Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
+    desc: "Se balade tranquillement dans l’arène sans chercher l’adversaire, et s’arrête de temps en temps pour prendre la pose 1 seconde : chaque pose réussie lui donne +1 en attaque (5 max). Une fois à 5 poses, il se rapproche petit à petit de l’adversaire. Imperturbable : pendant qu’il pose, il prend 60 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même la moitié des dégâts de l’étranglement). Il prend la pose exprès quand un missile va lui tomber dessus ou qu’un laser se prépare. Aura de charisme : pendant la pose, l’adversaire est attiré doucement vers lui, d’autant plus fort qu’il a cumulé de poses. Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
     svg: `<g ${O}>
       <rect x='46' y='110' width='12' height='30' fill='#2b3a5c'/><rect x='62' y='110' width='12' height='30' fill='#2b3a5c'/>
       <rect x='42' y='136' width='18' height='8' rx='2' fill='#1b1b22'/><rect x='60' y='136' width='18' height='8' rx='2' fill='#1b1b22'/>
@@ -1499,7 +1502,8 @@ function nouveauJeu(running) {
   majHud();
 }
 // tirs ratés : aveuglé par la grenade flash (tout rate), puis vue trouble (20 % de chances de rater)
-let attaquant = null, coupRate = false, coupFoudroyant = false; // coupFoudroyant : cri de Steve (traverse la pose de GigaChad)
+// coupFoudroyant : cri de Steve (traverse la pose de GigaChad) ; coupDirect : dégâts qui ignorent sa pose (langue annulée)
+let attaquant = null, coupRate = false, coupFoudroyant = false, coupDirect = false;
 function rateTir(f) { return !!f && (f.aveugle > 0 || (f.flou > 0 && Math.random() < FLASH_PRECISION)); }
 function rate(g, x, y) { if (!g.txt.some(t => t.rate && t.t > 0.5)) g.txt.push({ x, y: y - 20, t: 0.8, s: "Raté !", rate: true }); }
 function degats(g, cible, n, x, y) {
@@ -1515,7 +1519,7 @@ function degats(g, cible, n, x, y) {
   // GigaChad qui prend la pose : 60 % de dégâts en moins (seulement 25 % contre les attaques foudroyantes :
   // couteau de Myers en furie, Psycho Crusher et Head Stomp de Bison) ; les cris de Steve (des ondes sonores) passent à travers
   const foudroyant = attaquant && (attaquant.etat === "furie" || attaquant.crusher || attaquant.stomp);
-  if (c.imperturbable && cible.pose > 0) n = Math.max(1, Math.round(n * (1 - (coupFoudroyant ? GIGA_IMPERTURBABLE_CRI : foudroyant ? GIGA_IMPERTURBABLE_FURIE : GIGA_IMPERTURBABLE))));
+  if (c.imperturbable && cible.pose > 0 && !coupDirect) n = Math.max(1, Math.round(n * (1 - (coupFoudroyant ? GIGA_IMPERTURBABLE_CRI : foudroyant ? GIGA_IMPERTURBABLE_FURIE : GIGA_IMPERTURBABLE))));
   if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction)));
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
   const reaction = CHARS[cible.type].quandTouche;
@@ -1680,7 +1684,13 @@ function crier(g, f, dmg, portee, epais) {
   g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
 }
 /* ===== LANGUE DU SMOKER ===== */
-const LANGUE_CD = 3.45, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625;
+const LANGUE_PENALITE = 2; // secondes d'attente en plus quand sa langue a été annulée (coupée, tranchée, glissée…)
+const LANGUE_CD = 3.45, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
+// langue annulée pile au moment où elle touche (Myers en furie, GigaChad en pose) : la moitié des dégâts d'un étranglement complet (7 à-coups)
+function langueAnnulee(g, o) {
+  const n = Math.round(Math.ceil(ETREINTE_DUREE / ETREINTE_TIC) * ETREINTE_COUP / 2);
+  coupDirect = true; degats(g, o, n, o.x, o.y - o.hh * 0.4); coupDirect = false;
+}
 // bouche du Smoker : point réglé sur son image 3 s'il en a une, sinon le haut du perso vers l'avant
 function bouche(f) {
   const c = CHARS[f.type], s3 = c.spr && c.spr[3];
@@ -1731,7 +1741,7 @@ function couperLangue(f, o, g, x, y) {
   for (let i = 0; i < 12; i++) g.parts.push({ x: coupe.x, y: coupe.y, vx: (Math.random() - 0.5) * 300, vy: (Math.random() - 0.5) * 300 - 80, t: 0.5, g: 500, c: i % 2 ? "#6e3038" : "#2e1216" });
   liberer(o, f);
   son(f, 4); // « aïe ! »
-  const L = f.langue; L.etat = "rentre"; L.x = coupe.x; L.y = coupe.y;
+  const L = f.langue; L.etat = "rentre"; L.x = coupe.x; L.y = coupe.y; L.annulee = true;
 }
 const MYERS_COUPS = 3; // coups reçus en moins d'une seconde pendant la traque avant de changer de coin
 // Myers file dans un coin, de préférence loin de l'adversaire (autre = jamais le coin où il est déjà)
@@ -3563,7 +3573,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.38.5", NOTES = "Quand GigaChad prend la pose, la langue du Smoker glisse toujours sur lui (avant : une fois sur deux). Pour compenser : son coup de poing de base passe de 6 à 5, et le Smoker se déplace un peu plus vite.";
+const VERSION = "1.39.0", NOTES = "Langue du Smoker : si elle est annulée pile au moment où elle touche (Myers en furie, GigaChad en pose), l’adversaire prend quand même la moitié des dégâts de l’étranglement (21). Et chaque fois que sa langue est annulée, il attend 2 secondes de plus avant de la relancer. Rééquilibrage : Smoker revient à sa vitesse d’avant, furie de Myers 7,6 s.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

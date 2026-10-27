@@ -1757,7 +1757,7 @@ const MINE_PREMIERE = 3, MINE_CD = 7, MINE_DEGATS = 8, MINE_RAYON = 28, MINE_PRO
 const PIEGE_PREMIER = 5, PIEGE_CD = 9, PIEGE_DEGATS = 6, PIEGE_DUREE = 1.5, PIEGE_RAYON = 26;
 const FINALE_NB = 6, FINALE_ECART = 70, FINALE_MECHE = [0.8, 1.6], FINALE_DEGATS = 9, FINALE_RAYON = 50;
 // Bouldozer : balancement au bout du grappin, en feu au-delà d'une certaine vitesse, mitraillettes une fois en bas
-const HAMMOND_GRAVITE = 900, HAMMOND_POMPE = 750, HAMMOND_VITESSE_MAX = 820, HAMMOND_VITESSE_PLAFOND = 1000, HAMMOND_FEU_VITESSE = 500, HAMMOND_REBOND = 0.85, HAMMOND_REBOND_SOL = 0.5, HAMMOND_ATTERRIT = 450;
+const HAMMOND_GRAVITE = 900, HAMMOND_POMPE = 950, HAMMOND_VITESSE_MAX = 1020, HAMMOND_VITESSE_PLAFOND = 1250, HAMMOND_FEU_VITESSE = 700, HAMMOND_REBOND = 0.85, HAMMOND_REBOND_SOL = 0.5, HAMMOND_ATTERRIT = 450;
 const HAMMOND_ESSAIS = 6, HAMMOND_VISEE = 0.6; // endroits essayés pour le grappin ; angle (radians) pour lâcher vers l'adversaire
 const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 8, HAMMOND_CHOC_CD = 0.5;
 // après le grappin : vol libre, puis il s'arrête en hauteur (tremble), puis s'écrase au sol
@@ -3564,7 +3564,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.38.2", NOTES = "Bouldozer ne se coince plus sur l’adversaire quand il s’écrase au sol : il le transperce (et lui fait toujours les dégâts de la chute).";
+const VERSION = "1.38.3", NOTES = "Bouldozer se balance beaucoup plus vite au bout de son grappin (environ +40 % de vitesse). Il lui faut aller un peu plus vite pour prendre feu, pour rester équilibré.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

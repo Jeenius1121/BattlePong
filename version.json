@@ -1,1 +1,1 @@
-{"version": "1.38.2", "notes": "Bouldozer ne se coince plus sur l’adversaire quand il s’écrase au sol : il le transperce (et lui fait toujours les dégâts de la chute)."}
+{"version": "1.38.3", "notes": "Bouldozer se balance beaucoup plus vite au bout de son grappin (environ +40 % de vitesse). Il lui faut aller un peu plus vite pour prendre feu, pour rester équilibré."}

@@ -13,7 +13,7 @@
   --bg:#e6ebf3; --panel:#ffffff; --ink:#1b2033; --muted:#58607d; --line:#c6cfdf;
   --arena:#f6f8fc; --arena-line:#1b2033;
   --gauche:#2a8f96; --droite:#d9952a; --hp:#3fae5a; --hp-low:#e0483d;
-  --crea:#c8901a; --crea-fond:#fff3d6; /* « Mes créations » : doré */
+  --crea:#c8901a; --crea-fond:#fff3d6; /* « Personnage non licence » : doré */
   color-scheme:light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -390,7 +390,7 @@ const CHARS = {
     }
   },
   sorcier: {
-    creation: true, // perso inventé par le créateur du jeu (rangé dans « Mes créations »)
+    creation: true, // perso inventé par le créateur du jeu (rangé dans « Personnage non licence »)
     nom: "Sorcier", emoji: "🧙", vitesse: 200, voitInvisible: true, images: ["attaque", "bouclier"], son2: "bouclier",
     tailles: { 3: 1.4 }, // l'image du bouclier (cercle de feu) est affichée plus grande
     imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : 1,
@@ -3222,9 +3222,9 @@ function dessinerTuile(id) {
 }
 function construireUI() {
   // grille de portraits : un perso touché va du côté actif, puis le côté actif passe à l'autre
-  // deux groupes : les persos inventés pour le jeu (« Mes créations »), puis ceux qui viennent d'une licence
+  // deux groupes : les persos inventés pour le jeu (« Personnage non licence »), puis ceux qui viennent d'une licence (« Personnage licence »)
   const roster = document.getElementById("roster");
-  const groupes = [["crea", "✨ Mes créations", true], ["licences", "🎮 Venus d’ailleurs", false]].map(([cls, titre, crea]) => {
+  const groupes = [["crea", "✨ Personnage non licence", true], ["licences", "🎮 Personnage licence", false]].map(([cls, titre, crea]) => {
     const ids = Object.keys(CHARS).filter(id => !!CHARS[id].creation === crea);
     const div = document.createElement("div"); div.className = "groupe " + cls;
     div.innerHTML = `<h3 class="groupe-titre">${titre} <small>${ids.length}</small></h3><div class="grille"></div>`;
@@ -3249,8 +3249,8 @@ function construireUI() {
   majSelection();
   const desc = c => `<p class="desc">${c.emoji} <strong>${c.nom}</strong> : ${c.desc}</p>`;
   document.getElementById("descs").innerHTML =
-    `<h3 class="desc-titre crea">✨ Mes créations</h3>` + Object.values(CHARS).filter(c => c.creation).map(desc).join("") +
-    `<h3 class="desc-titre">🎮 Venus d’ailleurs</h3>` + Object.values(CHARS).filter(c => !c.creation).map(desc).join("");
+    `<h3 class="desc-titre crea">✨ Personnage non licence</h3>` + Object.values(CHARS).filter(c => c.creation).map(desc).join("") +
+    `<h3 class="desc-titre">🎮 Personnage licence</h3>` + Object.values(CHARS).filter(c => !c.creation).map(desc).join("");
 
   // une carte par perso : ses images, puis ses sons ; chaque « retirer » demande confirmation
   const list = document.getElementById("customList");
@@ -3920,7 +3920,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.45.1", NOTES = "GigaChad : quand il donne son coup de poing, il se tourne vers l’adversaire et frappe dans sa direction.";
+const VERSION = "1.45.2", NOTES = "Écran de sélection et descriptions : les deux groupes s’appellent maintenant « Personnage non licence » et « Personnage licence ».";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

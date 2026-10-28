@@ -677,7 +677,7 @@ const CHARS = {
     }
   },
   smoker: {
-    nom: "Smoker", emoji: "👅", vitesse: 263, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
+    nom: "Smoker", emoji: "👅", vitesse: 256, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
     // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
@@ -1077,7 +1077,7 @@ const CHARS = {
     imperturbable: true,
     // poses : images 2 à 5, puis 7 à 9 (poses 5 à 7, rangées après le coup de poing) si elles sont fournies ; image 6 : coup de poing
     imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...[7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n])]; return p[(f.numPose || 0) % p.length]; },
-    desc: "Se balade tranquillement dans l’arène sans chercher l’adversaire, et s’arrête de temps en temps pour prendre la pose 1 seconde : chaque pose réussie lui donne +1 en attaque (5 max). Une fois à 5 poses, il se rapproche petit à petit de l’adversaire. Imperturbable : pendant qu’il pose, il prend 75 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Il prend la pose exprès quand un missile va lui tomber dessus ou qu’un laser se prépare. Aura de charisme : pendant la pose, l’adversaire est attiré doucement vers lui, d’autant plus fort qu’il a cumulé de poses. Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
+    desc: "Se balade tranquillement dans l’arène sans chercher l’adversaire, et s’arrête de temps en temps pour prendre la pose 0,75 seconde : chaque pose réussie lui donne +1 en attaque (5 max), puis il repart dans une direction au hasard. Une fois à 5 poses, il se rapproche petit à petit de l’adversaire. Imperturbable : pendant qu’il pose, il prend 75 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Il prend la pose exprès quand un missile va lui tomber dessus ou qu’un laser se prépare. Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
     svg: `<g ${O}>
       <rect x='46' y='110' width='12' height='30' fill='#2b3a5c'/><rect x='62' y='110' width='12' height='30' fill='#2b3a5c'/>
       <rect x='42' y='136' width='18' height='8' rx='2' fill='#1b1b22'/><rect x='60' y='136' width='18' height='8' rx='2' fill='#1b1b22'/>
@@ -1094,14 +1094,10 @@ const CHARS = {
       const t = cibleDe(f, o);
       // au contact, il frappe quoi qu'il fasse (même en pleine pose, qui continue ensuite), s'il a au moins 1 pose, et les dépense toutes
       if (t && f.poses > 0 && f.coupCd <= 0 && ecart(f, t) < 8) this.coup(f, o, g, t);
-      if (f.pose > 0) { // il prend la pose : immobile, imperturbable, son aura attire l'adversaire
+      if (f.pose > 0) { // il prend la pose : immobile et imperturbable
         f.pose -= dt; f.vx = 0; f.vy = 0; if (t) f.face = t.x >= f.x ? 1 : -1;
-        if (!o.mort && !cache(o, f) && !o.capture && !o.recul && !o.crusher && ecart(f, o) > 4 && !(o.plongee > 0)) { // Bison en vrille fonce sans être dévié
-          const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy) || 1, v = GIGA_AURA + GIGA_AURA_POSE * f.poses;
-          o.x += dx / d * v * dt; if (o.type !== "marin") o.y += dy / d * v * dt; // le bateau reste sur l'eau
-        }
-        if (f.pose <= 0) { // pose réussie : +1 en attaque
-          f.pose = 0; f.marche = GIGA_MARCHE; f.numPose = (f.numPose || 0) + 1;
+        if (f.pose <= 0) { // pose réussie : +1 en attaque, puis il repart dans une direction au hasard
+          f.pose = 0; f.marche = GIGA_MARCHE; f.numPose = (f.numPose || 0) + 1; f.cap = angleAleatoire();
           if (f.poses < GIGA_POSES_MAX) { f.poses++; g.txt.push({ x: f.x, y: f.y - f.hh - 12, t: 0.9, s: "+1 ATK", soin: true }); }
         }
         return;
@@ -1110,6 +1106,7 @@ const CHARS = {
       f.virageT = (f.virageT ?? 0) - dt;
       if (f.virageT <= 0) { f.virageT = 2 + Math.random() * 2; f.virage = (Math.random() * 2 - 1) * GIGA_VIRAGE; }
       let cap = (Math.hypot(f.vx, f.vy) > 1 ? Math.atan2(f.vy, f.vx) : f.cap ?? angleAleatoire()) + f.virage * dt;
+      // il ne va vers l'adversaire qu'une fois chargé au maximum (5 poses) ; sinon, il se balade au hasard
       if (t && f.poses >= GIGA_POSES_MAX) { // chargé au maximum : il se rapproche petit à petit de l'adversaire
         const diff = ((Math.atan2(t.y - f.y, t.x - f.x) - cap) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
         cap += Math.max(-GIGA_APPROCHE * dt, Math.min(GIGA_APPROCHE * dt, diff));
@@ -1208,7 +1205,7 @@ const CHARS = {
     portraitImage: 2, portraitAutre: { cx: 0.4, cy: 0.1, taille: 0.26 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
-    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (20 % de dégâts en moins), avant de relancer son grappin.",
+    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (30 % de dégâts en moins), avant de relancer son grappin.",
     svg: `<g ${O}>
       <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
       <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
@@ -1764,15 +1761,15 @@ const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 5.6;
 // dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
 function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1)); }
 // GigaChad : pose de 1 s, 1 s de marche entre deux poses ; +1 en attaque par pose (5 max)
-const GIGA_POSE = 1, GIGA_MARCHE = 1, GIGA_POSES_MAX = 5, GIGA_AURA = 30, GIGA_AURA_POSE = 14;
+const GIGA_POSE = 0.75, GIGA_MARCHE = 0.75, GIGA_POSES_MAX = 5;
 const GIGA_PORTEE_APPAREIL = 20, GIGA_LASER_VU = 0.6; // portée du poing sur les appareils (en plus de sa taille) ; part des lasers qu'il voit venir
 const GIGA_IMPERTURBABLE = 0.75, GIGA_IMPERTURBABLE_FURIE = 0.25, GIGA_IMPERTURBABLE_CRI = 0; // réduction des dégâts pendant la pose (contre les attaques foudroyantes : moins)
 const GIGA_APPROCHE = 1.5; // à 5 poses, il tourne peu à peu vers l'adversaire (radians par seconde)
 const GIGA_VIRAGE = 0.8; // en se baladant, il tourne doucement (radians par seconde, au plus)
 // coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
-const GIGA_COUP = 5, GIGA_COUP_POSE = 9, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
+const GIGA_COUP = 5, GIGA_COUP_POSE = 6, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
 // Bison
-const CRUSHER_CD = 3.3, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
+const CRUSHER_CD = 3.4, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
 const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 3;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
@@ -1982,7 +1979,7 @@ const VOL_LIBRE = 1.2, VOL_LIBRE_MIN = 0.5, STASE_DUREE = 0.5, STASE_HAUTEUR = 3
 // écrasement : dégâts à l'adversaire au sol (pas trop loin), et plus petits s'il était sur la trajectoire
 const ECRASE_SOL = 8, ECRASE_TRAJET = 4, ECRASE_RAYON = 170, ECRASE_HAUTEUR_SOL = 60, ECRASE_PROJETE = 700, ECRASE_PROJETE_DUREE = 0.4;
 const HAMMOND_ENVOLEE = 450; // vitesse vers le haut ajoutée quand il lâche le grappin
-const HAMMOND_BLINDAGE = 0.2; // dégâts en moins quand il est posé en bas (mode tourelle)
+const HAMMOND_BLINDAGE = 0.3; // dégâts en moins quand il est posé en bas (mode tourelle)
 const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.25;
 // mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
 // Repère du perso tourné vers l'avant (x vers l'avant) ; u = demi-hauteur de l'image
@@ -2102,7 +2099,7 @@ const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;
 const OEIL_DUREE = [4, 5], OEIL_FERME = 2, OEIL_GROS_COUP = 8; // temps de l'œil sur une main, temps fermé après un gros coup, ce qu'est un gros coup
 const RAYON_PREMIER = 3, RAYON_CD = 5, RAYON_CHARGE = 0.9, RAYON_DUREE = 1.6, RAYON_SUIVI = 0.6, RAYON_TIC = 0.2, RAYON_DEGATS = 9, RAYON_LARGEUR = 22, RAYON_MARGE = 14; // marge : distance au centre du perso pour être touché
-const SAISIE_PREMIERE = 5, SAISIE_CD = 5, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 4, SAISIE_SEUIL = 20, SAISIE_MAX = 3;
+const SAISIE_PREMIERE = 5, SAISIE_CD = 4.5, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 4, SAISIE_SEUIL = 20, SAISIE_MAX = 3;
 const OEIL_POS = { x: 0.527, y: 0.217, rx: 0.09, ry: 0.079 }; // le grand œil sur l'image du corps (proportions)
 function corpsEchelle(f) { return CORPS_HAUTEUR / CHARS.oeil.sprite.th; }
 // géométrie d'un bras : épaule sur le corps, point de pli (coude), main (x, y)
@@ -2210,7 +2207,7 @@ function dessinerRayonOeil(f) {
   ctx.restore();
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
-const FEU_BONUS = 3; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
+const FEU_BONUS = 4; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 40, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 2; // PV regagnés par l'Inconnu à chaque téléportation
@@ -2741,7 +2738,7 @@ function dessiner() {
         ctx.beginPath(); ctx.moveTo(px - 5, py); ctx.quadraticCurveTo(px, py - hf * 1.6, px + 5, py); ctx.closePath(); ctx.fill();
       }
     }
-    if (f.pose > 0) { // aura de charisme de GigaChad : halo doré, plus grand avec les poses cumulées
+    if (f.pose > 0) { // GigaChad qui pose : halo doré, plus grand avec les poses cumulées
       const tt = performance.now() / 150, k = 1 + 0.12 * (f.poses || 0);
       const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, (Math.max(f.hw, f.hh) + 30) * k);
       gr.addColorStop(0, "rgba(255,215,80,0)"); gr.addColorStop(0.6, `rgba(255,215,80,${0.3 + 0.08 * Math.sin(tt)})`); gr.addColorStop(1, "rgba(255,215,80,0)");
@@ -3944,7 +3941,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.46.2", NOTES = "GigaChad : pendant ses poses, il prend maintenant 75 % de dégâts en moins (au lieu de 65 %). Pour garder l’équilibre, son coup de poing gagne 9 dégâts par pose au lieu de 10.";
+const VERSION = "1.47.0", NOTES = "GigaChad : ses poses durent 0,75 s (au lieu de 1 s) et il attend 0,75 s entre deux poses (au lieu de 1 s). Il n’attire plus l’adversaire quand il pose ; après chaque pose il repart dans une direction au hasard, et il ne va vers l’adversaire qu’une fois à 5 poses. Équilibre : son coup de poing gagne 6 dégâts par pose. Autres réglages pour tout le monde : Smoker un peu moins rapide, Bison Psycho Crusher un peu moins souvent, Bouldozer mieux blindé en tourelle (30 %), boule de feu enflammée du Sorcier +4, saisie de la Chose Impie un peu plus fréquente.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -1070,7 +1070,8 @@ const CHARS = {
   },
   gigachad: {
     nom: "GigaChad", emoji: "🗿", vitesse: 160, images: ["pose 1", "pose 2", "pose 3", "pose 4", "coup de poing", "pose 5", "pose 6", "pose 7"], memeEchelle: true,
-    sonNom: "pose", son2: "coup de poing", son3: "gros coup de poing (contre le mur)", son4: "musique (en boucle, tout le combat)", sonsMusique: [4],
+    sonNom: "pose", son2: "coup de poing (faible, ne projette pas)", son3: "gros coup de poing (projette contre le mur)", son4: "musique (en boucle, tout le combat)", sonsMusique: [4],
+    son6: "coup le plus puissant (5 poses)",
     imperturbable: true,
     // poses : images 2 à 5, puis 7 à 9 (poses 5 à 7, rangées après le coup de poing) si elles sont fournies ; image 6 : coup de poing
     imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...[7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n])]; return p[(f.numPose || 0) % p.length]; },
@@ -1125,7 +1126,8 @@ const CHARS = {
       f.faceCoup = t.x >= f.x ? 1 : -1; // il frappe vers l'adversaire (son image de coup de poing regarde vers la droite)
       f.marche = GIGA_MARCHE;
       const dmg = GIGA_COUP + GIGA_COUP_POSE * n, x = (f.x + t.x) / 2, y = (f.y + t.y) / 2;
-      son(f, n >= GIGA_GROS ? 3 : 2); g.secousse = Math.max(g.secousse, 0.08 + 0.04 * n);
+      // trois sons : coup faible (ne projette pas), gros coup (projette), coup le plus puissant (5 poses)
+      son(f, n >= GIGA_POSES_MAX ? (sons["gigachad-6"] ? 6 : 3) : n >= GIGA_GROS ? 3 : 2); g.secousse = Math.max(g.secousse, 0.08 + 0.04 * n);
       // un gros coup fait éclater le bouclier du Sorcier d'un coup (comme le Psycho Crusher de Bison)
       if (n >= GIGA_GROS && !t.drone && o.bouclier > 0 && CHARS[o.type].casser) CHARS[o.type].casser(o, g);
       else frapper(g, o, t, dmg, x, y);
@@ -3920,7 +3922,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.45.2", NOTES = "Écran de sélection et descriptions : les deux groupes s’appellent maintenant « Personnage non licence » et « Personnage licence ».";
+const VERSION = "1.46.0", NOTES = "GigaChad : trois sons différents pour ses coups de poing : un pour les coups faibles (qui ne projettent pas), un pour les gros coups qui projettent contre le mur, et un nouveau pour le coup le plus puissant (à 5 poses). Tu peux le remplacer dans l’éditeur de sons (« coup le plus puissant »).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

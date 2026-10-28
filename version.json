@@ -1,1 +1,1 @@
-{"version": "1.45.2", "notes": "Écran de sélection et descriptions : les deux groupes s’appellent maintenant « Personnage non licence » et « Personnage licence »."}
+{"version": "1.46.0", "notes": "GigaChad : trois sons différents pour ses coups de poing : un pour les coups faibles (qui ne projettent pas), un pour les gros coups qui projettent contre le mur, et un nouveau pour le coup le plus puissant (à 5 poses). Tu peux le remplacer dans l’éditeur de sons (« coup le plus puissant »)."}

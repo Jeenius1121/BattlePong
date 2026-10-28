@@ -378,7 +378,7 @@ const CHARS = {
     nom: "Sorcier", emoji: "🧙", vitesse: 200, voitInvisible: true, images: ["attaque", "bouclier"], son2: "bouclier",
     tailles: { 3: 1.4 }, // l'image du bouclier (cercle de feu) est affichée plus grande
     imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : 1,
-    desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 3 dégâts de plus.",
+    desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 5 dégâts de plus.",
     svg: `<g ${O}>
       <rect x='92' y='34' width='6' height='112' rx='3' fill='#8a5228'/><circle cx='95' cy='30' r='10' fill='#4fc3f7'/>
       <rect x='28' y='72' width='12' height='30' rx='6' fill='#6a4bb5'/>
@@ -1210,7 +1210,7 @@ const CHARS = {
     portraitImage: 2, portraitAutre: { cx: 0.4, cy: 0.1, taille: 0.26 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
-    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (42 % de dégâts en moins), avant de relancer son grappin.",
+    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (45 % de dégâts en moins), avant de relancer son grappin.",
     svg: `<g ${O}>
       <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
       <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
@@ -1352,17 +1352,21 @@ const CHARS = {
   },
   oeil: {
     creation: true,
-    nom: "Chose Impie", emoji: "👁️", vitesse: 0, pv: 200, images: ["main à l’œil", "main"], voitInvisible: true,
+    nom: "Chose Impie", emoji: "👁️", vitesse: 0, pv: 200, images: ["main à l’œil", "main à l’œil fermé"], voitInvisible: true,
     // l'avant-bras à l'œil (ce que les autres frappent) a une taille fixe ; images 4 et suivantes : le même, déjà tourné
     // d'un seizième de tour à chaque fois, pour que sa zone de touche suive son orientation
     get hauteurs() {
       const s = this.spr && this.spr[2], h = { 2: MAIN_HAUTEUR };
-      for (let n = 4; n < 3 + MAIN_SENS; n++) { const t = this.spr && this.spr[n]; if (s && t) h[n] = MAIN_HAUTEUR * t.th / t.kt / s.th; }
+      h[3] = MAIN_HAUTEUR; // l'image à l'œil fermé, même taille
+      for (let n = 4; n < 3 + 2 * MAIN_SENS; n++) { const t = this.spr && this.spr[n]; if (s && t) h[n] = MAIN_HAUTEUR * t.th / t.kt / s.th; }
       return h;
     },
     sonNom: "rayon", son2: "saisie", son3: "bras arraché", son4: "chute",
-    imageDe: f => f.sens ? 3 + f.sens : 2, blindage: 0.3,
-    desc: "Énorme créature (200 PV) suspendue au milieu de l’arène, accrochée aux murs et au plafond par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains, et c’est cet avant-bras qu’il faut frapper ; il est dur comme de la corne (30 % de dégâts en moins). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Ses PV, ce sont ses bras : chacun en porte un sixième, les coups entament le bras à l’œil, et quand il est vidé il est arraché (le reste passe sur le suivant). Tant qu’il reste un bras, il reste des PV ; quand le dernier est arraché, la Chose tombe. Son grand œil suit toujours l’adversaire et voit les persos invisibles. De temps en temps, l’œil fixe l’adversaire et vire au vert, puis lance son regard maudit : un large cône de lumière verte qui balaie l’arène d’un côté à l’autre en passant sur l’adversaire (il ne le suit pas) ; tant qu’il est dedans, il brûle et il est ralenti. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place (jusqu’à 3 secondes) et lui fait de petits dégâts, jusqu’à ce qu’il l’ait assez frappée pour se libérer.",
+    // œil ouvert : image 2 (puis 4 et suivantes, tournées) ; œil fermé après un gros coup : image 3 (puis ses versions tournées, après)
+    // un coup ne peut vider que le bras à l'œil : elle ne tombe qu'avec son dernier bras
+    plafond: f => f.brasActif ? Math.ceil(f.brasActif.pv) : Infinity,
+    imageDe: f => { const ferme = f.oeilFerme > 0; return f.sens ? 3 + f.sens + (ferme ? MAIN_SENS : 0) : ferme ? 3 : 2; }, blindage: 0.26,
+    desc: "Énorme créature (200 PV) suspendue au milieu de l’arène, accrochée aux murs et au plafond par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains (sur les autres, il reste fermé), et c’est cet avant-bras qu’il faut frapper ; il est dur comme de la corne (26 % de dégâts en moins). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Ses PV, ce sont ses bras : chacun en porte un sixième, les coups entament le bras à l’œil, et quand il est vidé il est arraché ; un seul coup ne peut arracher qu’un bras. Tant qu’il reste un bras, il reste des PV ; quand le dernier est arraché, la Chose tombe. Son grand œil suit toujours l’adversaire et voit les persos invisibles. De temps en temps, l’œil fixe l’adversaire et vire au vert, puis lance son regard maudit : un large cône de lumière verte qui balaie l’arène d’un côté à l’autre en passant sur l’adversaire (il ne le suit pas) ; tant qu’il est dedans, il brûle et il est ralenti. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place (jusqu’à 3 secondes) et lui fait de petits dégâts, jusqu’à ce qu’il l’ait assez frappée pour se libérer.",
     svg: `<g ${O}>
       <path d='M60 40 Q30 60 34 110 Q40 140 60 146 Q80 140 86 110 Q90 60 60 40Z' fill='#e9c9c0' stroke='#7a1a22'/>
       <path d='M44 70 Q60 90 76 70 M46 100 Q60 116 74 100' fill='none' stroke='#b52a35' stroke-width='3'/>
@@ -1384,7 +1388,7 @@ const CHARS = {
       if (!f.bras.length) { f.vx = 0; f.vy = 0; f.rayon = null; return; } // plus de bras : elle tombe
       const A = f.brasActif;
       // l'œil fermé après un gros coup : plus rien n'est touchable, puis il se rouvre sur une autre main
-      if (f.oeilFerme > 0) { f.oeilFerme -= dt; f.vis = 0.35; if (f.oeilFerme <= 0) { f.enLair = false; f.vis = 1; this.changerOeil(f); } return; }
+      if (f.oeilFerme > 0) { f.oeilFerme -= dt; f.vis = 0.8; if (f.oeilFerme <= 0) { f.enLair = false; f.vis = 1; this.changerOeil(f); } return; }
       // regard maudit : le grand œil fixe l'adversaire en se chargeant, puis un cône de lumière verte balaie l'arène
       // d'un côté à l'autre en passant sur lui (il ne le suit pas) ; ce qui reste dedans brûle et est ralenti
       f.rayonCd = (f.rayonCd ?? RAYON_PREMIER) - dt;
@@ -1460,7 +1464,7 @@ const CHARS = {
       for (const b of f.bras) if (b !== f.brasActif || !f.saisie) b.t += dt; // les mains glissent un peu le long de leur mur
       if (!perdu || !f.brasActif) return;
       if (f.saisie) f.saisie.recu += perdu;
-      // ses PV, ce sont ses bras : les dégâts entament le bras à l'œil ; quand il est arraché, le reste passe sur le suivant
+      // ses PV, ce sont ses bras : les dégâts entament le bras à l'œil (un coup ne peut pas faire plus que ce qu'il lui reste)
       let reste = perdu, arrache = false;
       while (reste > 0 && f.bras.length) {
         const B = f.brasActif, pris = Math.min(reste, B.pv); B.pv -= pris; reste -= pris;
@@ -1505,35 +1509,35 @@ const CHARS = {
       const q = ((Math.round(ang / (Math.PI * 2 / MAIN_SENS)) % MAIN_SENS) + MAIN_SENS) % MAIN_SENS;
       f.sens = q; f.angMain = q * Math.PI * 2 / MAIN_SENS; f.penche = 0;
     },
-    // images 4 et suivantes : l'avant-bras à l'œil tourné de 1 à 15 seizièmes de tour ; leur zone de touche est un peu élargie
-    // (quelques pixels autour du dessin) pour que les tirs qui l'effleurent comptent
+    // images 4 à 18 : l'avant-bras à l'œil ouvert tourné de 1 à 15 seizièmes de tour ; images 19 à 33 : pareil, œil fermé.
+    // La zone de touche de l'œil ouvert est un peu élargie (quelques pixels autour du dessin) pour que les tirs qui l'effleurent comptent
     tourner() {
-      const s = this.spr[2];
-      if (!s || this.tourneDe === s) return;
+      const s = this.spr[2], sf = this.spr[3];
+      if (!s || (this.tourneDe === s && this.tourneFerme === sf)) return;
       const elargir = t => {
         const m = new Uint8Array(t.mask), r = 5;
         for (let j = 0; j < t.th; j++) for (let i = 0; i < t.tw; i++) if (t.mask[j * t.tw + i])
           for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { const x = i + di, y = j + dj; if (x >= 0 && y >= 0 && x < t.tw && y < t.th) m[y * t.tw + x] = 1; }
         t.mask = m;
       };
-      for (let q = 1; q < MAIN_SENS; q++) {
+      const tourne = (src, q) => {
         const a = q * Math.PI * 2 / MAIN_SENS, c = document.createElement("canvas"), cs = Math.abs(Math.cos(a)), sn = Math.abs(Math.sin(a));
-        c.width = Math.ceil(s.tw * cs + s.th * sn); c.height = Math.ceil(s.tw * sn + s.th * cs);
-        const x = c.getContext("2d"); x.translate(c.width / 2, c.height / 2); x.rotate(a); x.drawImage(s.img, -s.tw / 2, -s.th / 2);
+        c.width = Math.ceil(src.tw * cs + src.th * sn); c.height = Math.ceil(src.tw * sn + src.th * cs);
+        const x = c.getContext("2d"); x.translate(c.width / 2, c.height / 2); x.rotate(a); x.drawImage(src.img, -src.tw / 2, -src.th / 2);
         // traiter() recadre l'image tournée : on garde où se trouve son vrai centre (celui de l'image droite)
         const d = x.getImageData(0, 0, c.width, c.height).data;
         let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
         for (let j = 0; j < c.height; j++) for (let i = 0; i < c.width; i++) if (d[(j * c.width + i) * 4 + 3] > 40) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (j < y0) y0 = j; if (j > y1) y1 = j; }
-        const t = traiter(c); t.kt = Math.min(1, 256 / Math.max(c.width, c.height)); elargir(t);
+        const t = traiter(c); t.kt = Math.min(1, 256 / Math.max(c.width, c.height));
         t.centre = { x: (x0 + x1 + 1) / 2 - c.width / 2, y: (y0 + y1 + 1) / 2 - c.height / 2 };
-        this.spr[3 + q] = t;
-      }
-      elargir(s);
-      this.tourneDe = s;
+        return t;
+      };
+      if (this.tourneDe !== s) { for (let q = 1; q < MAIN_SENS; q++) { const t = tourne(s, q); elargir(t); this.spr[3 + q] = t; } elargir(s); this.tourneDe = s; }
+      if (sf && this.tourneFerme !== sf) { for (let q = 1; q < MAIN_SENS; q++) this.spr[3 + MAIN_SENS + q] = tourne(sf, q); this.tourneFerme = sf; }
     },
     // décalage entre le centre de l'image affichée (recadrée après rotation) et le vrai centre de l'avant-bras
     decalage(f) {
-      const t = f.sens && this.spr[3 + f.sens], s = this.spr[2];
+      const t = f.sens && this.spr[this.imageDe(f)], s = this.spr[2];
       return t && t.centre && s ? { x: t.centre.x * MAIN_HAUTEUR / s.th, y: t.centre.y * MAIN_HAUTEUR / s.th } : { x: 0, y: 0 };
     },
     // met le vrai centre de l'avant-bras à l'œil au point m
@@ -1758,6 +1762,8 @@ function degats(g, cible, n, x, y) {
   if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction)));
   // blindage : dégâts toujours réduits de cette part (la main de la Chose Impie, dure comme de la corne)
   if (c.blindage) n = Math.max(1, Math.round(n * (1 - c.blindage)));
+  // plafond : le plus de dégâts qu'un seul coup peut lui faire (la Chose Impie : ce qui reste au bras à l'œil)
+  if (c.plafond) n = Math.max(1, Math.min(n, c.plafond(cible)));
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
   const reaction = CHARS[cible.type].quandTouche;
   if (reaction && !cible.capture) reaction(cible, g); // attrapé par le Smoker : aucune réaction (Myers ne file pas dans un coin)
@@ -1790,7 +1796,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (38 → 7,6 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
 // laser du robot : de plus en plus fort, un palier tous les LASER_TIC (très petit, petit, moyen, gros, très gros)
-const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 4.7;
+const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 4.5;
 // dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
 function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1)); }
 // GigaChad : pose de 1 s, 1 s de marche entre deux poses ; +1 en attaque par pose (5 max)
@@ -1929,7 +1935,7 @@ function droneTouche(g, f, x, y, rad, n, deja) {
 }
 /* ===== CRI DU HURLEUR =====
    Une onde de choc en anneau part de lui et grandit ; elle blesse une fois l'adversaire qu'elle traverse. */
-const HURLEUR_DEGATS = 13, HURLEUR_CRI_SORTIE = 23, HURLEUR_INVIS_CD = 5.2, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
+const HURLEUR_DEGATS = 13, HURLEUR_CRI_SORTIE = 23, HURLEUR_INVIS_CD = 5, HURLEUR_INVIS_DEBUT = 3, ONDE_VITESSE = 460;
 function crier(g, f, dmg, portee, epais) {
   g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
 }
@@ -2025,7 +2031,7 @@ const VOL_LIBRE = 1.2, VOL_LIBRE_MIN = 0.5, STASE_DUREE = 0.5, STASE_HAUTEUR = 3
 // écrasement : dégâts à l'adversaire au sol (pas trop loin), et plus petits s'il était sur la trajectoire
 const ECRASE_SOL = 8, ECRASE_TRAJET = 4, ECRASE_RAYON = 170, ECRASE_HAUTEUR_SOL = 60, ECRASE_PROJETE = 700, ECRASE_PROJETE_DUREE = 0.4;
 const HAMMOND_ENVOLEE = 450; // vitesse vers le haut ajoutée quand il lâche le grappin
-const HAMMOND_BLINDAGE = 0.42; // dégâts en moins quand il est posé en bas (mode tourelle)
+const HAMMOND_BLINDAGE = 0.45; // dégâts en moins quand il est posé en bas (mode tourelle)
 const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.25;
 // mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
 // Repère du perso tourné vers l'avant (x vers l'avant) ; u = demi-hauteur de l'image
@@ -2145,9 +2151,9 @@ const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;
 const OEIL_DUREE = [4, 5], OEIL_FERME = 2, OEIL_GROS_COUP = 8; // temps de l'œil sur une main, temps fermé après un gros coup, ce qu'est un gros coup
 // regard maudit : charge, durée du balayage, angle balayé, ouverture du cône, portée, dégâts tous les RAYON_TIC, ralentissement
-const RAYON_PREMIER = 3, RAYON_CD = 7, RAYON_CHARGE = 1, RAYON_DUREE = 1.6, RAYON_ARC = 1.4, RAYON_CONE = 0.5, RAYON_PORTEE = 440;
+const RAYON_PREMIER = 3, RAYON_CD = 8, RAYON_CHARGE = 1, RAYON_DUREE = 1.6, RAYON_ARC = 1.4, RAYON_CONE = 0.5, RAYON_PORTEE = 440;
 const RAYON_TIC = 0.2, RAYON_DEGATS = 7, RAYON_LENT = 1.2;
-const SAISIE_PREMIERE = 5, SAISIE_CD = 4.5, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 4, SAISIE_SEUIL = 20, SAISIE_MAX = 3;
+const SAISIE_PREMIERE = 5, SAISIE_CD = 4.5, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 4, SAISIE_SEUIL = 17, SAISIE_MAX = 3;
 const OEIL_POS = { x: 0.527, y: 0.217, rx: 0.09, ry: 0.079 }; // le grand œil sur l'image du corps (proportions)
 function corpsEchelle(f) { return CORPS_HAUTEUR / CHARS.oeil.sprite.th; }
 // géométrie d'un bras : épaule sur le corps, point de pli (coude), main (x, y)
@@ -2259,7 +2265,7 @@ function dessinerRayonOeil(f) {
   ctx.restore();
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
-const FEU_BONUS = 4; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
+const FEU_BONUS = 5; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 42, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 3; // PV regagnés par l'Inconnu à chaque téléportation
@@ -3994,7 +4000,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.48.0", NOTES = "Grosse mise à jour. Plus aucun perso ne change sa façon de jouer selon l’adversaire : GigaChad ne prend plus de pose exprès contre le laser du Robot ou les missiles du Bombardier ; la roulade de McCree et la plongée du Jeune beau réagissent à n’importe quelle attaque sur le point de les toucher, de la même façon contre tous les adversaires (seuls restent les petits détails comme Myers qui tranche la langue du Smoker). Chose Impie : 200 PV, et ses PV sont ses bras (tant qu’il reste un bras, il reste des PV ; elle ne tombe que quand le dernier est arraché). Son rayon est remplacé par un regard maudit : un large cône de lumière verte qui balaie l’arène sans suivre l’adversaire, brûle et ralentit. Équilibre refait pour tout le monde.";
+const VERSION = "1.48.1", NOTES = "Chose Impie : elle ne tombe plus avant que tous ses bras soient arrachés ; un seul coup ne peut vider que le bras à l’œil, donc elle tombe toujours avec son dernier bras. Toutes ses mains ont maintenant un œil fermé ; il s’ouvre sur la main active (et toutes les mains ferment l’œil après un gros coup). Équilibre : Chose Impie (main un peu moins dure, regard moins souvent, se libérer de sa saisie un peu plus facile), Robot (laser qui grandit un peu moins), Steve (devient invisible un peu plus souvent), Bouldozer (45 % en tourelle), Chacal (grenades toutes les 1,33 s), boule de feu enflammée du Sorcier +5.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

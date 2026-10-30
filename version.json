@@ -1,1 +1,1 @@
-{"version": "1.50.1", "notes": "McCree : toutes les balles d’une rafale font maintenant les mêmes dégâts (7 chacune), au lieu de faire 1 dégât de moins à chaque balle qui touche. Pour garder l’équilibre, il recharge en 1,32 s. Petits réglages : missiles du Bombardier toutes les 3,3 s, l’Inconnu regagne 3 PV par téléportation."}
+{"version": "1.50.2", "notes": "McCree : sa grenade flash touche en zone ; contre la Gelée, elle blesse maintenant tous les morceaux pris dans l’explosion (avant, un seul)."}

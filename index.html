@@ -295,7 +295,7 @@ const CHARS = {
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     // roulade : les images 4 à 9 s'enchaînent comme une animation (si elles sont fournies)
     imageDe: f => f.roulade > 0 && rouladeAnimee() ? 4 + Math.min(5, Math.floor((1 - f.roulade / ROULADE_DUREE) * 6)) : f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis. Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui aveugle l’adversaire : quelques dégâts et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
+    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis. Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui éclate en zone (sur l’adversaire ou là où elle arrive) et aveugle l’adversaire : quelques dégâts (sur tout ce qui est dans la zone, chaque morceau de la Gelée compris) et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
     // va-t-il être touché ? renvoie la direction du danger (projectile, laser, langue) ou sa source (zone, corps à corps)
     // moments des 6 balles : calés sur les 6 coups du son de tir s'il y en a un, sinon rafale rapide
     horaires(f) {
@@ -1661,6 +1661,15 @@ const CHARS = {
       }
       f.hp = f.hpAvant = Math.max(0, f.blobs.reduce((n, B) => n + Math.max(0, B.pv), 0));
     },
+    // une attaque de zone : chaque autre morceau dans la zone prend les dégâts (un par un) ; renvoie s'il y en avait un
+    zoneAutres(f, g, x, y, rayon, n) {
+      if (!f.blobs) return false;
+      const o = g.f.find(z => z !== f), dedans = f.blobs.filter(B => B !== f.actif && Math.hypot(B.x - x, B.y - y) < rayon + this.rayon(f, B).w * 0.6);
+      const actif = f.actif;
+      for (const B of dedans) if (f.blobs.includes(B) && !f.mort) { this.activer(f, B); degats(g, f, n, B.x, B.y - 10); this.monde(f, o, g, 0); }
+      if (actif && f.blobs.includes(actif) && !f.mort) this.activer(f, actif);
+      return dedans.length > 0;
+    },
     // un projectile sur un autre morceau : ce morceau devient le morceau frappé
     autreCorps(f, x, y, r) {
       if (!f.blobs || f.mort) return false;
@@ -2603,8 +2612,10 @@ function maj(dt) {
     const dedans = c => Math.hypot(Math.max(0, Math.abs(c.x - n.x) - c.hw * 0.6), Math.max(0, Math.abs(c.y - n.y) - c.hh * 0.6)) < FLASH_RAYON;
     if (n.t > 0 && !(o && !o.mort && touche(o, n.x, n.y, 10))) return true; // elle éclate à l'arrivée, ou sur l'adversaire
     g.flashs.push({ x: n.x, y: n.y, t: 0.35 });
-    if (g.running && o && !o.mort && dedans(o)) {
-      degats(g, o, FLASH_DEGATS, o.x, o.y - o.hh * 0.3);
+    // zoneAutres : un perso en plusieurs morceaux (la Gelée) prend aussi la flash sur ses autres morceaux dans la zone
+    const autres = g.running && o && !o.mort && CHARS[o.type].zoneAutres ? CHARS[o.type].zoneAutres(o, g, n.x, n.y, FLASH_RAYON, FLASH_DEGATS) : false;
+    if (g.running && o && !o.mort && (dedans(o) || autres)) {
+      if (dedans(o)) degats(g, o, FLASH_DEGATS, o.x, o.y - o.hh * 0.3);
       if (!o.enLair && !(o.langue && o.langue.etat === "etreinte" && g.f.some(x => x.capture === o))) o.aveugle = FLASH_DUREE;
     }
     if (o) for (const d of [...(o.drones || [])]) if (Math.hypot(d.x - n.x, d.y - n.y) < FLASH_RAYON) blesserDrone(g, o, d, FLASH_DEGATS);
@@ -4139,7 +4150,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.50.1", NOTES = "McCree : toutes les balles d’une rafale font maintenant les mêmes dégâts (7 chacune), au lieu de faire 1 dégât de moins à chaque balle qui touche. Pour garder l’équilibre, il recharge en 1,32 s. Petits réglages : missiles du Bombardier toutes les 3,3 s, l’Inconnu regagne 3 PV par téléportation.";
+const VERSION = "1.50.2", NOTES = "McCree : sa grenade flash touche en zone ; contre la Gelée, elle blesse maintenant tous les morceaux pris dans l’explosion (avant, un seul).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

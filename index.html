@@ -449,6 +449,8 @@ const CHARS = {
       if (!dansLaMer(g, f.x, f.y + FEU_RAYON)) g.feux.push({ x: f.x, y: f.y, r: FEU_RAYON, t: FEU_DUREE, owner: f, tic: 0 }); // pas de flaque si elle toucherait l'eau
       else vapeur(g, f.x, merSurface(g, f.x));
       if (o && Math.hypot(o.x - f.x, o.y - f.y) < FEU_RAYON + Math.max(o.hw, o.hh) * 0.6) degats(g, o, 18, o.x, o.y - o.hh * 0.3);
+      zoneAutres(g, o, (x, y, r) => Math.hypot(x - f.x, y - f.y) < FEU_RAYON + r, 18);
+      if (o) for (const d of [...(o.drones || [])]) { const q = dronePos(o, d); if (Math.hypot(q.x - f.x, q.y - f.y) < FEU_RAYON + 12) blesserDrone(g, o, d, 18); } // et les appareils du Bombardier
     }
   },
   robot: {
@@ -601,9 +603,9 @@ const CHARS = {
   rodeur: {
     // relâché par le Smoker : sa musique de furie (ou de traque) reprend là où elle s'était coupée
     reprendre(f) { if (f.etat === "furie") son(f, 1, true, true); else if (f.etat === "stalk") son(f, 2, true, true); },
-    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], reduction: 0.15, sonLong: true, son2: "traque", sonNom: "furie",
+    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], reduction: 0.18, sonLong: true, son2: "traque", sonNom: "furie",
     imageDe: f => f.etat === "furie" ? 2 : 1,
-    desc: "Rôde invisible, réapparaît dans un coin (le plus souvent le plus éloigné), puis se fige pour fixer l’adversaire et remplir sa jauge. Les coups ne l’interrompent pas, mais 3 coups en moins d’une seconde le font filer dans un autre coin, sans perdre sa jauge. Jauge pleine : il sort son couteau et fonce sur l’adversaire, en encaissant un peu moins les coups (15 % de moins). En furie, il tranche la langue du Smoker.",
+    desc: "Rôde invisible, réapparaît dans un coin (le plus souvent le plus éloigné), puis se fige pour fixer l’adversaire et remplir sa jauge. Les coups ne l’interrompent pas, mais 3 coups en moins d’une seconde le font filer dans un autre coin, sans perdre sa jauge. Jauge pleine : il sort son couteau et fonce sur l’adversaire, en encaissant un peu moins les coups (18 % de moins). En furie, il tranche la langue du Smoker.",
     svg: `<g ${O}>
       <rect x='46' y='118' width='11' height='22' fill='#2b2b30'/><rect x='63' y='118' width='11' height='22' fill='#2b2b30'/>
       <rect x='42' y='136' width='17' height='8' rx='2' fill='#151518'/><rect x='61' y='136' width='17' height='8' rx='2' fill='#151518'/>
@@ -891,6 +893,7 @@ const CHARS = {
           f.stomp = null; f.enLair = false; f.haut = 0; f.vis = 1; g.secousse = Math.max(g.secousse, 0.2);
           for (let i = 0; i < 18; i++) { const a = Math.random() * Math.PI * 2, v = 120 + Math.random() * 200; g.parts.push({ x: f.x, y: f.y + f.hh * 0.7, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.4, t: 0.45, c: i % 2 ? "#b04cff" : "#e6c8ff" }); }
           if (!o.mort && !cache(o) && ecart(f, o) < 25) degats(g, o, STOMP_DEGATS, o.x, o.y - o.hh * 0.4);
+          zoneAutres(g, o, (x, y, r) => Math.abs(x - f.x) < f.hw + r + 25 && Math.abs(y - f.y) < f.hh + r + 25, STOMP_DEGATS);
           for (const d of [...(o.drones || [])]) if (Math.hypot(d.x - f.x, d.y - f.y) < 80) blesserDrone(g, o, d, STOMP_DEGATS);
           const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy); // rebondit plus loin
           if (d > 1) { f.vx = dx / d; f.vy = dy / d; } else { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); }
@@ -907,6 +910,8 @@ const CHARS = {
           if (o.bouclier > 0 && CHARS[o.type].casser) CHARS[o.type].casser(o, g);
           else degats(g, o, CRUSHER_DEGATS, (f.x + o.x) / 2, (f.y + o.y) / 2);
         }
+        // il blesse tout sur son passage : les autres morceaux qu'il traverse aussi (une fois chacun)
+        zoneAutres(g, o, (x, y, r) => Math.abs(x - f.x) < f.hw * 0.8 + r && Math.abs(y - f.y) < f.hh * 0.8 + r, CRUSHER_DEGATS, C.morceaux ||= new Set());
         for (const d of [...(o.drones || [])]) if (!C.drones.has(d) && Math.hypot(d.x - f.x, d.y - f.y) < Math.max(f.hw, f.hh) * 0.8) { C.drones.add(d); blesserDrone(g, o, d, CRUSHER_DEGATS); }
         for (let i = 0; i < 2; i++) g.parts.push({ x: f.x - C.ux * f.hw * 0.6 + (Math.random() - 0.5) * f.hh, y: f.y - C.uy * f.hw * 0.6 + (Math.random() - 0.5) * f.hh,
           vx: -C.ux * 120 + (Math.random() - 0.5) * 80, vy: -C.uy * 120 + (Math.random() - 0.5) * 80, t: 0.35, c: Math.random() < 0.5 ? "#b04cff" : "#ff5af0" });
@@ -951,7 +956,7 @@ const CHARS = {
     nom: "Jeune beau et plein d’avenir", emoji: "⛵", vitesse: 70, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
     taille: 1.15, images: ["poisson", "île de la tortue"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", son9: "victoire sur l’île (à la place de « Wins »)", sonsLongs: [4, 7, 9],
     imageDe: () => 1,
-    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 21 à 23 secondes (au hasard), l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
+    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 23 à 25 secondes (au hasard), l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
     svg: `<g ${O}>
       <path d='M8 96 H112 Q104 128 60 130 Q16 128 8 96Z' fill='#6b3d1f'/><path d='M8 96 H112' stroke='#f2b134' stroke-width='5'/>
       <path d='M30 92 V14' stroke='#8a5228' stroke-width='6'/><path d='M34 18 Q58 30 54 86 H34Z' fill='#c4232f'/>
@@ -1055,6 +1060,8 @@ const CHARS = {
         }
         // l'adversaire touché : croqué en montant ou en retombant (ramené vers l'eau), simple contact en haut
         const dx = Math.max(0, Math.abs(P.x - o.x) - o.hw * 0.7), dy = Math.max(0, Math.abs(P.y - o.y) - o.hh * 0.7);
+        // les autres morceaux pris dans le saut du poisson : mordus aussi (une fois par phase)
+        zoneAutres(g, o, (x, y, r) => Math.hypot(x - P.x, y - P.y) < POISSON_RAYON + r, P.phase === "pause" ? POISSON_CONTACT : CROQUE_DEGATS, (P.dejaM ||= {})[P.phase] ||= new Set());
         if (g.running && !o.mort && !o.enLair && !P.deja[P.phase] && Math.hypot(dx, dy) < POISSON_RAYON) {
           P.deja[P.phase] = true;
           if (P.phase === "pause") degats(g, o, POISSON_CONTACT, o.x, o.y - o.hh * 0.3);
@@ -1068,6 +1075,8 @@ const CHARS = {
       // l'adversaire dans l'eau prend un peu de dégâts
       M.tic -= dt;
       if (g.running && !o.mort && M.tic <= 0 && o.y + o.hh * 0.5 > merSurface(g, o.x)) { M.tic = MER_TIC; degats(g, o, MER_DEGATS, o.x, o.y); }
+      M.ticAutres = (M.ticAutres ?? MER_TIC) - dt;
+      if (M.ticAutres <= 0) { M.ticAutres = MER_TIC; zoneAutres(g, o, (x, y, r) => y + r > merSurface(g, x), MER_DEGATS); }
     },
     // dès le début (pendant « Ready… Fight »), il est déjà posé sur la mer
     preparer(f, o, g) {
@@ -1210,7 +1219,7 @@ const CHARS = {
     portraitImage: 2, portraitAutre: { cx: 0.4, cy: 0.1, taille: 0.26 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
-    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (55 % de dégâts en moins), avant de relancer son grappin.",
+    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (60 % de dégâts en moins), avant de relancer son grappin.",
     svg: `<g ${O}>
       <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
       <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
@@ -1251,7 +1260,7 @@ const CHARS = {
         f.enFeu = false; f.bvx = 0; f.bvy = 0;
         const haut = solHammond(g, f) - STASE_HAUTEUR;
         if (f.y > haut && !bloque) f.y = Math.max(haut, f.y - STASE_MONTEE * dt);
-        if (f.etatT >= STASE_DUREE && !bloque) { f.etatH = "chute"; f.etatT = 0; f.trajet = false; f.trajetDrones = new Set(); }
+        if (f.etatT >= STASE_DUREE && !bloque) { f.etatH = "chute"; f.etatT = 0; f.trajet = false; f.trajetDrones = new Set(); f.trajetMorceaux = new Set(); }
         return;
       }
       if (f.etatH === "chute") { // il s'écrase tout droit au sol
@@ -1260,6 +1269,7 @@ const CHARS = {
         const t = cibleDe(f, o);
         if (t && !t.drone && !f.trajet && ecart(f, t) < 0) { f.trajet = true; frapper(g, o, t, ECRASE_TRAJET, (f.x + t.x) / 2, (f.y + t.y) / 2); } // il était sur la trajectoire
         for (const d of [...(o.drones || [])]) if (!f.trajetDrones.has(d) && Math.hypot(d.x - f.x, d.y - f.y) < Math.max(f.hw, f.hh)) { f.trajetDrones.add(d); blesserDrone(g, o, d, ECRASE_TRAJET); }
+        zoneAutres(g, o, (x, y, r) => Math.abs(x - f.x) < f.hw + r && Math.abs(y - f.y) < f.hh + r, ECRASE_TRAJET, f.trajetMorceaux ||= new Set()); // les autres morceaux sur sa trajectoire
         const sol = solHammond(g, f);
         if (f.y >= sol) { f.y = sol; this.ecraser(f, o, g); f.etatH = "tourelle"; f.etatT = 0; f.sonTir = false; f.rafaleT = 0.35; f.enFeu = false; f.bvy = 0; }
         return;
@@ -1339,7 +1349,9 @@ const CHARS = {
       g.boums.push({ x: f.x, y: yb, t: 0.6, k: 1.2 }); g.secousse = Math.max(g.secousse, 0.45); son(f, 4);
       for (let i = 0; i < 36; i++) { const c = i % 2 ? 1 : -1, v = 150 + Math.random() * 450; g.parts.push({ x: f.x + c * Math.random() * 30, y: yb, vx: c * v, vy: -Math.random() * 220, t: 0.55, g: 600, c: ["#c9b48a", "#8a7a5c", "#ffd23f"][i % 3] }); }
       g.ondesSol = g.ondesSol || []; g.ondesSol.push({ x: f.x, y: yb, t: 0.45 });
-      if (!g.running || o.mort || o.enLair) return;
+      if (!g.running || o.mort) return;
+      zoneAutres(g, o, (x, y, r) => y + r >= (g.mer ? merSurface(g, x) : W) - ECRASE_HAUTEUR_SOL && Math.abs(x - f.x) < ECRASE_RAYON + r, ECRASE_SOL);
+      if (o.enLair) return;
       const bas = g.mer ? merSurface(g, o.x) : W;
       if (o.y + o.hh >= bas - ECRASE_HAUTEUR_SOL && Math.abs(o.x - f.x) < ECRASE_RAYON + o.hw) {
         degats(g, o, ECRASE_SOL, o.x, o.y - o.hh * 0.3);
@@ -1406,6 +1418,8 @@ const CHARS = {
           if (R.tic <= 0) {
             R.tic = RAYON_TIC;
             if (vu && this.dansRegard(f, o)) { degats(g, o, RAYON_DEGATS, o.x, o.y - o.hh * 0.3); o.lent = Math.max(o.lent || 0, RAYON_LENT); }
+            zoneAutres(g, o, (x, y, r) => this.dansRegard(f, { x, y, hw: r, hh: r }), RAYON_DEGATS);
+            for (const d of [...(o.drones || [])]) { const q = dronePos(o, d); if (this.dansRegard(f, { x: q.x, y: q.y, hw: 14, hh: 14 })) blesserDrone(g, o, d, RAYON_DEGATS); } // et les appareils du Bombardier
           }
           if (R.t >= RAYON_DUREE) { f.rayon = null; f.rayonCd = RAYON_CD; }
         }
@@ -1569,7 +1583,7 @@ const CHARS = {
     creation: true,
     nom: "Gelée", emoji: "💧", vitesse: 80, pv: 200, taille: 2, portrait: { cx: 0.6, cy: 0.5, taille: 0.8 }, // portrait centré sur ses yeux et sa bouche
     sonNom: "fonce", son2: "se sépare", son3: "un morceau disparaît",
-    desc: "Une énorme gelée (200 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction (au hasard) qu’en touchant un mur. Elle laisse derrière elle une traînée bleue qui blesse l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’elle traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant elle, elle fonce (elle accélère sans tourner), et elle le blesse au contact. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petites gelées : plus elles sont petites, plus elles sont rapides, mais plus elles sont fragiles et moins elles font mal ; les plus petites disparaissent quand elles n’ont plus de PV. Les adversaires frappent la gelée la plus proche d’eux, et leurs tirs touchent n’importe quel morceau sur leur chemin. Il faut détruire tous les morceaux pour gagner.",
+    desc: "Une énorme gelée (200 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction (au hasard) qu’en touchant un mur. Elle laisse derrière elle une traînée bleue qui blesse l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’elle traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant elle, elle fonce (elle accélère sans tourner), et elle le blesse au contact. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petites gelées : plus elles sont petites, plus elles sont rapides, mais plus elles sont fragiles et moins elles font mal ; les plus petites disparaissent quand elles n’ont plus de PV. Les adversaires frappent la gelée la plus proche d’eux, leurs tirs touchent n’importe quel morceau sur leur chemin, et leurs attaques de zone touchent tous les morceaux pris dedans. Il faut détruire tous les morceaux pour gagner.",
     svg: `<g ${O}>
       <path d='M14 128 Q10 100 34 92 Q30 50 64 44 Q100 42 104 84 Q116 92 112 118 Q118 132 100 136 L24 136 Q8 136 14 128Z' fill='#4aa8f0'/>
       <ellipse cx='50' cy='80' rx='12' ry='13' fill='#fff'/><ellipse cx='82' cy='74' rx='12' ry='13' fill='#fff'/>
@@ -1662,9 +1676,10 @@ const CHARS = {
       f.hp = f.hpAvant = Math.max(0, f.blobs.reduce((n, B) => n + Math.max(0, B.pv), 0));
     },
     // une attaque de zone : chaque autre morceau dans la zone prend les dégâts (un par un) ; renvoie s'il y en avait un
-    zoneAutres(f, g, x, y, rayon, n) {
+    zoneAutres(f, g, dansZone, n, deja) {
       if (!f.blobs) return false;
-      const o = g.f.find(z => z !== f), dedans = f.blobs.filter(B => B !== f.actif && Math.hypot(B.x - x, B.y - y) < rayon + this.rayon(f, B).w * 0.6);
+      const o = g.f.find(z => z !== f), dedans = f.blobs.filter(B => B !== f.actif && !(deja && deja.has(B)) && dansZone(B.x, B.y, this.rayon(f, B).w * 0.6));
+      if (deja) dedans.forEach(B => deja.add(B));
       const actif = f.actif;
       for (const B of dedans) if (f.blobs.includes(B) && !f.mort) { this.activer(f, B); degats(g, f, n, B.x, B.y - 10); this.monde(f, o, g, 0); }
       if (actif && f.blobs.includes(actif) && !f.mort) this.activer(f, actif);
@@ -1914,6 +1929,7 @@ function explosion(g, x, y, cible, dmg, ang) {
   }
   const dx = Math.max(Math.abs(cible.x - x) - cible.hw, 0), dy = Math.max(Math.abs(cible.y - y) - cible.hh, 0);
   if (Math.hypot(dx, dy) < 140) degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3);
+  zoneAutres(g, cible, (px, py, r) => Math.hypot(px - x, py - y) < 140 + r, dmg);
   for (const d of [...(cible.drones || [])]) { const p = dronePos(cible, d); if (Math.hypot(p.x - x, p.y - y) < 150) blesserDrone(g, cible, d, dmg); }
 }
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (38 → 7,6 s max)
@@ -1929,7 +1945,7 @@ const GIGA_IMPERTURBABLE = 0.75, GIGA_IMPERTURBABLE_FURIE = 0.25, GIGA_IMPERTURB
 const GIGA_APPROCHE = 1.5; // à 5 poses, il tourne peu à peu vers l'adversaire (radians par seconde)
 const GIGA_VIRAGE = 0.8; // en se baladant, il tourne doucement (radians par seconde, au plus)
 // coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
-const GIGA_COUP = 5, GIGA_COUP_POSE = 7, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 6, GIGA_MUR_POSE = 4;
+const GIGA_COUP = 5, GIGA_COUP_POSE = 7, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 8, GIGA_MUR_POSE = 4;
 // Bison
 const CRUSHER_CD = 3.1, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
@@ -1951,7 +1967,7 @@ function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (
 // l'île de la tortue : au bout d'un moment, le Marin rentre chez lui (c'est une victoire pour lui)
 // plongée du Marin quand une attaque va le toucher : il ne la voit venir qu'une fois sur PLONGEE_VU (sinon il est surpris un instant)
 const PLONGEE_DUREE = 1.2, PLONGEE_CD = 10, PLONGEE_VU = 0.1, PLONGEE_RATE = 1;
-const ILE_DELAI = [21, 23], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
+const ILE_DELAI = [23, 25], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
 const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 12, GENOU_CD = 2, GENOU_DEGATS = 4;
@@ -2016,6 +2032,12 @@ function menace(f, o, g) {
   }
   const c = CHARS[o.type];
   return c && c.menacePour && !o.mort ? c.menacePour(o, f, g) : null;
+}
+// attaque de zone : touche aussi les autres morceaux d'un perso en plusieurs morceaux (la Gelée) qui sont dans la zone.
+// dansZone(x, y, r) dit si un morceau (centre x, y, demi-taille r) est dans la zone ; deja : morceaux déjà touchés par cette attaque
+function zoneAutres(g, o, dansZone, n, deja) {
+  const c = o && CHARS[o.type];
+  return !!(g.running && c && !o.mort && c.zoneAutres && c.zoneAutres(o, g, dansZone, n, deja));
 }
 // frappe la cible choisie : l'adversaire ou un appareil
 function frapper(g, o, t, n, x, y) { if (t.drone) blesserDrone(g, o, t.drone, n); else degats(g, o, n, x, y); }
@@ -2154,7 +2176,7 @@ const VOL_LIBRE = 1.2, VOL_LIBRE_MIN = 0.5, STASE_DUREE = 0.5, STASE_HAUTEUR = 3
 // écrasement : dégâts à l'adversaire au sol (pas trop loin), et plus petits s'il était sur la trajectoire
 const ECRASE_SOL = 8, ECRASE_TRAJET = 4, ECRASE_RAYON = 170, ECRASE_HAUTEUR_SOL = 60, ECRASE_PROJETE = 700, ECRASE_PROJETE_DUREE = 0.4;
 const HAMMOND_ENVOLEE = 450; // vitesse vers le haut ajoutée quand il lâche le grappin
-const HAMMOND_BLINDAGE = 0.55; // dégâts en moins quand il est posé en bas (mode tourelle)
+const HAMMOND_BLINDAGE = 0.6; // dégâts en moins quand il est posé en bas (mode tourelle)
 const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.25;
 // mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
 // Repère du perso tourné vers l'avant (x vers l'avant) ; u = demi-hauteur de l'image
@@ -2219,6 +2241,7 @@ function boumChacal(g, b, cible, dmg, rayon) {
   const dx = Math.max(Math.abs(cible.x - b.x) - cible.hw * 0.6, 0), dy = Math.max(Math.abs(cible.y - b.y) - cible.hh * 0.6, 0);
   coupRate = !!b.rate;
   if (!cible.mort && Math.hypot(dx, dy) < rayon) { degats(g, cible, dmg, cible.x, cible.y - cible.hh * 0.3); touche = true; }
+  if (zoneAutres(g, cible, (x, y, r) => Math.hypot(x - b.x, y - b.y) < rayon + r, dmg)) touche = true;
   coupRate = false;
   for (const d of [...(cible.drones || [])]) if (Math.hypot(d.x - b.x, d.y - b.y) < rayon + 10) blesserDrone(g, cible, d, dmg);
   return touche;
@@ -2271,7 +2294,7 @@ function majBombes(g, dt) {
 // MAIN_HAUTEUR : longueur de l'avant-bras + main ; MAIN_MUR : distance du centre au mur (le bout des griffes touche le bord)
 // Gelée : ses 4 tailles (de la grosse aux 8 petites) : taille, vitesse, dégâts au contact, réserve de PV d'un morceau de cette taille
 // (pv : seulement pour la grosse du départ ; les autres reçoivent la moitié de ce qui restait à celle qui s'est séparée)
-const GELEE_NIV = [{ taille: 1, vit: 75, deg: 12, pv: 200 }, { taille: 0.78, vit: 110, deg: 9 }, { taille: 0.6, vit: 155, deg: 7 }, { taille: 0.46, vit: 210, deg: 5 }, { taille: 0.35, vit: 275, deg: 3 }];
+const GELEE_NIV = [{ taille: 1, vit: 75, deg: 14, pv: 200 }, { taille: 0.78, vit: 110, deg: 11 }, { taille: 0.6, vit: 155, deg: 9 }, { taille: 0.46, vit: 210, deg: 7 }, { taille: 0.35, vit: 275, deg: 5 }];
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
 const GELEE_FONCE_CD = 4, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.45, GELEE_CONTACT_CD = 0.8, GELEE_TRAINEE = 1, GELEE_TRAINEE_TIC = 0.4;
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
@@ -2599,6 +2622,9 @@ function maj(dt) {
     if (g.running && o && !w.touche && Math.abs(Math.hypot(o.x - w.x, o.y - w.y) - w.r) < Math.max(o.hw, o.hh) * 0.6 + w.epais) {
       w.touche = true; coupRate = w.rate; coupFoudroyant = true; degats(g, o, w.dmg, o.x, o.y - o.hh * 0.3); coupRate = false; coupFoudroyant = false;
     }
+    coupRate = w.rate; coupFoudroyant = true;
+    zoneAutres(g, o, (x, y, r) => Math.abs(Math.hypot(x - w.x, y - w.y) - w.r) < r + w.epais, w.dmg, w.morceaux ||= new Set());
+    coupRate = false; coupFoudroyant = false;
     for (const d of [...(o && o.drones || [])]) {
       const p = dronePos(o, d); w.drones ||= new Set();
       if (!w.drones.has(d) && Math.abs(Math.hypot(p.x - w.x, p.y - w.y) - w.r) < w.epais + 12) { w.drones.add(d); blesserDrone(g, o, d, w.dmg); }
@@ -2613,7 +2639,7 @@ function maj(dt) {
     if (n.t > 0 && !(o && !o.mort && touche(o, n.x, n.y, 10))) return true; // elle éclate à l'arrivée, ou sur l'adversaire
     g.flashs.push({ x: n.x, y: n.y, t: 0.35 });
     // zoneAutres : un perso en plusieurs morceaux (la Gelée) prend aussi la flash sur ses autres morceaux dans la zone
-    const autres = g.running && o && !o.mort && CHARS[o.type].zoneAutres ? CHARS[o.type].zoneAutres(o, g, n.x, n.y, FLASH_RAYON, FLASH_DEGATS) : false;
+    const autres = zoneAutres(g, o, (x, y, r) => Math.hypot(x - n.x, y - n.y) < FLASH_RAYON + r, FLASH_DEGATS);
     if (g.running && o && !o.mort && (dedans(o) || autres)) {
       if (dedans(o)) degats(g, o, FLASH_DEGATS, o.x, o.y - o.hh * 0.3);
       if (!o.enLair && !(o.langue && o.langue.etat === "etreinte" && g.f.some(x => x.capture === o))) o.aveugle = FLASH_DUREE;
@@ -2632,6 +2658,7 @@ function maj(dt) {
     for (let i = 0; i < 24; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 260; g.parts.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, t: 0.6, g: 400, c: ["#ffd23f", "#ff8a2a", "#5b5b66"][i % 3] }); }
     coupRate = m.rate; // missile lancé à l'aveugle : il tombe à côté
     if (g.running && o && Math.hypot(o.x - m.x, o.y - m.y) < MISSILE_RAYON + Math.max(o.hw, o.hh) * 0.4) degats(g, o, MISSILE_DEGATS, o.x, o.y - o.hh * 0.3);
+    zoneAutres(g, o, (x, y, r) => Math.hypot(x - m.x, y - m.y) < MISSILE_RAYON + r, MISSILE_DEGATS);
     coupRate = false;
     if (g.running && o) for (const d of [...(o.drones || [])]) if (Math.hypot(d.x - m.x, d.y - m.y) < MISSILE_RAYON) blesserDrone(g, o, d, MISSILE_DEGATS);
     return false;
@@ -2643,6 +2670,8 @@ function maj(dt) {
     if (g.running && o && z.tic <= 0 && Math.hypot(o.x - z.x, o.y - z.y) < z.r + Math.max(o.hw, o.hh) * 0.4) {
       z.tic = 0.5; degats(g, o, 7, o.x, o.y - o.hh * 0.3);
     }
+    z.ticAutres = (z.ticAutres ?? 0) - dt;
+    if (z.ticAutres <= 0 && zoneAutres(g, o, (x, y, r) => Math.hypot(x - z.x, y - z.y) < z.r + r, 7)) z.ticAutres = 0.5;
     if (g.running && o && o.drones && z.ticD === undefined) z.ticD = 0;
     if (o && o.drones && (z.ticD -= dt) <= 0) {
       z.ticD = 0.5;
@@ -4150,7 +4179,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.50.2", NOTES = "McCree : sa grenade flash touche en zone ; contre la Gelée, elle blesse maintenant tous les morceaux pris dans l’explosion (avant, un seul).";
+const VERSION = "1.51.0", NOTES = "Toutes les attaques de zone touchent maintenant tout ce qui est dans la zone, quel que soit l’adversaire : chaque morceau de la Gelée et les appareils du Bombardier (missiles, explosions de l’Inconnu et du Chacal, ondes de Steve, flaques et explosion du bouclier du Sorcier, Head Stomp et Psycho Crusher de Bison, écrasement du Bouldozer, poisson et mer du Jeune beau, regard de la Chose Impie, flash de McCree). Équilibre : la Gelée fait plus mal au contact, Bouldozer 60 % en tourelle, île du Jeune beau à 23-25 s, Myers 18 % en furie, petits réglages de GigaChad.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

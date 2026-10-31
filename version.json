@@ -1,1 +1,1 @@
-{"version": "1.52.2", "notes": "Grenouille : le pilote éjecté a maintenant ses vraies images (au repos, en train de tirer avec la flamme du pistolet, et son saut : élan, en l’air, réception accroupie) au lieu du buste découpé dans le mécha."}
+{"version": "1.52.3", "notes": "Mode propriétaire : un lien « Statistiques des combats » mène à une page avec le classement et le tableau des duels, refaite automatiquement après chaque mise à jour du jeu (100 combats par paire). La page n’affiche rien sans le mode propriétaire."}

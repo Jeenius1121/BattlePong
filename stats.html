@@ -55,10 +55,17 @@ table{border-collapse:collapse;width:100%}
 </main>
 <script>
 // Les résultats (stats.json) sont refaits automatiquement par GitHub à chaque mise à jour du jeu.
+// Page réservée au propriétaire : il faut être passé en mode propriétaire dans le jeu sur cet appareil (5 touches sur le titre, puis le code).
+let proprio = false;
+try { proprio = localStorage.getItem("duel-proprio") === "1"; } catch (e) {}
+if (!proprio) {
+  document.getElementById("sous").textContent = "Page réservée au propriétaire du jeu. Passe d’abord en mode propriétaire dans le jeu sur cet appareil.";
+  document.querySelectorAll("section").forEach(e => e.hidden = true);
+}
 const COURT = { marin: "Jeune beau", oeil: "Chose Impie", hammond: "Bouldozer", titan: "Bombardier", rodeur: "Myers", hurleur: "Steve", cowboy: "McCree", inconnu: "L’Inconnu" };
 const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const pct = v => (Math.round(v * 10) / 10).toString().replace(".", ",") + " %";
-fetch("stats.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.json()).then(d => {
+if (proprio) fetch("stats.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.json()).then(d => {
   const nc = a => COURT[a] || d.noms[a], ordre = [...d.ids].sort((a, b) => d.total[b] - d.total[a]);
   const date = new Date(d.date).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
   document.getElementById("sous").textContent = `Version ${d.version} · ${d.combatsParPaire} combats par paire de personnages (chacun joue la moitié du temps à gauche, la moitié à droite) · simulé le ${date}.`;

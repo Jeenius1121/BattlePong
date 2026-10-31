@@ -6,7 +6,7 @@ const http = require("http"), fs = require("fs"), path = require("path");
 const { chromium } = require("playwright");
 
 const RACINE = path.join(__dirname, "..");
-const COMBATS = +process.argv[2] || 300; // par paire de persos
+const COMBATS = +process.argv[2] || 100; // par paire de persos
 const PAGES = 4; // navigateurs en parallèle (un par cœur)
 const TYPES = { ".html": "text/html", ".json": "application/json", ".js": "text/javascript", ".png": "image/png", ".webp": "image/webp" };
 

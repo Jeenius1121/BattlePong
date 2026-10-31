@@ -23,8 +23,8 @@ jobs:
         run: |
           npm install --no-save playwright@1.48.2
           npx playwright install --with-deps chromium
-      - name: Simuler les combats (300 par paire)
-        run: node outils/simulation.js 300
+      - name: Simuler les combats (100 par paire)
+        run: node outils/simulation.js 100
       - name: Enregistrer les résultats
         run: |
           git config user.name "statistiques-battle-pong"

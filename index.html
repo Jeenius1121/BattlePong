@@ -2810,12 +2810,15 @@ function maj(dt) {
     w.r += ONDE_VITESSE * dt;
     if (w.rate === undefined) w.rate = rateTir(w.owner);
     const o = g.f.find(x => x !== w.owner);
+    // l'anneau grandit et finit par traverser tout ce qui est à sa portée : ses dégâts sont partagés entre tous les morceaux
+    // qu'il va traverser (comptés quand il part), pas seulement ceux qu'il touche au même instant
+    if (w.n === undefined && o) w.n = partZone(o, (x, y, r) => Math.hypot(x - w.x, y - w.y) < w.max + r, w.dmg);
     if (g.running && o && !w.touche && Math.abs(Math.hypot(o.x - w.x, o.y - w.y) - w.r) < Math.max(o.hw, o.hh) * 0.6 + w.epais) {
-      w.touche = true; coupRate = w.rate; coupFoudroyant = true; degats(g, o, partZone(o, (x, y, r) => Math.abs(Math.hypot(x - w.x, y - w.y) - w.r) < r + w.epais, w.dmg), o.x, o.y - o.hh * 0.3); coupRate = false; coupFoudroyant = false;
+      w.touche = true; coupRate = w.rate; coupFoudroyant = true; degats(g, o, w.n, o.x, o.y - o.hh * 0.3); coupRate = false; coupFoudroyant = false;
     }
     coupRate = w.rate; coupFoudroyant = true;
     const dzW = (x, y, r) => Math.abs(Math.hypot(x - w.x, y - w.y) - w.r) < r + w.epais;
-    zoneAutres(g, o, dzW, partZone(o, dzW, w.dmg), w.morceaux ||= new Set());
+    zoneAutres(g, o, dzW, w.n, w.morceaux ||= new Set());
     coupRate = false; coupFoudroyant = false;
     for (const d of [...(o && o.drones || [])]) {
       const p = dronePos(o, d); w.drones ||= new Set();

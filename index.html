@@ -1704,11 +1704,11 @@ const CHARS = {
   },
   grenouille: {
     creation: true,
-    nom: "Grenouille", emoji: "🐸", vitesse: 150, pv: 140, taille: 1.2, portrait: { cx: 0.5, cy: 0.27, taille: 0.45 }, // portrait centré sur le pilote dans sa bulle
+    nom: "Grenouille", emoji: "🐸", vitesse: 150, pv: 100, taille: 1.2, portrait: { cx: 0.5, cy: 0.27, taille: 0.45 }, // portrait centré sur le pilote dans sa bulle
     images: ["pilote"], echelles: { 2: 0.45 },
     sonNom: "bulle", son2: "bulle qui éclate", son3: "bulle de protection", son4: "éjection",
     imageDe: f => f.pilote ? 2 : 1,
-    desc: "Une grenouille dans son mécha (140 PV en tout). Il avance par bonds, comme une grenouille. Son canon gonfle une bulle, petite au début, de plus en plus grosse : elle part quand elle est au maximum, ou dès que l’adversaire la touche pendant qu’elle gonfle. La bulle vole lentement vers l’adversaire pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : le prochain coup, quel qu’il soit, ne lui fait aucun dégât. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
+    desc: "Une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille. Son canon gonfle une bulle, petite au début, de plus en plus grosse : elle part quand elle est au maximum, ou dès que l’adversaire la touche pendant qu’elle gonfle. La bulle vole lentement vers l’adversaire pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : le prochain coup, quel qu’il soit, ne lui fait aucun dégât. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
     svg: `<g ${O}>
       <ellipse cx='60' cy='92' rx='40' ry='34' fill='#7a8f3c'/><rect x='88' y='84' width='30' height='14' rx='4' fill='#4a4a52'/>
       <circle cx='58' cy='60' r='24' fill='#bfe3ff' opacity='.7'/><circle cx='62' cy='62' r='14' fill='#7cc24a'/><circle cx='68' cy='58' r='5' fill='#f2a23a'/>
@@ -2407,8 +2407,8 @@ function majBombes(g, dt) {
 // Chose Impie : 6 bras accrochés aux murs ; la main où l'œil est ouvert est ce que les autres frappent
 // MAIN_HAUTEUR : longueur de l'avant-bras + main ; MAIN_MUR : distance du centre au mur (le bout des griffes touche le bord)
 // Grenouille : bulle du canon (charge, taille, vitesse, temps de vol, arrêt avant d'éclater, dégâts selon la taille, attente entre deux bulles)
-const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 120, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 6, BULLE_DEG_MAX = 28, BULLE_CD = 1.2;
-const BOND_PAUSE = 0.5, BOND_DUREE = 0.55, BOND_VITESSE = 260, BOND_HAUT = 40, PROTECTION_CD = 8;
+const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 120, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 8, BULLE_DEG_MAX = 40, BULLE_CD = 1;
+const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 5;
 // pilote éjecté : PV qui lui restent, bonds, et son pistolet à petites bulles ; explosion du mécha à l'éjection
 const PILOTE_PV = 30, PILOTE_VITESSE = 330, PILOTE_BOND_DUREE = 0.35, PILOTE_PAUSE = 0.25, PILOTE_TIR_CD = 0.3, PILOTE_BULLE_R = 7, PILOTE_BULLE_VITESSE = 340, PILOTE_BULLE_VOL = 0.8, PILOTE_BULLE_DEG = 2;
 const EJECTION_DEGATS = 12, EJECTION_RAYON = 110;
@@ -4318,7 +4318,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.52.0", NOTES = "Nouveau perso (Mes créations) : la Grenouille dans son mécha (140 PV). Elle avance par bonds ; son canon gonfle une bulle qui part au maximum ou dès que l’adversaire la touche, vole lentement, s’arrête puis éclate en zone (plus elle est grosse, plus elle fait mal). Une bulle de protection annule entièrement un coup de temps en temps. À 30 PV, le mécha explose et le pilote s’éjecte, avec un pistolet à petites bulles. Équilibre refait pour tout le monde avec elle.";
+const VERSION = "1.52.1", NOTES = "Grenouille : ses bonds sont plus rapides et vont plus loin. Elle passe à 100 PV en tout (70 pour le mécha, 30 pour le pilote) ; en échange, sa grosse bulle fait de 8 à 40 dégâts selon sa taille, elle regonfle plus vite après un tir, et sa bulle de protection revient toutes les 5 secondes.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

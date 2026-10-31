@@ -1,0 +1,35 @@
+# À chaque mise à jour du jeu (index.html), simule tous les duels et met à jour stats.json (affiché par stats.html).
+name: Statistiques des combats
+on:
+  push:
+    branches: [main]
+    paths: [index.html]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: statistiques
+  cancel-in-progress: true
+jobs:
+  simulation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Installer le navigateur
+        run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium
+      - name: Simuler les combats (300 par paire)
+        run: node outils/simulation.js 300
+      - name: Enregistrer les résultats
+        run: |
+          git config user.name "statistiques-battle-pong"
+          git config user.email "actions@users.noreply.github.com"
+          git add stats.json
+          git commit -m "Statistiques mises à jour" || exit 0
+          git pull --rebase origin main
+          git push

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Victoires Battle Pong</title>
+<style>
+:root{--fond:#f6f4ef;--carte:#ffffff;--encre:#1f2430;--doux:#6b7080;--trait:#e2ded5;--vert:22,150,90;--rouge:210,60,60}
+@media (prefers-color-scheme: dark){:root{--fond:#15171c;--carte:#1e2129;--encre:#eceef3;--doux:#9aa0ad;--trait:#323642;--vert:60,200,130;--rouge:240,95,95}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--encre);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:20px 16px 40px}
+main{max-width:980px;margin:0 auto}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sous{color:var(--doux);margin:0 0 22px}
+section{background:var(--carte);border:1px solid var(--trait);border-radius:14px;padding:16px;margin-bottom:20px}
+h2{font-size:1.1rem;margin:0 0 4px}
+.aide{color:var(--doux);font-size:.9rem;margin:0 0 12px}
+table{border-collapse:collapse;width:100%}
+.t1 td{padding:6px 4px;border-bottom:1px solid var(--trait)}
+.t1 tr:last-child td{border-bottom:0}
+.rang{width:28px;color:var(--doux);font-variant-numeric:tabular-nums}
+.nom{padding-right:10px}
+.barre{width:40%;min-width:110px}
+.piste{position:relative;height:10px;border-radius:5px;background:var(--trait)}
+.val{position:absolute;top:0;height:100%;border-radius:5px}
+.val.plus{background:rgb(var(--vert))}.val.moins{background:rgb(var(--rouge))}
+.mi{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:var(--encre);opacity:.35}
+.pct{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;width:64px}
+.defile{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.t2{width:auto;font-variant-numeric:tabular-nums;font-size:.82rem}
+.t2 th,.t2 td{border:1px solid var(--trait)}
+.t2 td{width:38px;height:34px;text-align:center}
+.t2 .c{background:rgba(var(--rouge),calc(var(--k)*.85))}
+.t2 .c.g{background:rgba(var(--vert),calc(var(--k)*.85))}
+.t2 .soi{color:var(--doux);background:var(--fond)}
+.ligne{position:sticky;left:0;background:var(--carte);text-align:left;white-space:nowrap;padding:0 8px;font-weight:600;z-index:1}
+.col{height:110px;vertical-align:bottom;padding:4px 0;font-weight:600}
+.col span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap}
+.coin{position:sticky;left:0;background:var(--carte);z-index:2}
+.legende{display:flex;gap:14px;flex-wrap:wrap;color:var(--doux);font-size:.85rem;margin-top:10px}
+.pastille{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+.retour{color:inherit}
+</style></head><body><main>
+<h1>Battle Pong : qui gagne ?</h1>
+<p class="sous" id="sous">Chargement des résultats…</p>
+<section>
+<h2>Tableau 1 · Victoires de chaque personnage</h2>
+<p class="aide">Part des combats gagnés contre tous les autres (une égalité compte pour une demi-victoire). La barre montre l’écart à 50 % : vers la droite en vert au-dessus, vers la gauche en rouge en dessous (le bord de la barre = 5 points d’écart).</p>
+<table class="t1"><tbody id="t1"></tbody></table>
+</section>
+<section>
+<h2>Tableau 2 · Qui gagne combien contre qui</h2>
+<p class="aide">Lis une ligne : c’est le pourcentage de victoires du personnage de la ligne contre celui de la colonne. Vert : il gagne plus souvent ; rouge : il perd plus souvent. Fais glisser le tableau sur le côté si besoin.</p>
+<div class="defile"><table class="t2"><thead id="t2t"></thead><tbody id="t2"></tbody></table></div>
+<div class="legende"><span><span class="pastille" style="background:rgba(var(--vert),.85)"></span>gagne presque toujours</span><span><span class="pastille" style="background:var(--trait)"></span>autour de 50 %</span><span><span class="pastille" style="background:rgba(var(--rouge),.85)"></span>perd presque toujours</span></div>
+</section>
+<p><a class="retour" href="index.html">← Retour au jeu</a></p>
+</main>
+<script>
+// Les résultats (stats.json) sont refaits automatiquement par GitHub à chaque mise à jour du jeu.
+const COURT = { marin: "Jeune beau", oeil: "Chose Impie", hammond: "Bouldozer", titan: "Bombardier", rodeur: "Myers", hurleur: "Steve", cowboy: "McCree", inconnu: "L’Inconnu" };
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const pct = v => (Math.round(v * 10) / 10).toString().replace(".", ",") + " %";
+fetch("stats.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.json()).then(d => {
+  const nc = a => COURT[a] || d.noms[a], ordre = [...d.ids].sort((a, b) => d.total[b] - d.total[a]);
+  const date = new Date(d.date).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
+  document.getElementById("sous").textContent = `Version ${d.version} · ${d.combatsParPaire} combats par paire de personnages (chacun joue la moitié du temps à gauche, la moitié à droite) · simulé le ${date}.`;
+  document.getElementById("t1").innerHTML = ordre.map((a, i) => {
+    const e = Math.max(-5, Math.min(5, d.total[a] - 50)), w = Math.abs(e) / 5 * 50;
+    return `<tr><td class="rang">${i + 1}</td><td class="nom">${esc(d.noms[a])}</td><td class="barre"><div class="piste"><div class="mi"></div><div class="val ${e >= 0 ? "plus" : "moins"}" style="width:${w}%;left:${e >= 0 ? 50 : 50 - w}%"></div></div></td><td class="pct">${pct(d.total[a])}</td></tr>`;
+  }).join("");
+  document.getElementById("t2t").innerHTML = `<tr><th class="coin"></th>${ordre.map(c => `<th class="col"><span>${esc(nc(c))}</span></th>`).join("")}</tr>`;
+  document.getElementById("t2").innerHTML = ordre.map(a => `<tr><th class="ligne">${esc(nc(a))}</th>${ordre.map(c => {
+    if (a === c) return `<td class="soi">—</td>`;
+    const v = Math.round(d.duels[a][c]), k = Math.min(1, Math.abs(v - 50) / 50);
+    return `<td class="c ${v > 50 ? "g" : ""}" style="--k:${k.toFixed(2)}" title="${esc(nc(a))} contre ${esc(nc(c))} : ${v} %">${v}</td>`;
+  }).join("")}</tr>`).join("");
+}).catch(() => { document.getElementById("sous").textContent = "Les résultats ne sont pas encore prêts : ils arrivent quelques minutes après chaque mise à jour du jeu."; });
+</script>
+</body></html>

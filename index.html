@@ -299,7 +299,7 @@ const CHARS = {
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     // roulade : les images 4 à 9 s'enchaînent comme une animation (si elles sont fournies)
     imageDe: f => f.roulade > 0 && rouladeAnimee() ? 4 + Math.min(5, Math.floor((1 - f.roulade / ROULADE_DUREE) * 6)) : f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis. Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui éclate en zone (sur l’adversaire ou là où elle arrive) et aveugle l’adversaire : quelques dégâts (sur tout ce qui est dans la zone, chaque morceau de la Gelée compris) et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
+    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis (elles touchent chaque morceau de la Gelée qu’elles traversent). Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui éclate en zone (sur l’adversaire ou là où elle arrive) et aveugle l’adversaire : quelques dégâts (sur tout ce qui est dans la zone, chaque morceau de la Gelée compris) et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
     // va-t-il être touché ? renvoie la direction du danger (projectile, laser, langue) ou sa source (zone, corps à corps)
     // moments des 6 balles : calés sur les 6 coups du son de tir s'il y en a un, sinon rafale rapide
     horaires(f) {
@@ -365,7 +365,7 @@ const CHARS = {
             else { son(f, 2); f.cd = f.recharge = RECHARGE; }
           }
         }
-      } else if (f.cd <= 0 && (t = cibleDe(f, o)) && Math.abs(t.y - f.y) < t.hh * 0.8) {
+      } else if (f.cd <= 0 && (t = cibleDe(f, o)) && Math.abs(t.y - f.y) < Math.max(t.hh, 30) * 0.8) {
         f.burst = 6; f.burstT = 0; f.rafale = { touches: 0, rapide: f.esquive > 0 }; f.horaires = this.horaires(f); f.dir = Math.sign(t.x - f.x) || 1; son(f);
         if (f.rafale.rapide) f.horaires = f.horaires.map(h => h / ROULADE_BONUS); // juste après une roulade : 6 balles 1,5 fois plus vite
       }
@@ -667,7 +667,7 @@ const CHARS = {
         f.vx = vx / n * sp; f.vy = vy / n * sp;
         f.cd -= dt;
         if (f.cd <= 0 && !cache(t) && ecart(f, t) < 30) {
-          f.cd = 0.9; f.coupT = 0.15; // petit temps de recharge entre deux coups de couteau
+          f.cd = 0.88; f.coupT = 0.15; // petit temps de recharge entre deux coups de couteau
           const ex = t.x - f.x, ey = t.y - f.y, ed = Math.hypot(ex, ey) || 1;
           frapper(g, o, t, 16, t.x - ex / ed * t.hw * 0.6, t.y - ey / ed * t.hh * 0.6);
         }
@@ -681,7 +681,7 @@ const CHARS = {
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 3,5 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise. Quand sa langue est annulée, il attend un peu plus longtemps avant de la relancer. Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose), l’adversaire prend quand même une partie des dégâts de l’étranglement.",
+    desc: "Frappe au corps à corps. Toutes les 3,3 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise. Quand sa langue est annulée, il attend un peu plus longtemps avant de la relancer. Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose, Bouldozer en feu qui la brûle), l’adversaire prend quand même une partie des dégâts de l’étranglement. Un adversaire accroché aux murs (la Chose Impie) ne peut pas être ramené : la langue l’étrangle sur place, et pendant ce temps le Smoker reste touchable (il encaisse 60 % de moins).",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -730,11 +730,12 @@ const CHARS = {
         L.x += dx / d * pas; L.y += dy / d * pas;
         const atteint = d < Math.max(o.hw, o.hh) * 0.5 || touche(o, L.x, L.y, 6);
         // langue annulée au moment où elle touche : l'adversaire prend quand même la moitié des dégâts d'un étranglement complet
-        if (atteint && o.etat === "furie") { langueAnnulee(g, o); couperLangue(f, o, g, L.x, L.y); return; } // Myers en furie tranche la langue
+        if (atteint && (o.etat === "furie" || o.enFeu)) { langueAnnulee(g, o); couperLangue(f, o, g, L.x, L.y); return; } // Myers en furie tranche la langue
         if (atteint && CHARS[o.type].imperturbable && o.pose > 0) { // GigaChad en pleine pose : la langue glisse sur lui
           langueAnnulee(g, o); L.annulee = true;
           L.etat = "rentre"; g.txt.push({ x: o.x, y: o.y - o.hh - 30, t: 0.9, s: "Imperturbable !" }); return;
         }
+        if (atteint && CHARS[o.type].ancree) { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; L.surPlace = true; son(f, 3, true, true); eclats(g, L.x, L.y, "#6e3038"); return; }
         if (atteint) { // attrapé !
           L.etat = "attire"; o.capture = f; arreterSons(o); // l'adversaire attrapé se tait
           o.burst = 0; o.charge = 0; o.tir = 0; o.muzzle = 0; o.rot = 0; o.vx = 0; o.vy = 0; o.crusher = null; o.stomp = null; o.haut = 0; o.vis = 1; o.enLair = false;
@@ -751,7 +752,7 @@ const CHARS = {
         L.serre = Math.max(0, (L.serre || 0) - dt);
         if (L.t <= 0) { // il le relâche un peu plus loin
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
-          liberer(o, f, dx / d, dy / d);
+          if (!L.surPlace) liberer(o, f, dx / d, dy / d);
           L.etat = "rentre"; L.x = o.x; L.y = o.y;
         }
       } else { // la langue revient dans la bouche
@@ -813,7 +814,7 @@ const CHARS = {
     nom: "Bombardier", emoji: "🛰️", vitesse: 80, pv: 200, taille: 1.5, portrait: "entier", images: ["tir", "appareil"],
     sonNom: "lancement", son2: "explosion du missile", son3: "appareil détruit", son4: "sifflement du missile",
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Énorme (200 PV) mais très lent. Deux petits appareils de 35 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Bombardier fait tomber de gros missiles du ciel sur lui. Sans appareil, il ne peut plus attaquer. Quand un appareil est détruit, le Bombardier perd 4 % de ses PV ; il revient au bout de 8 secondes, un par un. Les adversaires visent le Bombardier en priorité, mais leurs tirs peuvent toucher les appareils qui passent devant.",
+    desc: "Énorme (200 PV) mais très lent. Deux petits appareils de 35 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Bombardier fait tomber de gros missiles du ciel sur lui. Sans appareil, il ne peut plus attaquer. Leurs faisceaux repèrent même les invisibles. Un appareil détruit revient au bout de 8 secondes, un par un. Les adversaires visent le Bombardier en priorité, mais leurs tirs peuvent toucher les appareils qui passent devant.",
     svg: `<g ${O}>
       <rect x='36' y='108' width='20' height='34' rx='4' fill='#4a5160'/><rect x='64' y='108' width='20' height='34' rx='4' fill='#4a5160'/>
       <rect x='30' y='136' width='28' height='9' rx='3' fill='#2a2e38'/><rect x='62' y='136' width='28' height='9' rx='3' fill='#2a2e38'/>
@@ -850,11 +851,11 @@ const CHARS = {
     }
   },
   bison: {
-    nom: "Bison", emoji: "👊", vitesse: 220, taille: 1.15, tailles: { 2: 0.55 }, images: ["psycho crusher", "head stomp", "coup de genou"],
+    nom: "Bison", emoji: "👊", vitesse: 220, perceBlindage: 0.5, taille: 1.15, tailles: { 2: 0.55 }, images: ["psycho crusher", "head stomp", "coup de genou"],
     sonNom: "psycho crusher", son2: "head stomp", son3: "absorption", son4: "coup de genou",
     // image 4 pendant les coups de genou (seulement si elle est fournie, sinon l'image normale)
     imageDe: f => f.crusher ? 2 : f.stomp ? 3 : f.attT > 0 && CHARS.bison.spr && CHARS.bison.spr[4] ? 4 : 1,
-    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (touchable pendant qu’il monte, intouchable une fois disparu et en retombant). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Absorption : absorbe certains projectiles (6 boules de feu sur 10, 1 mortier sur 4, 1 balle sur 20) au lieu de les subir, et regagne des PV. Une balle de McCree qui le touche en plein Psycho Crusher l’arrête net. Attrapé par la langue du Smoker, il s’en arrache avec son Head Stomp après 2 secondes, s’il est prêt.",
+    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (touchable pendant qu’il monte, intouchable une fois disparu et en retombant). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Absorption : absorbe certains projectiles (6 boules de feu sur 10, 1 mortier sur 10, 1 balle sur 50) au lieu de les subir, et regagne des PV. Sa puissance psychique traverse la moitié du blindage (bras de la Chose Impie, Bouldozer posé). Une balle de McCree qui le touche en plein Psycho Crusher l’arrête net. Attrapé par la langue du Smoker, il s’en arrache avec son Head Stomp après 2 secondes, s’il est prêt.",
     svg: `<g ${O}>
       <path d='M30 64 Q18 104 22 146 L98 146 Q102 104 90 64Z' fill='#7a1020'/>
       <rect x='44' y='108' width='13' height='28' fill='#b3202c'/><rect x='63' y='108' width='13' height='28' fill='#b3202c'/>
@@ -963,7 +964,7 @@ const CHARS = {
     nom: "Jeune beau et plein d’avenir", emoji: "⛵", vitesse: 70, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
     taille: 1.15, images: ["poisson", "île de la tortue"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", son9: "victoire sur l’île (à la place de « Wins »)", sonsLongs: [4, 7, 9],
     imageDe: () => 1,
-    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 28 à 30 secondes (au hasard), l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
+    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 40 à 42 secondes (au hasard), l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
     svg: `<g ${O}>
       <path d='M8 96 H112 Q104 128 60 130 Q16 128 8 96Z' fill='#6b3d1f'/><path d='M8 96 H112' stroke='#f2b134' stroke-width='5'/>
       <path d='M30 92 V14' stroke='#8a5228' stroke-width='6'/><path d='M34 18 Q58 30 54 86 H34Z' fill='#c4232f'/>
@@ -1096,7 +1097,7 @@ const CHARS = {
     }
   },
   gigachad: {
-    nom: "GigaChad", emoji: "🗿", vitesse: 200, images: ["pose 1", "pose 2", "pose 3", "pose 4", "coup de poing", "pose 5", "pose 6", "pose 7"], memeEchelle: true,
+    nom: "GigaChad", emoji: "🗿", vitesse: 200, pv: 107, images: ["pose 1", "pose 2", "pose 3", "pose 4", "coup de poing", "pose 5", "pose 6", "pose 7"], memeEchelle: true,
     sonNom: "pose", son2: "coup de poing (faible, ne projette pas)", son3: "gros coup de poing (projette contre le mur)", son4: "musique (en boucle, tout le combat)", sonsMusique: [4],
     son6: "coup le plus puissant (5 poses)",
     // ses coups de poing : plus forts, et sa musique baisse un instant pour qu'on les entende bien
@@ -1104,7 +1105,7 @@ const CHARS = {
     imperturbable: true,
     // poses : images 2 à 5, puis 7 à 9 (poses 5 à 7, rangées après le coup de poing) si elles sont fournies ; image 6 : coup de poing
     imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...[7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n])]; return p[(f.numPose || 0) % p.length]; },
-    desc: "Se balade tranquillement dans l’arène sans chercher l’adversaire, et s’arrête de temps en temps pour prendre la pose 0,75 seconde : chaque pose réussie lui donne +1 en attaque (5 max), puis il repart dans une direction au hasard. Une fois à 5 poses, il se rapproche petit à petit de l’adversaire. Imperturbable : pendant qu’il pose, il prend 60 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
+    desc: "Se balade tranquillement dans l’arène (107 PV) en se rapprochant peu à peu de l’adversaire, et prend de temps en temps la pose 0,75 seconde (il glisse alors lentement, sans s’arrêter) : chaque pose réussie lui donne +1 en attaque (5 max), puis il repart dans une direction au hasard. Une fois à 5 poses, il se rapproche plus vite de l’adversaire. Imperturbable : pendant qu’il pose, il prend 60 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
     svg: `<g ${O}>
       <rect x='46' y='110' width='12' height='30' fill='#2b3a5c'/><rect x='62' y='110' width='12' height='30' fill='#2b3a5c'/>
       <rect x='42' y='136' width='18' height='8' rx='2' fill='#1b1b22'/><rect x='60' y='136' width='18' height='8' rx='2' fill='#1b1b22'/>
@@ -1122,7 +1123,7 @@ const CHARS = {
       // au contact, il frappe quoi qu'il fasse (même en pleine pose, qui continue ensuite), s'il a au moins 1 pose, et les dépense toutes
       if (t && f.poses > 0 && f.coupCd <= 0 && ecart(f, t) < 8) this.coup(f, o, g, t);
       if (f.pose > 0) { // il prend la pose : immobile et imperturbable
-        f.pose -= dt; f.vx = 0; f.vy = 0; if (t) f.face = t.x >= f.x ? 1 : -1;
+        f.pose -= dt; f.vx = Math.cos(f.cap || 0) * this.vitesse * 0.35; f.vy = Math.sin(f.cap || 0) * this.vitesse * 0.35; if (t) f.face = t.x >= f.x ? 1 : -1;
         if (f.pose <= 0) { // pose réussie : +1 en attaque, puis il repart dans une direction au hasard
           f.pose = 0; f.marche = GIGA_MARCHE; f.numPose = (f.numPose || 0) + 1; f.cap = angleAleatoire();
           if (f.poses < GIGA_POSES_MAX) { f.poses++; g.txt.push({ x: f.x, y: f.y - f.hh - 12, t: 0.9, s: "+1 ATK", soin: true }); }
@@ -1134,9 +1135,9 @@ const CHARS = {
       if (f.virageT <= 0) { f.virageT = 2 + Math.random() * 2; f.virage = (Math.random() * 2 - 1) * GIGA_VIRAGE; }
       let cap = (Math.hypot(f.vx, f.vy) > 1 ? Math.atan2(f.vy, f.vx) : f.cap ?? angleAleatoire()) + f.virage * dt;
       // il ne va vers l'adversaire qu'une fois chargé au maximum (5 poses) ; sinon, il se balade au hasard
-      if (t && f.poses >= GIGA_APPROCHE_DES) { // chargé au maximum : il se rapproche petit à petit de l'adversaire
+      if (t) { // il se rapproche peu à peu de l'adversaire (vite une fois chargé au maximum)
         const diff = ((Math.atan2(t.y - f.y, t.x - f.x) - cap) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
-        cap += Math.max(-GIGA_APPROCHE * dt, Math.min(GIGA_APPROCHE * dt, diff));
+        const va = f.poses >= GIGA_POSES_MAX ? GIGA_APPROCHE : 1; cap += Math.max(-va * dt, Math.min(va * dt, diff));
       }
       f.vx = Math.cos(cap) * this.vitesse; f.vy = Math.sin(cap) * this.vitesse;
       f.marche = (f.marche ?? GIGA_MARCHE) - dt;
@@ -1221,14 +1222,14 @@ const CHARS = {
     }
   },
   hammond: {
-    nom: "Bouldozer", emoji: "🐹", vitesse: 200, pv: 150, taille: 1.23, images: ["tourelle"],
+    nom: "Bouldozer", emoji: "🐹", vitesse: 200, pv: 145, taille: 1.23, images: ["tourelle"],
     // l'image tourelle à l'échelle qui donne la même boule que l'image normale (boule de 119 px contre 138 px dans l'image tourelle)
     echelles: { 2: 119 / 138 },
     // vignette de la grille et carte de fin : l'image tourelle (où on voit le hamster), cadrée sur sa tête
     portraitImage: 2, portraitAutre: { cx: 0.4, cy: 0.1, taille: 0.26 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
-    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute. Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (38 % de dégâts en moins), avant de relancer son grappin.",
+    desc: "Une grosse boule de démolition (145 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute (en feu, il brûle la langue du Smoker). Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (38 % de dégâts en moins), avant de relancer son grappin.",
     svg: `<g ${O}>
       <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
       <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
@@ -1375,7 +1376,7 @@ const CHARS = {
   },
   oeil: {
     creation: true,
-    nom: "Chose Impie", emoji: "👁️", vitesse: 0, pv: 200, images: ["main à l’œil", "main à l’œil fermé"], reductionZone: 0.15, // dégâts de zone : 40 % de moins (les coups directs, eux, passent normalement)
+    nom: "Chose Impie", emoji: "👁️", vitesse: 0, ancree: true, pv: 185, images: ["main à l’œil", "main à l’œil fermé"], reductionZone: 0.15, // dégâts de zone : 40 % de moins (les coups directs, eux, passent normalement)
     // l'avant-bras à l'œil (ce que les autres frappent) a une taille fixe ; images 4 et suivantes : le même, déjà tourné
     // d'un seizième de tour à chaque fois, pour que sa zone de touche suive son orientation
     get hauteurs() {
@@ -1387,9 +1388,9 @@ const CHARS = {
     sonNom: "rayon", son2: "saisie", son3: "bras arraché", son4: "chute",
     // œil ouvert : image 2 (puis 4 et suivantes, tournées) ; œil fermé après un gros coup : image 3 (puis ses versions tournées, après)
     // un coup ne peut vider que le bras à l'œil : elle ne tombe qu'avec son dernier bras
-    plafond: f => f.brasActif ? Math.ceil(f.brasActif.pv) : Infinity,
+    plafond: f => f.brasActif ? Math.min(20, Math.ceil(f.brasActif.pv)) : Infinity,
     imageDe: f => { const ferme = f.oeilFerme > 0; return f.sens ? 3 + f.sens + (ferme ? MAIN_SENS : 0) : ferme ? 3 : 2; }, blindage: 0.26,
-    desc: "Énorme créature (200 PV) suspendue au milieu de l’arène, accrochée aux murs et au plafond par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains (sur les autres, il reste fermé), et c’est cet avant-bras qu’il faut frapper ; il est dur comme de la corne (26 % de dégâts en moins). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Ses PV, ce sont ses bras : chacun en porte un sixième, les coups entament le bras à l’œil, et quand il est vidé il est arraché ; un seul coup ne peut arracher qu’un bras. Tant qu’il reste un bras, il reste des PV ; quand le dernier est arraché, la Chose tombe. Son grand œil suit toujours l’adversaire. Les dégâts de zone (explosions, ondes…) lui font 15 % de moins ; les coups directs passent normalement. De temps en temps, l’œil fixe l’adversaire et vire au vert, puis lance son regard maudit : un large cône de lumière verte qui balaie l’arène d’un côté à l’autre en passant sur l’adversaire (il ne le suit pas) ; tant qu’il est dedans, il brûle (d’autant plus fort qu’il est rapide : un perso lent, qui ne peut pas y échapper, en prend moins) et il est ralenti. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place (jusqu’à 3 secondes) et lui fait de petits dégâts, jusqu’à ce qu’il l’ait assez frappée pour se libérer.",
+    desc: "Énorme créature (185 PV) suspendue au milieu de l’arène, accrochée aux murs et au plafond par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains (sur les autres, il reste fermé), et c’est cet avant-bras qu’il faut frapper ; il est dur comme de la corne (26 % de dégâts en moins). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Ses PV, ce sont ses bras : chacun en porte un sixième, les coups entament le bras à l’œil, et quand il est vidé il est arraché ; un seul coup ne peut pas lui enlever plus de 20 PV. Tant qu’il reste un bras, il reste des PV ; quand le dernier est arraché, la Chose tombe. Son grand œil suit toujours l’adversaire. Les dégâts de zone (explosions, ondes…) lui font 15 % de moins ; les coups directs passent normalement. De temps en temps, l’œil fixe l’adversaire et vire au vert, puis lance son regard maudit : un large cône de lumière verte qui balaie l’arène d’un côté à l’autre en passant sur l’adversaire (il ne le suit pas) ; tant qu’il est dedans, il brûle (d’autant plus fort qu’il est rapide : un perso lent, qui ne peut pas y échapper, en prend moins) et il est ralenti. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place (jusqu’à 1,5 seconde) et lui fait de petits dégâts, à moins qu’il ne l’ait assez frappée pour se libérer avant. Accrochée aux murs, elle ne peut pas être ramenée par la langue du Smoker.",
     svg: `<g ${O}>
       <path d='M60 40 Q30 60 34 110 Q40 140 60 146 Q80 140 86 110 Q90 60 60 40Z' fill='#e9c9c0' stroke='#7a1a22'/>
       <path d='M44 70 Q60 90 76 70 M46 100 Q60 116 74 100' fill='none' stroke='#b52a35' stroke-width='3'/>
@@ -1481,8 +1482,8 @@ const CHARS = {
         S.tic -= dt; if (S.tic <= 0) { S.tic = SAISIE_TIC; degats(g, o, SAISIE_DEGATS, o.x, o.y - o.hh * 0.3); }
         return;
       }
-      const m = this.coordMain(f.brasActif); // retour au mur
-      if (aller(m.x, m.y, SAISIE_VITESSE * 0.7)) { f.saisie = null; f.traverse = false; }
+      const m = this.coordMain(f.brasActif); // retour au mur (arrivée dès qu'elle est tout près : le bord de l'arène l'empêche d'aller pile au mur)
+      if (aller(m.x, m.y, SAISIE_VITESSE * 0.7) || Math.hypot(m.x - f.x, m.y - f.y) < 30) { f.saisie = null; f.traverse = false; }
     },
     // dégâts reçus (par n'importe quoi) : ils comptent sur le bras à l'œil ; gros coup = l'œil se ferme ; bras arraché quand sa part est encaissée
     monde(f, o, g, dt) {
@@ -1735,7 +1736,7 @@ const CHARS = {
       if (B && B.phase === "pause" && B.t > PILOTE_PAUSE - 0.12) return 6;
       return 2;
     },
-    desc: "Une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille. Son canon gonfle une bulle, petite au début, de plus en plus grosse ; pendant ce temps, elle ne saute plus et marche lentement sur le côté. Si la langue du Smoker touche la bulle, la langue est coupée. La bulle part quand elle est au maximum, ou dès que l’adversaire (ou la langue du Smoker) la touche pendant qu’elle gonfle. La bulle vole lentement vers l’adversaire pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : le prochain coup, quel qu’il soit, ne lui fait aucun dégât. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
+    desc: "Une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille. Son canon gonfle une bulle, petite au début, de plus en plus grosse ; pendant ce temps, elle ne saute plus et marche lentement sur le côté. Si la langue du Smoker touche la bulle, la langue est coupée. La bulle part quand elle est au maximum, ou dès que l’adversaire (ou la langue du Smoker) la touche pendant qu’elle gonfle. La bulle vole vers l’adversaire en le suivant un peu pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : elle arrête jusqu’à 15 dégâts du prochain coup. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
     svg: `<g ${O}>
       <ellipse cx='60' cy='92' rx='40' ry='34' fill='#7a8f3c'/><rect x='88' y='84' width='30' height='14' rx='4' fill='#4a4a52'/>
       <circle cx='58' cy='60' r='24' fill='#bfe3ff' opacity='.7'/><circle cx='62' cy='62' r='14' fill='#7cc24a'/><circle cx='68' cy='58' r='5' fill='#f2a23a'/>
@@ -1820,6 +1821,7 @@ const CHARS = {
       if (!f.bulles) return;
       f.bulles = f.bulles.filter(B => {
         if (!B.eclate) {
+          if (!B.petite && B.vol > 0 && !o.mort) { const a0 = Math.atan2(B.vy, B.vx), v0 = Math.hypot(B.vx, B.vy), da = ((Math.atan2(o.y - B.y, o.x - B.x) - a0) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI, a = a0 + Math.max(-1.2 * dt, Math.min(1.2 * dt, da)); B.vx = Math.cos(a) * v0; B.vy = Math.sin(a) * v0; }
           if (B.vol > 0) { B.vol -= dt; const k = B.petite ? Math.max(0, B.vol / PILOTE_BULLE_VOL) : 1; B.x += B.vx * dt * k; B.y += B.vy * dt * k; B.y += Math.sin(B.vol * 6) * 8 * dt; }
           else if ((B.arret -= dt) <= 0) B.eclate = true;
           if (B.x < B.r || B.x > W - B.r) { B.vx = -B.vx; B.x = Math.min(W - B.r, Math.max(B.r, B.x)); }
@@ -2042,11 +2044,13 @@ function degats(g, cible, n, x, y) {
   if (coupRate || (attaquant && attaquant !== cible && rateTir(attaquant))) { rate(g, x, y); return; }
   // le Smoker qui étrangle quelqu'un contre lui ne prend aucun dégât (mais il reste touchable pendant qu'il le ramène)
   if (cible.langue && cible.langue.etat === "etreinte" && g.f.some(x => x.capture === cible)) return;
+  if (cible.langue && cible.langue.surPlace && cible.langue.etat === "etreinte") n = Math.max(1, Math.round(n * 0.4));
   const c = CHARS[cible.type];
-  if (c.annuleCoup && c.annuleCoup(cible, g)) return; // annuleCoup : coup entièrement bloqué (bulle de protection de la Grenouille)
+  if (c.annuleCoup && c.annuleCoup(cible, g)) { n -= 15; if (n <= 0) return; } // annuleCoup : coup entièrement bloqué (bulle de protection de la Grenouille)
   if (c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
   // Myers encaisse moins pendant sa furie (arrondi, 1 dégât minimum)
-  if (cible.type === "hammond" && cible.etatH === "tourelle") n = Math.max(1, Math.round(n * (1 - HAMMOND_BLINDAGE))); // Bouldozer posé en bas : un peu blindé
+  const perce = (attaquant && CHARS[attaquant.type].perceBlindage) || 0; // la puissance psychique de Bison traverse une partie du blindage
+  if (cible.type === "hammond" && cible.etatH === "tourelle") n = Math.max(1, Math.round(n * (1 - HAMMOND_BLINDAGE * (1 - perce)))); // Bouldozer posé en bas : un peu blindé
   if (cible.esquive > 0) n = Math.max(1, Math.round(n * 0.5)); // juste après une roulade de McCree : 50 % de dégâts en moins
   // GigaChad qui prend la pose : 60 % de dégâts en moins (seulement 25 % contre les attaques foudroyantes :
   // couteau de Myers en furie, Psycho Crusher et Head Stomp de Bison) ; les cris de Steve (des ondes sonores) passent à travers
@@ -2054,7 +2058,7 @@ function degats(g, cible, n, x, y) {
   if (c.imperturbable && cible.pose > 0 && !coupDirect) n = Math.max(1, Math.round(n * (1 - (coupFoudroyant ? GIGA_IMPERTURBABLE_CRI : foudroyant ? GIGA_IMPERTURBABLE_FURIE : GIGA_IMPERTURBABLE))));
   if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction)));
   // blindage : dégâts toujours réduits de cette part (la main de la Chose Impie, dure comme de la corne)
-  if (c.blindage) n = Math.max(1, Math.round(n * (1 - c.blindage)));
+  if (c.blindage) n = Math.max(1, Math.round(n * (1 - c.blindage * (1 - perce))));
   // plafond : le plus de dégâts qu'un seul coup peut lui faire (la Chose Impie : ce qui reste au bras à l'œil)
   if (c.plafond) n = Math.max(1, Math.min(n, c.plafond(cible)));
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
@@ -2091,7 +2095,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (38 → 7,6 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
 // laser du robot : de plus en plus fort, un palier tous les LASER_TIC (très petit, petit, moyen, gros, très gros)
-const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 4.1;
+const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 4.2;
 // dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
 function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1)); }
 // GigaChad : pose de 1 s, 1 s de marche entre deux poses ; +1 en attaque par pose (5 max)
@@ -2109,7 +2113,7 @@ const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 3;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
 const POISSON_CD = [3.5, 5], POISSON_MONTEE = 1.4, POISSON_PAUSE = 1, POISSON_CHUTE = 0.8, POISSON_HAUT = 70, POISSON_RAYON = 42;
 const POISSON_SOIN = 5; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
-const CROQUE_DEGATS = 29, POISSON_CONTACT = 12, POISSON_ECART = 150;
+const CROQUE_DEGATS = 31, POISSON_CONTACT = 12, POISSON_ECART = 150;
 // hauteur de l'eau (depuis le bas) à la position x : niveau de base, petites ondulations et vagues de la tempête
 function merHauteur(g, x) {
   let h = W * MER_NIVEAU + Math.sin(g.mer.t * 2 + x / 45) * 4;
@@ -2123,17 +2127,17 @@ function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (
 // l'île de la tortue : au bout d'un moment, le Marin rentre chez lui (c'est une victoire pour lui)
 // plongée du Marin quand une attaque va le toucher : il ne la voit venir qu'une fois sur PLONGEE_VU (sinon il est surpris un instant)
 const PLONGEE_DUREE = 1.2, PLONGEE_CD = 10, PLONGEE_VU = 0.1, PLONGEE_RATE = 1;
-const ILE_DELAI = [28, 30], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
+const ILE_DELAI = [40, 42], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
 const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 13, GENOU_CD = 2, GENOU_DEGATS = 4;
 // Psycho Absorption : chance d'absorber un projectile (plus faible pour les balles de McCree) ; il regagne une part de ses dégâts
-const REFLET_CHANCE = { balle: 0.05, feu: 0.6, mortier: 0.25 };
+const REFLET_CHANCE = { balle: 0.02, feu: 0.6, mortier: 0.1 };
 const ABSORPTION_SOIN = 0.5;
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
-const DRONE_LIEN = 0.04; // part des PV max du Bombardier perdue quand un de ses appareils est détruit
-const DRONE_PV = 35, DRONE_RETOUR = 8, MISSILE_CD = 3.4, MISSILE_DELAI = 1.5, MISSILE_RAYON = 240, MISSILE_DEGATS = 32;
+const DRONE_LIEN = 0; // part des PV max du Bombardier perdue quand un de ses appareils est détruit
+const DRONE_PV = 35, DRONE_RETOUR = 8, MISSILE_CD = 3.4, MISSILE_DELAI = 1.5, MISSILE_RAYON = 240, MISSILE_DEGATS = 31;
 const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
 // appareils : ils patrouillent au hasard (faisceau bleu) ; quand l'adversaire passe dans leur faisceau,
 // ils le repèrent (faisceau rouge) et volent près de lui en le gardant en visée
@@ -2144,7 +2148,7 @@ function nouvelAppareil(f, i) {
 function pointAuHasard() { return { x: 40 + Math.random() * (W - 80), y: 40 + Math.random() * (W - 80) }; }
 function bougerAppareil(f, o, d, dt) {
   d.nouveau = Math.max(0, (d.nouveau || 0) - dt); d.butT -= dt;
-  const visible = o && !o.mort && !cache(o, f);
+  const visible = o && !o.mort && !o.enLair; // les faisceaux repèrent même les invisibles
   if (d.repere && !visible) d.repere = false; // l'adversaire a disparu : il repart patrouiller
   if (!d.repere) { // patrouille au hasard, faisceau bleu devant lui
     if (!d.but || d.butT <= 0 || Math.hypot(d.but.x - d.x, d.but.y - d.y) < 20) { d.but = pointAuHasard(); d.butT = 3 + Math.random() * 2; }
@@ -2249,7 +2253,7 @@ function crier(g, f, dmg, portee, epais) {
 }
 /* ===== LANGUE DU SMOKER ===== */
 const LANGUE_PENALITE = 1.75; // secondes d'attente en plus quand sa langue a été annulée (coupée, tranchée, glissée…)
-const LANGUE_CD = 3.45, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
+const LANGUE_CD = 3.3, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
 // langue annulée pile au moment où elle touche (Myers en furie, GigaChad en pose) : une part des dégâts d'un étranglement complet (7 à-coups, 42)
 const LANGUE_ANNULEE_PART = 0.25;
 function langueAnnulee(g, o) {
@@ -2458,7 +2462,7 @@ function majBombes(g, dt) {
 // Chose Impie : 6 bras accrochés aux murs ; la main où l'œil est ouvert est ce que les autres frappent
 // MAIN_HAUTEUR : longueur de l'avant-bras + main ; MAIN_MUR : distance du centre au mur (le bout des griffes touche le bord)
 // Grenouille : bulle du canon (charge, taille, vitesse, temps de vol, arrêt avant d'éclater, dégâts selon la taille, attente entre deux bulles)
-const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 180, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 8, BULLE_DEG_MAX = 31, BULLE_CD = 1;
+const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 180, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 8, BULLE_DEG_MAX = 32, BULLE_CD = 1;
 const BULLE_MARCHE = 90; // vitesse de la Grenouille pendant qu'elle gonfle sa bulle (elle marche lentement au lieu de sauter)
 const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 5;
 // pilote éjecté : PV qui lui restent, bonds, et son pistolet à petites bulles ; explosion du mécha à l'éjection
@@ -2474,10 +2478,10 @@ const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;
 const OEIL_DUREE = [4, 5], OEIL_FERME = 2, OEIL_GROS_COUP = 8; // temps de l'œil sur une main, temps fermé après un gros coup, ce qu'est un gros coup
 // regard maudit : charge, durée du balayage, angle balayé, ouverture du cône, portée, dégâts tous les RAYON_TIC, ralentissement
-const RAYON_PREMIER = 3, RAYON_CD = 7, RAYON_CHARGE = 1, RAYON_DUREE = 1.6, RAYON_ARC = 1.4, RAYON_CONE = 0.5, RAYON_PORTEE = 440;
+const RAYON_PREMIER = 3, RAYON_CD = 5, RAYON_CHARGE = 1, RAYON_DUREE = 1.6, RAYON_ARC = 1.4, RAYON_CONE = 0.5, RAYON_PORTEE = 440;
 const RAYON_VIT_REF = 200, RAYON_VIT_MIN = 0.65, RAYON_VIT_MAX = 1.15; // dégâts du regard selon la vitesse de l'adversaire (vitesse de référence, bornes)
-const RAYON_TIC = 0.2, RAYON_DEGATS = 4, RAYON_LENT = 1.2;
-const SAISIE_PREMIERE = 5, SAISIE_CD = 4.5, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 4, SAISIE_SEUIL = 15, SAISIE_MAX = 3;
+const RAYON_TIC = 0.2, RAYON_DEGATS = 7, RAYON_LENT = 1.2;
+const SAISIE_PREMIERE = 5, SAISIE_CD = 4.5, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 2, SAISIE_SEUIL = 15, SAISIE_MAX = 1.5;
 const OEIL_POS = { x: 0.527, y: 0.217, rx: 0.09, ry: 0.079 }; // le grand œil sur l'image du corps (proportions)
 function corpsEchelle(f) { return CORPS_HAUTEUR / CHARS.oeil.sprite.th; }
 // géométrie d'un bras : épaule sur le corps, point de pli (coude), main (x, y)
@@ -2615,7 +2619,7 @@ function dessinerRayonOeil(f) {
   ctx.restore();
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
-const FEU_BONUS = 8; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
+const FEU_BONUS = 10; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 42, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 3; // PV regagnés par l'Inconnu à chaque téléportation
@@ -2628,7 +2632,7 @@ const ROULADE_CD = 8, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUI
 // les 6 images de roulade de McCree sont-elles toutes là ?
 function rouladeAnimee() { const s = CHARS.cowboy.spr; return !!s && [4, 5, 6, 7, 8, 9].every(n => s[n]); }
 const ENCHAINE_CHANCE = 0.02; // chance par balle qui touche de ne pas recharger (McCree)
-const RECHARGE = 1.32; // rechargement du Cowboy après chaque rafale (secondes)
+const RECHARGE = 1.46; // rechargement du Cowboy après chaque rafale (secondes)
 const BALLE_DEGATS = 7; // dégâts de chaque balle de McCree (toutes pareilles)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
@@ -2758,11 +2762,11 @@ function maj(dt) {
         if (p.rafale) p.rafale.touches++;
         if (!traverse) return false;
       }
-      if (p.transperce && p.dejaCible) continue;
+      if (p.transperce && p.dejaCible && !CHARS[cible.type].autreCorps) continue;
       // autreCorps : un perso en plusieurs morceaux (la Gelée) est touché sur n'importe lequel (il devient alors le morceau frappé)
       const surCible = touche(cible, p.x, p.y, p.r * 0.6) || (!p.rate && !!CHARS[cible.type].autreCorps && CHARS[cible.type].autreCorps(cible, p.x, p.y, p.r * 0.6));
       if (p.rate && !p.rateVu && surCible) { p.rateVu = true; rate(g, p.x, p.y); } // il passe à côté
-      if (!p.rate && surCible) {
+      if (!p.rate && surCible && !(p.transperce && cible.actif && p.dejaM && p.dejaM.has(cible.actif))) {
         // Psycho Absorption de Bison : une chance (tirée une fois par projectile) de l'absorber et de se soigner
         if (cible.type === "bison" && (p.jetReflet ??= Math.random() < (REFLET_CHANCE[p.kind] || 0))) { absorber(g, p, cible); return false; }
         if (p.perce) { // transperce : refait des dégâts à chaque nouveau passage à travers l'adversaire
@@ -2777,7 +2781,7 @@ function maj(dt) {
         if (p.rafale && Math.random() < ENCHAINE_CHANCE) enchainer(g, p.owner, p.rafale);
         if (p.kind === "balle" && p.owner.type === "cowboy" && cible.crusher) { cible.crusher = null; cible.sonne = CRUSHER_SONNE; eclats(g, p.x, p.y, "#b04cff"); } // McCree coupe le Psycho Crusher
         if (p.kind === "feu") eclats(g, p.x, p.y, "#ff8a2a");
-        if (p.transperce) { p.dejaCible = true; continue; } // la balle traverse et continue sa route
+        if (p.transperce) { p.dejaCible = true; if (cible.actif) (p.dejaM ||= new Set()).add(cible.actif); continue; } // la balle traverse et continue sa route
         return false;
       } else p.dedans = false;
     }
@@ -2813,11 +2817,11 @@ function maj(dt) {
     // l'anneau grandit et finit par traverser tout ce qui est à sa portée : ses dégâts sont partagés entre tous les morceaux
     // qu'il va traverser (comptés quand il part), pas seulement ceux qu'il touche au même instant
     if (w.n === undefined && o) w.n = partZone(o, (x, y, r) => Math.hypot(x - w.x, y - w.y) < w.max + r, w.dmg);
-    if (g.running && o && !w.touche && Math.abs(Math.hypot(o.x - w.x, o.y - w.y) - w.r) < Math.max(o.hw, o.hh) * 0.6 + w.epais) {
+    if (g.running && o && !w.touche && Math.abs(Math.hypot(o.x - w.x, o.y - w.y) - w.r) < Math.min(36, Math.max(o.hw, o.hh) * 0.6) + w.epais) {
       w.touche = true; coupRate = w.rate; coupFoudroyant = true; degats(g, o, w.n, o.x, o.y - o.hh * 0.3); coupRate = false; coupFoudroyant = false;
     }
     coupRate = w.rate; coupFoudroyant = true;
-    const dzW = (x, y, r) => Math.abs(Math.hypot(x - w.x, y - w.y) - w.r) < r + w.epais;
+    const dzW = (x, y, r) => Math.abs(Math.hypot(x - w.x, y - w.y) - w.r) < Math.min(36, r) + w.epais;
     zoneAutres(g, o, dzW, w.n, w.morceaux ||= new Set());
     coupRate = false; coupFoudroyant = false;
     for (const d of [...(o && o.drones || [])]) {
@@ -4378,7 +4382,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.55.0", NOTES = "Bombardier : ses missiles explosent sur une zone plus large (240 au lieu de 190) mais font un peu moins mal (32 au lieu de 40), et ses appareils ont 35 PV (au lieu de 25). GigaChad : plus rapide (200 au lieu de 160), il ne prend plus que 60 % de dégâts en moins pendant ses poses (au lieu de 75 %), et chaque pose ajoute un peu plus à son coup de poing. Grenouille : sa grosse bulle part plus vite (180 au lieu de 120) et fait un peu moins mal (31 au plus au lieu de 36), et elle marche moins lentement en la gonflant. Steve : son onde partage maintenant ses dégâts entre tous les morceaux de la Gelée qu’elle va traverser. Petits réglages d’équilibre pour tout le monde.";
+const VERSION = "1.56.0", NOTES = "Grande mise à jour d’équilibre pour adoucir les duels les plus extrêmes. McCree : ses balles touchent chaque morceau de la Gelée qu’elles traversent et il vise mieux les petites cibles. Bison : sa puissance psychique traverse la moitié du blindage, et il absorbe moins de mortiers et de balles. Chose Impie (185 PV) : saisie plus courte (1,5 s) et plus faible, regard plus fort et plus fréquent, un seul coup ne peut pas lui enlever plus de 20 PV ; la langue du Smoker l’étrangle sur place (le Smoker reste alors touchable) ; correction d’un bug qui bloquait sa main au retour d’une saisie. GigaChad (107 PV) : il glisse pendant ses poses et se rapproche peu à peu de l’adversaire. Bombardier : ses appareils repèrent les invisibles et leur destruction ne lui coûte plus de PV. Grenouille : sa grosse bulle suit un peu l’adversaire, sa bulle de protection arrête 15 dégâts. Bouldozer (145 PV) : en feu, il brûle la langue du Smoker. Jeune beau : l’île arrive au bout de 40 à 42 s. Steve : ses cris touchent un peu moins facilement les très gros persos. Petits réglages pour tout le monde.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

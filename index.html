@@ -1705,9 +1705,17 @@ const CHARS = {
   grenouille: {
     creation: true,
     nom: "Grenouille", emoji: "🐸", vitesse: 150, pv: 100, taille: 1.2, portrait: { cx: 0.5, cy: 0.27, taille: 0.45 }, // portrait centré sur le pilote dans sa bulle
-    images: ["pilote"], echelles: { 2: 0.45 },
+    images: ["pilote", "pilote tir", "pilote saut 1", "pilote saut 2", "pilote atterrit"], echelles: { 2: 0.72, 3: 0.72, 4: 0.72, 5: 0.72, 6: 0.72 },
     sonNom: "bulle", son2: "bulle qui éclate", son3: "bulle de protection", son4: "éjection",
-    imageDe: f => f.pilote ? 2 : 1,
+    // le pilote : au repos, en train de tirer (avec la flamme), puis son saut (élan, en l'air, réception accroupie)
+    imageDe: f => {
+      if (!f.pilote) return 1;
+      if (f.tirAnim > 0) return 3;
+      const B = f.bond;
+      if (B && B.phase === "saut") { const p = 1 - B.t / PILOTE_BOND_DUREE; return p < 0.3 ? 4 : p < 0.8 ? 5 : 6; }
+      if (B && B.phase === "pause" && B.t > PILOTE_PAUSE - 0.12) return 6;
+      return 2;
+    },
     desc: "Une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille. Son canon gonfle une bulle, petite au début, de plus en plus grosse : elle part quand elle est au maximum, ou dès que l’adversaire la touche pendant qu’elle gonfle. La bulle vole lentement vers l’adversaire pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : le prochain coup, quel qu’il soit, ne lui fait aucun dégât. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
     svg: `<g ${O}>
       <ellipse cx='60' cy='92' rx='40' ry='34' fill='#7a8f3c'/><rect x='88' y='84' width='30' height='14' rx='4' fill='#4a4a52'/>
@@ -1764,6 +1772,7 @@ const CHARS = {
     },
     // le pilote éjecté : petits bonds rapides, et son pistolet à petites bulles
     pilote(f, o, g, dt, vu) {
+      f.tirAnim = Math.max(0, (f.tirAnim || 0) - dt);
       const Bd = f.bond ||= { phase: "pause", t: 0 };
       Bd.t -= dt;
       if (Bd.phase === "pause") { f.vx = 0; f.vy = 0; f.haut = 0; if (Bd.t <= 0) { Bd.phase = "saut"; Bd.t = PILOTE_BOND_DUREE; const a = angleAleatoire(); Bd.vx = Math.cos(a) * PILOTE_VITESSE; Bd.vy = Math.sin(a) * PILOTE_VITESSE; } }
@@ -1771,7 +1780,7 @@ const CHARS = {
       f.tirCd = (f.tirCd ?? 0.6) - dt;
       if (f.tirCd <= 0 && vu) {
         f.tirCd = PILOTE_TIR_CD; f.face = o.x >= f.x ? 1 : -1;
-        const c = canonMonde(f), a = Math.atan2(o.y - c.y, o.x - c.x) + (Math.random() - 0.5) * 0.3;
+        const c = canonMonde(f); f.tirAnim = 0.1; const a = Math.atan2(o.y - c.y, o.x - c.x) + (Math.random() - 0.5) * 0.3;
         f.bulles.push({ x: c.x, y: c.y, r: PILOTE_BULLE_R, vx: Math.cos(a) * PILOTE_BULLE_VITESSE, vy: Math.sin(a) * PILOTE_BULLE_VITESSE, vol: PILOTE_BULLE_VOL, arret: 0.25, dmg: PILOTE_BULLE_DEG, petite: true, phase: 0 });
       }
     },
@@ -4318,7 +4327,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.52.1", NOTES = "Grenouille : ses bonds sont plus rapides et vont plus loin. Elle passe à 100 PV en tout (70 pour le mécha, 30 pour le pilote) ; en échange, sa grosse bulle fait de 8 à 40 dégâts selon sa taille, elle regonfle plus vite après un tir, et sa bulle de protection revient toutes les 5 secondes.";
+const VERSION = "1.52.2", NOTES = "Grenouille : le pilote éjecté a maintenant ses vraies images (au repos, en train de tirer avec la flamme du pistolet, et son saut : élan, en l’air, réception accroupie) au lieu du buste découpé dans le mécha.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

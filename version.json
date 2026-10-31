@@ -1,1 +1,1 @@
-{"version": "1.52.1", "notes": "Grenouille : ses bonds sont plus rapides et vont plus loin. Elle passe à 100 PV en tout (70 pour le mécha, 30 pour le pilote) ; en échange, sa grosse bulle fait de 8 à 40 dégâts selon sa taille, elle regonfle plus vite après un tir, et sa bulle de protection revient toutes les 5 secondes."}
+{"version": "1.52.2", "notes": "Grenouille : le pilote éjecté a maintenant ses vraies images (au repos, en train de tirer avec la flamme du pistolet, et son saut : élan, en l’air, réception accroupie) au lieu du buste découpé dans le mécha."}

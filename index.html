@@ -55,6 +55,8 @@ h1{font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-weight:400; fo
 .chVersion{position:absolute; bottom:calc(14px + env(safe-area-inset-bottom,0px)); margin:0; font-size:.75rem; color:#9aa3c0}
 /* deux écrans séparés : la sélection des persos, puis le combat */
 body.vue-selection [data-vue="combat"], body.vue-combat [data-vue="selection"]{display:none !important}
+#lienStats{display:block; text-align:center; text-decoration:none; margin:18px auto 0; max-width:420px}
+#lienStats[hidden]{display:none}
 body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{display:none}
 .chargement.fini{opacity:0; pointer-events:none}
 .chTitre{margin:0; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(2rem,10vw,3rem); transform:rotate(-2deg)}
@@ -263,8 +265,9 @@ canvas{display:block; width:100%; aspect-ratio:1/1; border-radius:6px; touch-act
   </div>
   <div id="descs" data-vue="selection"></div>
 
+  <!-- mode propriétaire : bouton vers les statistiques des combats, au-dessus de la partie pour modifier les images et les sons -->
+  <a class="btn" id="lienStats" href="stats.html" data-vue="selection" hidden>📊 Statistiques des combats</a>
   <section class="custom charge" id="custom" data-vue="selection" hidden>
-    <p><a href="stats.html" class="lienStats">📊 Statistiques des combats (refaites automatiquement à chaque mise à jour)</a></p>
     <h2>Images des personnages</h2>
     <p>Remplace l’image d’un perso par la tienne. Prends de préférence un PNG à fond transparent : la zone de touche suit alors la forme exacte du personnage. L’image est redimensionnée sans être déformée. Les sons démarrent automatiquement là où ta voix commence et sont coupés à 3 secondes. Les sons de Myers peuvent durer jusqu’à 10 secondes : le son 2 (traque) tourne pendant que sa jauge monte, le son normal pendant toute sa furie.</p>
     <p id="statutNuage">⏳ Chargement des images et des sons… attends quelques secondes.</p>
@@ -4292,7 +4295,7 @@ async function init() {
    Touche le titre 5 fois de suite puis tape le code : la partie pour modifier
    les images et les sons apparaît, et cet appareil s'en souvient. */
 const CODE_HASH = "abd3f2ed90f684b305ed7632ee24e58ed439de9158399ce9a5952281ef804b43";
-function afficherPerso() { document.getElementById("custom").hidden = false; }
+function afficherPerso() { document.getElementById("custom").hidden = false; document.getElementById("lienStats").hidden = false; }
 try { if (localStorage.getItem("duel-proprio") === "1") afficherPerso(); } catch (e) {}
 let tapsTitre = 0, minuteurTitre = 0;
 document.getElementById("titre").addEventListener("click", async () => {
@@ -4328,7 +4331,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.52.3", NOTES = "Mode propriétaire : un lien « Statistiques des combats » mène à une page avec le classement et le tableau des duels, refaite automatiquement après chaque mise à jour du jeu (100 combats par paire). La page n’affiche rien sans le mode propriétaire.";
+const VERSION = "1.52.4", NOTES = "Mode propriétaire : le bouton « Statistiques des combats » est maintenant un vrai bouton, placé au-dessus de la partie pour modifier les images et les sons.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

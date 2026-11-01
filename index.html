@@ -681,7 +681,7 @@ const CHARS = {
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 3,3 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise. Quand sa langue est annulée, il attend un peu plus longtemps avant de la relancer. Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose, Bouldozer en feu qui la brûle), l’adversaire prend quand même une partie des dégâts de l’étranglement. Un adversaire accroché aux murs (la Chose Impie) ne peut pas être ramené : la langue l’étrangle sur place, et pendant ce temps le Smoker reste touchable (il encaisse 60 % de moins).",
+    desc: "Frappe au corps à corps. Toutes les 3,2 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise. Quand sa langue est annulée, il attend un peu plus longtemps avant de la relancer. Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose, Bouldozer en feu qui la brûle), l’adversaire prend quand même une partie des dégâts de l’étranglement. Un adversaire accroché aux murs (la Chose Impie) ne peut pas être ramené : la langue l’étrangle sur place, et pendant ce temps le Smoker reste touchable (il encaisse 60 % de moins).",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -1105,7 +1105,7 @@ const CHARS = {
     imperturbable: true,
     // poses : images 2 à 5, puis 7 à 9 (poses 5 à 7, rangées après le coup de poing) si elles sont fournies ; image 6 : coup de poing
     imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...[7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n])]; return p[(f.numPose || 0) % p.length]; },
-    desc: "Se balade tranquillement dans l’arène (107 PV) en se rapprochant peu à peu de l’adversaire, et prend de temps en temps la pose 0,75 seconde (il glisse alors lentement, sans s’arrêter) : chaque pose réussie lui donne +1 en attaque (5 max), puis il repart dans une direction au hasard. Une fois à 5 poses, il se rapproche plus vite de l’adversaire. Imperturbable : pendant qu’il pose, il prend 60 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
+    desc: "Se balade tranquillement dans l’arène (107 PV) en se rapprochant peu à peu de l’adversaire, et prend de temps en temps la pose 0,75 seconde (il glisse alors lentement, sans s’arrêter) : chaque pose réussie lui donne +1 en attaque (5 max), puis il repart dans une direction au hasard. Une fois à 5 poses, il se rapproche plus vite de l’adversaire. Imperturbable : pendant qu’il pose, il prend 70 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
     svg: `<g ${O}>
       <rect x='46' y='110' width='12' height='30' fill='#2b3a5c'/><rect x='62' y='110' width='12' height='30' fill='#2b3a5c'/>
       <rect x='42' y='136' width='18' height='8' rx='2' fill='#1b1b22'/><rect x='60' y='136' width='18' height='8' rx='2' fill='#1b1b22'/>
@@ -2052,7 +2052,7 @@ function degats(g, cible, n, x, y) {
   const perce = (attaquant && CHARS[attaquant.type].perceBlindage) || 0; // la puissance psychique de Bison traverse une partie du blindage
   if (cible.type === "hammond" && cible.etatH === "tourelle") n = Math.max(1, Math.round(n * (1 - HAMMOND_BLINDAGE * (1 - perce)))); // Bouldozer posé en bas : un peu blindé
   if (cible.esquive > 0) n = Math.max(1, Math.round(n * 0.5)); // juste après une roulade de McCree : 50 % de dégâts en moins
-  // GigaChad qui prend la pose : 60 % de dégâts en moins (seulement 25 % contre les attaques foudroyantes :
+  // GigaChad qui prend la pose : 70 % de dégâts en moins (seulement 25 % contre les attaques foudroyantes :
   // couteau de Myers en furie, Psycho Crusher et Head Stomp de Bison) ; les cris de Steve (des ondes sonores) passent à travers
   const foudroyant = attaquant && (attaquant.etat === "furie" || attaquant.crusher || attaquant.stomp);
   if (c.imperturbable && cible.pose > 0 && !coupDirect) n = Math.max(1, Math.round(n * (1 - (coupFoudroyant ? GIGA_IMPERTURBABLE_CRI : foudroyant ? GIGA_IMPERTURBABLE_FURIE : GIGA_IMPERTURBABLE))));
@@ -2099,13 +2099,13 @@ const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 4.2;
 // dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
 function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1)); }
 // GigaChad : pose de 1 s, 1 s de marche entre deux poses ; +1 en attaque par pose (5 max)
-const GIGA_POSE = 0.75, GIGA_MARCHE = 0.75, GIGA_POSES_MAX = 5;
+const GIGA_POSE = 0.75, GIGA_MARCHE = 0.65, GIGA_POSES_MAX = 5;
 const GIGA_PORTEE_APPAREIL = 20; // portée du poing sur les appareils (en plus de sa taille)
-const GIGA_IMPERTURBABLE = 0.6, GIGA_IMPERTURBABLE_FURIE = 0.25, GIGA_IMPERTURBABLE_CRI = 0; // réduction des dégâts pendant la pose (contre les attaques foudroyantes : moins)
+const GIGA_IMPERTURBABLE = 0.7, GIGA_IMPERTURBABLE_FURIE = 0.25, GIGA_IMPERTURBABLE_CRI = 0; // réduction des dégâts pendant la pose (contre les attaques foudroyantes : moins)
 const GIGA_APPROCHE = 1.5, GIGA_APPROCHE_DES = 5; // à 5 poses, il tourne peu à peu vers l'adversaire (radians par seconde)
 const GIGA_VIRAGE = 0.8; // en se baladant, il tourne doucement (radians par seconde, au plus)
 // coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
-const GIGA_COUP = 4, GIGA_COUP_POSE = 8, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 12, GIGA_MUR_POSE = 4;
+const GIGA_COUP = 4, GIGA_COUP_POSE = 6, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 12, GIGA_MUR_POSE = 4;
 // Bison
 const CRUSHER_CD = 2.75, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
@@ -2253,7 +2253,7 @@ function crier(g, f, dmg, portee, epais) {
 }
 /* ===== LANGUE DU SMOKER ===== */
 const LANGUE_PENALITE = 1.75; // secondes d'attente en plus quand sa langue a été annulée (coupée, tranchée, glissée…)
-const LANGUE_CD = 3.3, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
+const LANGUE_CD = 3.2, LANGUE_VITESSE = 750, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
 // langue annulée pile au moment où elle touche (Myers en furie, GigaChad en pose) : une part des dégâts d'un étranglement complet (7 à-coups, 42)
 const LANGUE_ANNULEE_PART = 0.25;
 function langueAnnulee(g, o) {
@@ -4382,7 +4382,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.56.0", NOTES = "Grande mise à jour d’équilibre pour adoucir les duels les plus extrêmes. McCree : ses balles touchent chaque morceau de la Gelée qu’elles traversent et il vise mieux les petites cibles. Bison : sa puissance psychique traverse la moitié du blindage, et il absorbe moins de mortiers et de balles. Chose Impie (185 PV) : saisie plus courte (1,5 s) et plus faible, regard plus fort et plus fréquent, un seul coup ne peut pas lui enlever plus de 20 PV ; la langue du Smoker l’étrangle sur place (le Smoker reste alors touchable) ; correction d’un bug qui bloquait sa main au retour d’une saisie. GigaChad (107 PV) : il glisse pendant ses poses et se rapproche peu à peu de l’adversaire. Bombardier : ses appareils repèrent les invisibles et leur destruction ne lui coûte plus de PV. Grenouille : sa grosse bulle suit un peu l’adversaire, sa bulle de protection arrête 15 dégâts. Bouldozer (145 PV) : en feu, il brûle la langue du Smoker. Jeune beau : l’île arrive au bout de 40 à 42 s. Steve : ses cris touchent un peu moins facilement les très gros persos. Petits réglages pour tout le monde.";
+const VERSION = "1.57.0", NOTES = "GigaChad : plus résistant pendant ses poses (70 % de dégâts en moins au lieu de 60 %) et il pose plus souvent (0,1 s de marche en moins entre deux poses) ; en échange, chaque pose ajoute un peu moins à son coup de poing, pour qu’il reste équilibré. Smoker : il relance sa langue un peu plus vite.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

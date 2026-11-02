@@ -1,1 +1,1 @@
-{"version": "1.57.2", "notes": "La Chose Impie revient à 200 PV et Bouldozer à 150 PV (les PV ne bougeront plus) ; pour garder l’équilibre, la Chose lance son regard un peu moins souvent et la boule en feu de Bouldozer frappe un peu moins vite quand elle reste au contact."}
+{"version": "1.57.3", "notes": "Chose Impie : son regard maudit revient plus souvent (toutes les 4,6 s environ au lieu de 5,6 s) mais brûle un peu moins fort, pour le même équilibre."}

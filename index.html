@@ -299,7 +299,7 @@ const CHARS = {
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     // roulade : les images 4 à 9 s'enchaînent comme une animation (si elles sont fournies)
     imageDe: f => f.roulade > 0 && rouladeAnimee() ? 4 + Math.min(5, Math.floor((1 - f.roulade / ROULADE_DUREE) * 6)) : f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis (elles touchent chaque morceau de la Gelée qu’elles traversent). Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui éclate en zone (sur l’adversaire ou là où elle arrive) et aveugle l’adversaire : quelques dégâts (sur tout ce qui est dans la zone, chaque morceau de la Gelée compris) et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
+    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis (elles touchent chaque morceau du Slime qu’elles traversent). Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui éclate en zone (sur l’adversaire ou là où elle arrive) et aveugle l’adversaire : quelques dégâts (sur tout ce qui est dans la zone, chaque morceau du Slime compris) et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
     // va-t-il être touché ? renvoie la direction du danger (projectile, laser, langue) ou sa source (zone, corps à corps)
     // moments des 6 balles : calés sur les 6 coups du son de tir s'il y en a un, sinon rafale rapide
     horaires(f) {
@@ -1596,9 +1596,9 @@ const CHARS = {
   },
   gelee: {
     creation: true,
-    nom: "Gelée", emoji: "💧", vitesse: 80, pv: 200, taille: 2, portrait: { cx: 0.6, cy: 0.5, taille: 0.8 }, // portrait centré sur ses yeux et sa bouche
+    nom: "Slime", emoji: "💧", vitesse: 80, pv: 200, taille: 2, portrait: { cx: 0.62, cy: 0.52, taille: 1.08 }, // portrait centré sur ses deux yeux et sa bouche
     sonNom: "fonce", son2: "se sépare", son3: "un morceau disparaît",
-    desc: "Une énorme gelée (200 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction (au hasard) qu’en touchant un mur. Elle laisse derrière elle une traînée bleue qui blesse l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’elle traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant elle, elle fonce (elle accélère sans tourner), et elle ne le blesse au contact que pendant qu’elle fonce. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petites gelées : plus elles sont petites, plus elles sont rapides, mais plus elles sont fragiles et moins elles font mal ; les plus petites disparaissent quand elles n’ont plus de PV. Les adversaires frappent la gelée la plus proche d’eux, leurs tirs touchent n’importe quel morceau sur leur chemin, et leurs attaques de zone touchent tous les morceaux pris dedans, en partageant leurs dégâts entre eux (6 morceaux touchés : chacun prend un sixième). Il faut détruire tous les morceaux pour gagner.",
+    desc: "Un énorme slime (200 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction (au hasard) qu’en touchant un mur. Il laisse derrière lui une traînée bleue qui blesse l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’il traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant lui, il fonce (il accélère sans tourner), et il ne le blesse au contact que pendant qu’il fonce. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petits slimes : plus ils sont petits, plus ils sont rapides, mais plus ils sont fragiles et moins ils font mal ; les plus petits disparaissent quand ils n’ont plus de PV. Les adversaires frappent le morceau le plus proche d’eux, leurs tirs touchent n’importe quel morceau sur leur chemin, et leurs attaques de zone touchent tous les morceaux pris dedans, en partageant leurs dégâts entre eux (6 morceaux touchés : chacun prend un sixième). Il faut détruire tous les morceaux pour gagner.",
     svg: `<g ${O}>
       <path d='M14 128 Q10 100 34 92 Q30 50 64 44 Q100 42 104 84 Q116 92 112 118 Q118 132 100 136 L24 136 Q8 136 14 128Z' fill='#4aa8f0'/>
       <ellipse cx='50' cy='80' rx='12' ry='13' fill='#fff'/><ellipse cx='82' cy='74' rx='12' ry='13' fill='#fff'/>
@@ -1724,7 +1724,7 @@ const CHARS = {
   },
   grenouille: {
     creation: true,
-    nom: "Grenouille", emoji: "🐸", vitesse: 150, pv: 100, taille: 1.2, portrait: { cx: 0.5, cy: 0.27, taille: 0.45 }, // portrait centré sur le pilote dans sa bulle
+    nom: "D.Nouille", emoji: "🐸", vitesse: 150, pv: 100, taille: 1.2, portrait: { cx: 0.5, cy: 0.27, taille: 0.45 }, // portrait centré sur le pilote dans sa bulle
     images: ["pilote", "pilote tir", "pilote saut 1", "pilote saut 2", "pilote atterrit"], echelles: { 2: 0.72, 3: 0.72, 4: 0.72, 5: 0.72, 6: 0.72 },
     sonNom: "bulle", son2: "bulle qui éclate", son3: "bulle de protection", son4: "éjection",
     // le pilote : au repos, en train de tirer (avec la flamme), puis son saut (élan, en l'air, réception accroupie)
@@ -1736,7 +1736,7 @@ const CHARS = {
       if (B && B.phase === "pause" && B.t > PILOTE_PAUSE - 0.12) return 6;
       return 2;
     },
-    desc: "Une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille. Son canon gonfle une bulle, petite au début, de plus en plus grosse ; pendant ce temps, elle ne saute plus et marche lentement sur le côté. Si la langue du Smoker touche la bulle, la langue est coupée. La bulle part quand elle est au maximum, ou dès que l’adversaire (ou la langue du Smoker) la touche pendant qu’elle gonfle. La bulle vole vers l’adversaire en le suivant un peu pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : elle arrête jusqu’à 15 dégâts du prochain coup. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout (en se rapprochant peu à peu de l’adversaire) et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
+    desc: "D.Nouille, une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille. Son canon gonfle une bulle, petite au début, de plus en plus grosse ; pendant ce temps, elle ne saute plus et marche lentement sur le côté. Si la langue du Smoker touche la bulle, la langue est coupée. La bulle part quand elle est au maximum, ou dès que l’adversaire (ou la langue du Smoker) la touche pendant qu’elle gonfle. La bulle vole vers l’adversaire en le suivant un peu pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : elle arrête jusqu’à 15 dégâts du prochain coup. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout (en se rapprochant peu à peu de l’adversaire) et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
     svg: `<g ${O}>
       <ellipse cx='60' cy='92' rx='40' ry='34' fill='#7a8f3c'/><rect x='88' y='84' width='30' height='14' rx='4' fill='#4a4a52'/>
       <circle cx='58' cy='60' r='24' fill='#bfe3ff' opacity='.7'/><circle cx='62' cy='62' r='14' fill='#7cc24a'/><circle cx='68' cy='58' r='5' fill='#f2a23a'/>
@@ -1865,7 +1865,7 @@ const CHARS = {
   },
   tortue: {
     creation: true,
-    nom: "Tortue à piques", emoji: "🐢", vitesse: 70, pv: 150, taille: 1.4, memeEchelle: true,
+    nom: "Tortue à piques", emoji: "🐢", vitesse: 70, pv: 150, taille: 1.4, portrait: { cx: 0.76, cy: 0.5, taille: 0.62 }, // portrait centré sur sa tête memeEchelle: true,
     images: ["marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "colère", "rugit", "rentre 1", "rentre 2", "boule 1", "boule 2", "roule 1", "roule 2", "roule 3", "roule 4", "s’arrête", "étourdie 1", "étourdie 2", "étourdie 3"],
     ancres: { 13: [-0.105, -0.022], 14: [0.051, 0.005], 15: [0.053, 0.0], 16: [0.044, 0.012], 17: [0.089, 0.0], 18: [0.097, -0.031], 19: [0.045, -0.043], 20: [0.058, -0.048] }, // décalages du corps dans les images de roulade et d'étourdissement (les effets débordent)
     sonNom: "s’énerve", son2: "roule", son3: "ricochet", son4: "étourdie",
@@ -4513,7 +4513,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.59.4", NOTES = "Tortue à piques : à 30 PV ou moins (au lieu de 15), elle enchaîne ses attaques sans arrêt ; et si sa boule n’a touché personne, elle se relance toute seule 3 secondes plus tard (ou avant si elle reprend 15 dégâts) au lieu de devoir être frappée de nouveau. En échange, il lui faut 26 dégâts pour s’énerver normalement et sa boule fait 7 dégâts.";
+const VERSION = "1.59.5", NOTES = "La Gelée s’appelle maintenant le Slime, et la Grenouille D.Nouille. Les portraits du Slime (ses deux yeux et sa bouche) et de la Tortue à piques (sa tête) sont mieux cadrés.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

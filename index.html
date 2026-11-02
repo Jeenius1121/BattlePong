@@ -1860,7 +1860,7 @@ const CHARS = {
   },
   tortue: {
     creation: true,
-    nom: "Tortue à piques", emoji: "🐢", vitesse: 70, pv: 150, taille: 1.05, memeEchelle: true,
+    nom: "Tortue à piques", emoji: "🐢", vitesse: 70, pv: 150, taille: 1.4, memeEchelle: true,
     images: ["marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "colère", "rugit", "rentre 1", "rentre 2", "boule 1", "boule 2", "roule 1", "roule 2", "roule 3", "roule 4", "s’arrête", "étourdie 1", "étourdie 2", "étourdie 3"],
     ancres: { 13: [-0.105, -0.022], 14: [0.051, 0.005], 15: [0.053, 0.0], 16: [0.044, 0.012], 17: [0.089, 0.0], 18: [0.097, -0.031], 19: [0.045, -0.043], 20: [0.058, -0.048] }, // décalages du corps dans les images de roulade et d'étourdissement (les effets débordent)
     sonNom: "s’énerve", son2: "roule", son3: "ricochet", son4: "étourdie",
@@ -1872,7 +1872,7 @@ const CHARS = {
       if (T.etat === "roule") return 13 + Math.floor(T.t * TORTUE_ANIM_ROULE) % 4;
       return T.t < 0.25 ? 17 : 18 + Math.floor(T.t * TORTUE_ANIM_ETOURDIE) % 3;
     },
-    desc: "Une tortue à carapace piquante (150 PV) qui marche tout doucement. Elle ne s’énerve que quand on l’attaque : dès qu’elle a encaissé 15 dégâts, elle rugit, rentre dans sa carapace et fonce en boule piquante droit sur l’adversaire (elle le blesse et le repousse en le traversant). Comme elle ne voit plus rien, elle ricoche ensuite au hasard contre les murs : 2 à 4 ricochets en tout, puis elle s’arrête, étourdie ; plus elle a ricoché, plus elle reste étourdie longtemps. En colère et en boule, elle ne prend aucun dégât ; étourdie, elle en prend 1,5 fois plus. Seuls les coups reçus pendant qu’elle marche comptent pour la mettre en colère. Sa carapace la protège de tout ce qui vient d’en haut (projectiles qui tombent, coups portés par-dessus) ; par les côtés et par en bas, elle est touchable normalement. Un adversaire qui la touche par le dessus se pique sur sa carapace et perd quelques PV.",
+    desc: "Une tortue à carapace piquante (150 PV) qui marche tout doucement. Elle ne s’énerve que quand on l’attaque : dès qu’elle a encaissé 17 dégâts, elle rugit, rentre dans sa carapace et fonce en boule piquante droit sur l’adversaire (elle le blesse et le repousse en le traversant). Comme elle ne voit plus rien, elle ricoche ensuite au hasard contre les murs : 2 à 4 ricochets en tout, puis elle s’arrête, étourdie ; plus elle a ricoché, plus elle reste étourdie longtemps. En colère et en boule, elle ne prend aucun dégât ; étourdie, elle en prend 1,5 fois plus. Seuls les coups reçus pendant qu’elle marche comptent pour la mettre en colère. Sous 15 PV, elle n’attend plus : elle enchaîne attaque, étourdissement, attaque… Sa carapace la protège de tout ce qui vient d’en haut (projectiles qui tombent, coups portés par-dessus) ; par les côtés et par en bas, elle est touchable normalement. Un adversaire qui la touche par le dessus se pique sur sa carapace et perd quelques PV.",
     svg: `<g ${O}>
       <ellipse cx='60' cy='112' rx='46' ry='14' fill='#5a3d4a'/>
       <path d='M14 104 Q18 52 60 46 Q102 52 106 104Z' fill='#b4532a'/>
@@ -1915,7 +1915,8 @@ const CHARS = {
       if (T.etat === "marche") T.rage += perdu;
       if (T.etat === "marche") {
         f.pas = (f.pas || 0) + dt; f.traverse = false;
-        if (T.rage >= TORTUE_SEUIL && !o.mort) { T.rage = 0; T.etat = "colere"; T.t = 0; f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1; son(f); }
+        // sous 15 PV, elle n'attend plus : elle enchaîne les attaques
+        if ((T.rage >= TORTUE_SEUIL || f.hp < TORTUE_FURIE_PV) && !o.mort) { T.rage = 0; T.etat = "colere"; T.t = 0; f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1; son(f); }
         return;
       }
       if (T.etat === "colere") { // elle s'énerve, rugit et rentre dans sa carapace
@@ -1952,6 +1953,7 @@ const CHARS = {
       f.vx = 0; f.vy = 0;
       if (T.t >= T.duree) {
         T.etat = "marche"; T.t = 0; T.rage = 0;
+        if (f.hp < TORTUE_FURIE_PV && !o.mort) { T.etat = "colere"; f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1; son(f); return; } // à bout : attaque, étourdie, attaque…
         const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f);
       }
     },
@@ -2583,8 +2585,8 @@ const EJECTION_DEGATS = 12, EJECTION_RAYON = 110;
 // Gelée : ses 4 tailles (de la grosse aux 8 petites) : taille, vitesse, dégâts au contact, réserve de PV d'un morceau de cette taille
 // (pv : seulement pour la grosse du départ ; les autres reçoivent la moitié de ce qui restait à celle qui s'est séparée)
 // Tortue à piques : marche lente, colère puis boule qui fonce et ricoche 2 à 4 fois, étourdie d'autant plus longtemps
-const TORTUE_SEUIL = 15, TORTUE_COLERE = 0.75, TORTUE_VITESSE = 520, TORTUE_DEGATS = 11, TORTUE_TOUCHE_CD = 0.5;
-const TORTUE_ETOURDIE_FRAGILE = 1.5, TORTUE_ETOURDIE_BASE = 0.4, TORTUE_ETOURDIE_RICOCHET = 0.4, TORTUE_PIQUE = 3, TORTUE_PIQUE_CD = 0.6;
+const TORTUE_FURIE_PV = 15, TORTUE_SEUIL = 17, TORTUE_COLERE = 0.75, TORTUE_VITESSE = 520, TORTUE_DEGATS = 10, TORTUE_TOUCHE_CD = 0.5;
+const TORTUE_ETOURDIE_FRAGILE = 1.5, TORTUE_ETOURDIE_BASE = 1, TORTUE_ETOURDIE_RICOCHET = 0.4, TORTUE_PIQUE = 3, TORTUE_PIQUE_CD = 0.6;
 const TORTUE_ANIM_MARCHE = 6, TORTUE_ANIM_ROULE = 14, TORTUE_ANIM_ETOURDIE = 6;
 const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 200 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
@@ -4498,7 +4500,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.58.1", NOTES = "Tortue à piques : son museau n’est plus coupé quand elle marche, et elle ne rapetisse plus ni ne se déforme quand elle est étourdie ou qu’elle roule (toutes ses images sont à la même échelle et calées sur son corps). Sa boule fait 11 dégâts pour rester équilibrée.";
+const VERSION = "1.59.0", NOTES = "Tortue à piques : elle a maintenant ses sons (elle s’énerve, roule, ricoche, est étourdie) et elle est plus grosse et plus imposante. Nouveau : sous 15 PV, elle n’attend plus d’être attaquée et enchaîne attaque, étourdissement, attaque… Pour rester équilibrée, il lui faut 17 dégâts pour s’énerver, sa boule fait 10 dégâts et son étourdissement dure un peu plus longtemps.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

@@ -1543,10 +1543,17 @@ const CHARS = {
     tourner() {
       const s = this.spr[2], sf = this.spr[3];
       if (!s || (this.tourneDe === s && this.tourneFerme === sf)) return;
+      // zone de touche un peu élargie (5 px tout autour) : en deux passes (lignes puis colonnes), bien plus rapide
       const elargir = t => {
-        const m = new Uint8Array(t.mask), r = 5;
-        for (let j = 0; j < t.th; j++) for (let i = 0; i < t.tw; i++) if (t.mask[j * t.tw + i])
-          for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { const x = i + di, y = j + dj; if (x >= 0 && y >= 0 && x < t.tw && y < t.th) m[y * t.tw + x] = 1; }
+        const r = 5, w = t.tw, h = t.th, a = t.mask, l = new Uint8Array(w * h), m = new Uint8Array(w * h), p = new Int32Array(Math.max(w, h) + 1);
+        for (let j = 0; j < h; j++) {
+          for (let i = 0; i < w; i++) p[i + 1] = p[i] + a[j * w + i];
+          for (let i = 0; i < w; i++) l[j * w + i] = p[Math.min(w, i + r + 1)] - p[Math.max(0, i - r)] > 0 ? 1 : 0;
+        }
+        for (let i = 0; i < w; i++) {
+          for (let j = 0; j < h; j++) p[j + 1] = p[j] + l[j * w + i];
+          for (let j = 0; j < h; j++) m[j * w + i] = p[Math.min(h, j + r + 1)] - p[Math.max(0, j - r)] > 0 ? 1 : 0;
+        }
         t.mask = m;
       };
       const tourne = (src, q) => {
@@ -1865,7 +1872,7 @@ const CHARS = {
   },
   tortue: {
     creation: true,
-    nom: "Tortue à piques", emoji: "🐢", vitesse: 70, pv: 150, taille: 1.4, portrait: { cx: 0.76, cy: 0.5, taille: 0.62 }, // portrait centré sur sa tête memeEchelle: true,
+    nom: "Grosse Tortue", emoji: "🐢", vitesse: 70, pv: 150, taille: 1.4, portrait: { cx: 0.76, cy: 0.5, taille: 0.62 }, // portrait centré sur sa tête memeEchelle: true,
     images: ["marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "colère", "rugit", "rentre 1", "rentre 2", "boule 1", "boule 2", "roule 1", "roule 2", "roule 3", "roule 4", "s’arrête", "étourdie 1", "étourdie 2", "étourdie 3"],
     ancres: { 13: [-0.105, -0.022], 14: [0.051, 0.005], 15: [0.053, 0.0], 16: [0.044, 0.012], 17: [0.089, 0.0], 18: [0.097, -0.031], 19: [0.045, -0.043], 20: [0.058, -0.048] }, // décalages du corps dans les images de roulade et d'étourdissement (les effets débordent)
     sonNom: "s’énerve", son2: "roule", son3: "ricochet", son4: "étourdie",
@@ -2015,7 +2022,10 @@ function traiter(img) {
   const blanc = document.createElement("canvas"); blanc.width = tw; blanc.height = th;
   const bx = blanc.getContext("2d"); bx.drawImage(t, 0, 0); bx.globalCompositeOperation = "source-in";
   bx.fillStyle = "#fff"; bx.fillRect(0, 0, tw, th);
-  return { img: t, blanc, mask, tw, th, url: t.toDataURL("image/png") };
+  // url : calculée seulement si on en a besoin (l'encodage en PNG est lent)
+  const res = { img: t, blanc, mask, tw, th };
+  let url = null; Object.defineProperty(res, "url", { get: () => url ??= t.toDataURL("image/png"), enumerable: true });
+  return res;
 }
 
 /* ===== MOTEUR ===== */
@@ -4281,6 +4291,8 @@ function finChargement() {
   ch.querySelector(".chRond").remove(); ch.querySelector(".chBarre").remove();
   document.getElementById("chTexte").textContent = "Choisis tes combattants";
   b.hidden = false; b.focus();
+  // les images tournées de la Chose Impie se préparent tout de suite, en arrière-plan (sinon : petit gel la première fois qu'on la choisit)
+  setTimeout(() => { try { CHARS.oeil.tourner(); } catch (e) {} }, 50);
 }
 document.getElementById("entrer").addEventListener("click", () => {
   const ch = document.getElementById("chargement");
@@ -4513,7 +4525,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.59.5", NOTES = "La Gelée s’appelle maintenant le Slime, et la Grenouille D.Nouille. Les portraits du Slime (ses deux yeux et sa bouche) et de la Tortue à piques (sa tête) sont mieux cadrés.";
+const VERSION = "1.59.6", NOTES = "La Tortue à piques s’appelle maintenant la Grosse Tortue. Correction : le petit gel (environ une seconde) la première fois qu’on choisit la Chose Impie après avoir chargé la page a disparu (ses images tournées sont préparées plus vite, et à l’avance).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

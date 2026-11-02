@@ -1862,6 +1862,7 @@ const CHARS = {
     creation: true,
     nom: "Tortue à piques", emoji: "🐢", vitesse: 70, pv: 150, taille: 1.05, memeEchelle: true,
     images: ["marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "colère", "rugit", "rentre 1", "rentre 2", "boule 1", "boule 2", "roule 1", "roule 2", "roule 3", "roule 4", "s’arrête", "étourdie 1", "étourdie 2", "étourdie 3"],
+    ancres: { 13: [-0.105, -0.022], 14: [0.051, 0.005], 15: [0.053, 0.0], 16: [0.044, 0.012], 17: [0.089, 0.0], 18: [0.097, -0.031], 19: [0.045, -0.043], 20: [0.058, -0.048] }, // décalages du corps dans les images de roulade et d'étourdissement (les effets débordent)
     sonNom: "s’énerve", son2: "roule", son3: "ricochet", son4: "étourdie",
     // marche : images 1 à 6 en boucle ; colère : 7 à 12 (elle s'énerve, rugit, rentre dans sa carapace) ; roule : 13 à 16 ; étourdie : 17 puis 18 à 20
     imageDe: f => {
@@ -2073,6 +2074,10 @@ function majTaille(f) {
   // seule la partie en plus (l'étincelle) dépasse vers l'avant
   const s2 = c.spr && c.spr[2];
   f.ox = c.caler && s2 && c.spr[3] && s === c.spr[3] ? (s.tw * f.k - s2.tw * kDe(s2)) / 2 : 0;
+  // ancres : décalage de l'image pour que le corps reste au même endroit d'une image à l'autre (effets qui débordent : étoiles, poussière…)
+  const an = s !== m && c.ancres && c.imageDe && c.ancres[c.imageDe(f)];
+  f.oy = an ? an[1] * s.th * f.k : 0;
+  if (an) f.ox = an[0] * s.tw * f.k;
 }
 function persoDe(cle) { return cle.replace(/-\d+$/, ""); }
 function numImage(cle) { const m = /-(\d+)$/.exec(cle); return m ? +m[1] : 1; }
@@ -2091,6 +2096,7 @@ function touche(f, px, py, pr) {
     px = f.x + c * dx + sn * dy; py = f.y - sn * dx + c * dy;
   }
   if (f.ox) px -= f.ox * f.face;
+  if (f.oy) py -= f.oy;
   if (Math.abs(px - f.x) > f.hw + pr || Math.abs(py - f.y) > f.hh + pr) return false;
   const s = spriteDe(f);
   for (const [ox, oy] of [[0, 0], [pr, 0], [-pr, 0], [0, pr], [0, -pr]]) {
@@ -2577,7 +2583,7 @@ const EJECTION_DEGATS = 12, EJECTION_RAYON = 110;
 // Gelée : ses 4 tailles (de la grosse aux 8 petites) : taille, vitesse, dégâts au contact, réserve de PV d'un morceau de cette taille
 // (pv : seulement pour la grosse du départ ; les autres reçoivent la moitié de ce qui restait à celle qui s'est séparée)
 // Tortue à piques : marche lente, colère puis boule qui fonce et ricoche 2 à 4 fois, étourdie d'autant plus longtemps
-const TORTUE_SEUIL = 15, TORTUE_COLERE = 0.75, TORTUE_VITESSE = 520, TORTUE_DEGATS = 12, TORTUE_TOUCHE_CD = 0.5;
+const TORTUE_SEUIL = 15, TORTUE_COLERE = 0.75, TORTUE_VITESSE = 520, TORTUE_DEGATS = 11, TORTUE_TOUCHE_CD = 0.5;
 const TORTUE_ETOURDIE_FRAGILE = 1.5, TORTUE_ETOURDIE_BASE = 0.4, TORTUE_ETOURDIE_RICOCHET = 0.4, TORTUE_PIQUE = 3, TORTUE_PIQUE_CD = 0.6;
 const TORTUE_ANIM_MARCHE = 6, TORTUE_ANIM_ROULE = 14, TORTUE_ANIM_ETOURDIE = 6;
 const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 200 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
@@ -3328,7 +3334,7 @@ function dessiner() {
     if (f.haut) ctx.translate(0, -f.haut);
     if (f.rot) ctx.rotate(f.rot);
     ctx.scale(f.face, 1);
-    if (f.ox) ctx.translate(f.ox, 0);
+    if (f.ox || f.oy) ctx.translate(f.ox || 0, f.oy || 0);
     if (f.type === "cowboy" && f.muzzle > 0) { // recul du revolver : petite secousse vers le haut
       const t = f.muzzle / 0.06;
       ctx.translate(0, -2.5 * t); ctx.rotate(-0.035 * t);
@@ -4492,7 +4498,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.58.0", NOTES = "Nouveau perso : la Tortue à piques (150 PV) ! Elle marche tout doucement et ne s’énerve que quand on l’attaque : dès qu’elle a encaissé 15 dégâts en marchant, elle rugit, se met en boule piquante et fonce sur l’adversaire, puis ricoche 2 à 4 fois au hasard contre les murs avant de rester étourdie (plus longtemps si elle a beaucoup ricoché). En colère et en boule, elle ne prend aucun dégât ; étourdie, elle en prend 1,5 fois plus. Sa carapace la protège de tout ce qui vient d’en haut, et l’adversaire qui la touche par le dessus se pique. Correction : les persos peuvent maintenant avoir plus de 9 images.";
+const VERSION = "1.58.1", NOTES = "Tortue à piques : son museau n’est plus coupé quand elle marche, et elle ne rapetisse plus ni ne se déforme quand elle est étourdie ou qu’elle roule (toutes ses images sont à la même échelle et calées sur son corps). Sa boule fait 11 dégâts pour rester équilibrée.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

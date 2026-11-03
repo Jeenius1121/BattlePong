@@ -1994,7 +1994,7 @@ const CHARS = {
       if (f.sort) return f.sort.type === "orbe" ? 11 + Math.min(6, Math.floor(f.sort.t / SORT_ORBE * 7)) : 20 + Math.min(7, Math.floor(f.sort.t / SORT_INVOC * 8));
       return Math.hypot(f.vx, f.vy) > 10 ? 5 + Math.floor((f.pas || 0) * 9) % 6 : 1 + Math.floor((f.pas || 0) * 5) % 4;
     },
-    desc: "Une nécromancienne qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire. Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée. Les squelettes ont peu de PV et disparaissent au bout d’un moment ; les adversaires visent un squelette avant elle dès qu’il est plus près d’eux qu’elle, et ils prennent aussi les tirs et les attaques de zone qui passent sur eux (ils la protègent). Quand elle invoque, elle reste sur place, sans défense.",
+    desc: "Une nécromancienne qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire. Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée. Les squelettes ont peu de PV (une petite barre au-dessus d’eux les montre) et disparaissent au bout d’un moment, en laissant un tas d’os par terre ; les adversaires visent un squelette avant elle dès qu’il est plus près d’eux qu’elle, et ils prennent aussi les tirs et les attaques de zone qui passent sur eux (ils la protègent). Quand elle invoque, elle reste sur place, sans défense.",
     svg: `<g ${O}>
       <path d='M30 140 Q34 96 46 70 L74 70 Q86 96 90 140Z' fill='#2a1f38'/>
       <path d='M52 70 Q46 92 40 120 M68 70 Q74 92 80 120' fill='none' stroke='#cfd0dc' stroke-width='5'/>
@@ -2045,7 +2045,7 @@ const CHARS = {
       if (!f.drones) return;
       for (const d of [...f.drones]) {
         d.t += dt; d.nouveau = Math.max(0, (d.nouveau || 0) - dt); d.vie -= dt; d.cd = Math.max(0, d.cd - dt);
-        if (d.vie <= 0 || f.mort) { f.drones = f.drones.filter(x => x !== d); for (let i = 0; i < 10; i++) g.parts.push({ x: d.x, y: d.y, vx: (Math.random() - 0.5) * 160, vy: -Math.random() * 160, t: 0.5, g: 500, c: "#e8dfc8" }); continue; }
+        if (d.vie <= 0 || f.mort) { f.drones = f.drones.filter(x => x !== d); this.mortDrone(g, f, d); continue; }
         if (d.etat === "naissance") { if (d.t >= 0.35) { d.etat = "repos"; d.t = 0; } continue; }
         const vise = !o.mort && !cache(o, f) && !o.enLair;
         // distance entre le squelette et le bord de l'adversaire
@@ -2060,12 +2060,35 @@ const CHARS = {
         }
         if (vise) d.face = o.x >= d.x ? 1 : -1;
         if (vise && e < SQ_PORTEE && d.cd <= 0) { d.etat = "coup"; d.t = 0; d.frappe = false; continue; }
+        // ils ne s'entassent pas : s'il est collé à un autre squelette, il s'en écarte
+        for (const a of f.drones) if (a !== d) { const ax = d.x - a.x, ay = d.y - a.y, n = Math.hypot(ax, ay) || 0.01; if (n < SQ_ECART) { const k = (SQ_ECART - n) * 0.5 / n; d.x = Math.min(W - 20, Math.max(20, d.x + ax * k + (n < 0.1 ? 1 : 0))); d.y = Math.min(W - 30, Math.max(30, d.y + ay * k)); } }
         if (vise && e >= SQ_PORTEE * 0.6) { // il marche vers l'adversaire
           const dx = o.x - d.x, dy = o.y - d.y, n = Math.hypot(dx, dy) || 1;
           d.x = Math.min(W - 20, Math.max(20, d.x + dx / n * SQ_VITESSE * dt)); d.y = Math.min(W - 30, Math.max(30, d.y + dy / n * SQ_VITESSE * dt));
           if (d.etat !== "marche") { d.etat = "marche"; d.t = 0; }
         } else if (d.etat !== "repos") { d.etat = "repos"; d.t = 0; }
       }
+    },
+    // un squelette qui meurt s'effondre : il reste un petit tas d'os par terre jusqu'à la fin du combat
+    mortDrone(g, f, d) {
+      (g.os ||= []).push({ x: d.x, y: d.y + SQ_HAUTEUR * 0.42, rot: (Math.random() - 0.5) * 0.6, sens: Math.random() < 0.5 ? -1 : 1 });
+      if (g.os.length > 20) g.os.shift();
+      for (let i = 0; i < 10; i++) g.parts.push({ x: d.x, y: d.y, vx: (Math.random() - 0.5) * 160, vy: -Math.random() * 160, t: 0.5, g: 500, c: "#e8dfc8" });
+    },
+    // tas d'os : un crâne et quelques os croisés, posés au sol
+    dessinerTas(ctx, b) {
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot); ctx.scale(b.sens, 1);
+      ctx.strokeStyle = "#3b3247"; ctx.lineWidth = 1.5; ctx.fillStyle = "#e8dfc8";
+      const os = (x1, y1, x2, y2) => { // un os : un trait épais avec deux petits bouts ronds
+        ctx.lineCap = "round"; ctx.strokeStyle = "#3b3247"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        ctx.strokeStyle = "#e8dfc8"; ctx.lineWidth = 3.5; ctx.stroke();
+        for (const [x, y] of [[x1, y1], [x2, y2]]) { ctx.beginPath(); ctx.arc(x, y, 2.6, 0, 7); ctx.fill(); }
+      };
+      os(-15, 2, 9, -3); os(-9, -4, 13, 3); os(-3, 4, 16, 0);
+      ctx.lineWidth = 1.5; ctx.strokeStyle = "#3b3247";
+      ctx.beginPath(); ctx.ellipse(-12, -6, 7, 6, 0, 0, 7); ctx.fill(); ctx.stroke(); // le crâne
+      ctx.fillStyle = "#3b3247"; ctx.beginPath(); ctx.arc(-14, -6, 1.6, 0, 7); ctx.arc(-10, -6, 1.6, 0, 7); ctx.fill();
+      ctx.restore();
     },
     // image d'un squelette : naissance (sort du sol), repos, marche, coup
     imageSquelette(d) {
@@ -2083,6 +2106,10 @@ const CHARS = {
           const sortie = d.etat === "naissance" ? (1 - d.t / 0.35) * 30 : 0; // il sort du sol
           ctx.translate(d.x, d.y + SQ_HAUTEUR * 0.5 + sortie); ctx.scale(d.face || 1, 1);
           ctx.drawImage(s.img, -p[0] * k, -p[1] * k, s.tw * k, s.th * k);
+          ctx.scale(d.face || 1, 1); // barre de vie (pas retournée)
+          const bw = 26, bh = 4, by = -SQ_HAUTEUR - 6, r = Math.max(0, d.hp / SQ_PV);
+          ctx.globalAlpha *= 0.85; ctx.fillStyle = "rgba(20,16,30,.75)"; ctx.fillRect(-bw / 2 - 1, by - 1, bw + 2, bh + 2);
+          ctx.fillStyle = r > 0.5 ? "#7ed957" : r > 0.25 ? "#f2c94c" : "#eb5757"; ctx.fillRect(-bw / 2, by, bw * r, bh);
         } else { // dessin par défaut : petit squelette
           ctx.translate(d.x, d.y); ctx.fillStyle = "#e8dfc8"; ctx.strokeStyle = "#1b2033"; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.arc(0, -14, 9, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillRect(-3, -5, 6, 22); ctx.strokeRect(-3, -5, 6, 22);
@@ -2476,6 +2503,7 @@ function blesserDrone(g, f, d, n) {
   d.hp -= n; g.txt.push({ x: p.x, y: p.y - 14, t: 0.6, s: "-" + n }); eclats(g, p.x, p.y, "#8b93a6");
   if (d.hp <= 0) { // appareil détruit : le Bombardier perd un petit pourcentage de ses PV
     f.drones = f.drones.filter(x => x !== d); son(f, 3);
+    if (CHARS[f.type].mortDrone) CHARS[f.type].mortDrone(g, f, d);
     if (DRONE_LIEN > 0 && !CHARS[f.type].squelettePieds) degats(g, f, Math.round(f.hpMax * DRONE_LIEN), f.x, f.y - f.hh * 0.4);
     for (let i = 0; i < 14; i++) g.parts.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.5) * 260 - 60, t: 0.6, g: 500, forme: "eclat", rot: Math.random() * 6, c: i % 2 ? "#8b93a6" : "#f2b134" });
   }
@@ -2724,7 +2752,7 @@ const TORTUE_ANIM_MARCHE = 6, TORTUE_ANIM_ROULE = 14, TORTUE_ANIM_ETOURDIE = 6;
 const SORCIERE_VITESSE = 120, SORCIERE_DIST = [210, 360];
 const SORT_ORBE = 0.5, SORT_ORBE_CD = 1.6, SORT_ORBE_PREMIER = 1.2, ORBE_VITESSE = 300, ORBE_DEGATS = 10, ORBE_VIRAGE = 1.4;
 const SORT_INVOC = 1.3, SORT_INVOC_CD = 10, SORT_INVOC_PREMIER = 1;
-const SQ_MAX = 2, SQ_PV = 30, SQ_VIE = 15, SQ_VITESSE = 160, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 6, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74;
+const SQ_MAX = 2, SQ_PV = 30, SQ_VIE = 15, SQ_VITESSE = 160, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 6, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
 const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 200 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
 const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.7, GELEE_CONTACT_CD = 0.8, GELEE_TRAINEE = 2, GELEE_TRAINEE_TIC = 0.4;
@@ -3373,6 +3401,7 @@ function dessiner() {
     }
     ctx.globalAlpha = 1;
   }
+  for (const b of g.os || []) CHARS.sorciere.dessinerTas(ctx, b); // tas d'os des squelettes de la Nécromancienne (restent au sol)
   for (const tc of g.taches) { // tâches sombres laissées par les explosions
     ctx.globalAlpha = Math.min(0.35, tc.t / 4 * 0.35);
     ctx.fillStyle = "#3a1240"; goutte(ctx, tc.x, tc.y, 55, tc.rot);
@@ -4647,7 +4676,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.60.2", NOTES = "Nécromancienne : elle garde la même taille quoi qu’elle fasse (marche, orbe, invocation), et ses squelettes ont maintenant la même taille que celui de l’animation d’invocation. Les adversaires visent ses squelettes avant elle dès qu’ils sont plus près d’eux qu’elle. Pour rester équilibrée : une invocation toutes les 10 s, des squelettes qui durent 15 s et frappent à 6, et une orbe à 10.";
+const VERSION = "1.60.3", NOTES = "Nécromancienne : ses squelettes ne s’entassent plus les uns sur les autres, ont une petite barre de vie au-dessus de la tête, et laissent un tas d’os par terre quand ils meurent (il reste jusqu’à la fin du combat).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

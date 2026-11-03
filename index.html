@@ -1984,7 +1984,7 @@ const CHARS = {
   },
   sorciere: {
     creation: true,
-    nom: "Sorcière", emoji: "🧹", vitesse: 120, memeEchelle: true, portrait: { cx: 0.55, cy: 0.36, taille: 0.46 }, // portrait centré sur son visage et son chapeau
+    nom: "Nécromancienne", emoji: "🧹", vitesse: 120, memeEchelle: true, portrait: { cx: 0.55, cy: 0.36, taille: 0.46 }, // portrait centré sur son visage et son chapeau
     images: ["repos 2", "repos 3", "repos 4", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "orbe 1", "orbe 2", "orbe 3", "orbe 4", "orbe 5", "orbe 6", "orbe 7", "projectile 1", "projectile 2", "invocation 1", "invocation 2", "invocation 3", "invocation 4", "invocation 5", "invocation 6", "invocation 7", "invocation 8", "squelette repos 1", "squelette repos 2", "squelette repos 3", "squelette repos 4", "squelette marche 1", "squelette marche 2", "squelette marche 3", "squelette marche 4", "squelette marche 5", "squelette marche 6", "squelette marche 7", "squelette coup 1", "squelette coup 2", "squelette coup 3", "squelette coup 4", "squelette coup 5", "squelette coup 6", "squelette coup 7", "squelette coup 8", "squelette coup 9"],
     ancres: { 2: [0.004, 0.02], 3: [0.012, 0.02], 4: [0.028, 0.02], 5: [0.007, 0.062], 6: [0.022, 0.058], 7: [0.012, 0.075], 8: [0.023, 0.05], 9: [0.032, 0.067], 10: [0.02, 0.039], 11: [-0.026, 0.017], 12: [0.009, 0.035], 13: [0.017, 0.017], 14: [0.027, -0.022], 15: [0.035, -0.019], 16: [0.029, -0.01], 17: [0.027, 0.007], 20: [-0.022, -0.019], 21: [0.03, -0.069], 22: [0.031, -0.052], 23: [0.07, -0.058], 24: [0.064, -0.042], 25: [0.016, -0.013], 26: [0.012, -0.01], 27: [0.019, -0.028] }, // le corps (centre, pieds) reste au même endroit quelle que soit l'image (la magie déborde)
     squelettePieds: { 28: [37.2, 125], 29: [36.4, 118], 30: [39.9, 119], 31: [38.7, 120], 32: [50.4, 112], 33: [44.0, 112], 34: [40.3, 111], 35: [36.1, 115], 36: [46.8, 120], 37: [48.3, 122], 38: [45.9, 123], 39: [43.5, 103], 40: [42.0, 98], 41: [51.6, 123], 42: [69.1, 121], 43: [77.8, 123], 44: [74.9, 100], 45: [62.9, 101], 46: [43.8, 97], 47: [41.4, 99] }, // squelettes : centre du corps (x) et bas des pieds (y) dans chaque image, en pixels
@@ -1994,7 +1994,7 @@ const CHARS = {
       if (f.sort) return f.sort.type === "orbe" ? 11 + Math.min(6, Math.floor(f.sort.t / SORT_ORBE * 7)) : 20 + Math.min(7, Math.floor(f.sort.t / SORT_INVOC * 8));
       return Math.hypot(f.vx, f.vy) > 10 ? 5 + Math.floor((f.pas || 0) * 9) % 6 : 1 + Math.floor((f.pas || 0) * 5) % 4;
     },
-    desc: "Une sorcière qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire. Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée. Les squelettes ont peu de PV, disparaissent au bout d’un moment, et prennent les tirs et les attaques de zone qui passent sur eux (ils protègent la sorcière). Quand elle invoque, elle reste sur place, sans défense.",
+    desc: "Une nécromancienne qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire. Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée. Les squelettes ont peu de PV, disparaissent au bout d’un moment, et prennent les tirs et les attaques de zone qui passent sur eux (ils la protègent). Quand elle invoque, elle reste sur place, sans défense.",
     svg: `<g ${O}>
       <path d='M30 140 Q34 96 46 70 L74 70 Q86 96 90 140Z' fill='#2a1f38'/>
       <path d='M52 70 Q46 92 40 120 M68 70 Q74 92 80 120' fill='none' stroke='#cfd0dc' stroke-width='5'/>
@@ -4645,7 +4645,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.60.0", NOTES = "Nouveau perso : la Sorcière ! Elle garde ses distances, lance des orbes violettes qui suivent un peu l’adversaire, et invoque des squelettes (2 au plus) qui marchent vers lui et le frappent de leur épée. Les squelettes prennent les tirs et les attaques de zone qui passent sur eux, et disparaissent au bout d’un moment. Pendant qu’elle lance un sort, elle reste sur place.";
+const VERSION = "1.60.1", NOTES = "La Sorcière s’appelle maintenant la Nécromancienne (pour ne plus la confondre avec le Sorcier).";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

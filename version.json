@@ -1,1 +1,1 @@
-{"version": "1.60.1", "notes": "La Sorcière s’appelle maintenant la Nécromancienne (pour ne plus la confondre avec le Sorcier)."}
+{"version": "1.60.2", "notes": "Nécromancienne : elle garde la même taille quoi qu’elle fasse (marche, orbe, invocation), et ses squelettes ont maintenant la même taille que celui de l’animation d’invocation. Les adversaires visent ses squelettes avant elle dès qu’ils sont plus près d’eux qu’elle. Pour rester équilibrée : une invocation toutes les 10 s, des squelettes qui durent 15 s et frappent à 6, et une orbe à 10."}

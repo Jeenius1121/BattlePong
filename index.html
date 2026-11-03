@@ -1981,6 +1981,115 @@ const CHARS = {
       if (!g.running || o.mort || o.enLair || f.piqueT > 0) return;
       if (ecart(f, o) < 2 && o.y < f.y - f.hh * 0.3) { f.piqueT = TORTUE_PIQUE_CD; const att = attaquant; attaquant = f; degats(g, o, TORTUE_PIQUE, o.x, o.y + o.hh * 0.5); attaquant = att; }
     }
+  },
+  sorciere: {
+    creation: true,
+    nom: "Sorcière", emoji: "🧹", vitesse: 120, memeEchelle: true, portrait: { cx: 0.55, cy: 0.36, taille: 0.46 }, // portrait centré sur son visage et son chapeau
+    images: ["repos 2", "repos 3", "repos 4", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "orbe 1", "orbe 2", "orbe 3", "orbe 4", "orbe 5", "orbe 6", "orbe 7", "projectile 1", "projectile 2", "invocation 1", "invocation 2", "invocation 3", "invocation 4", "invocation 5", "invocation 6", "invocation 7", "invocation 8", "squelette repos 1", "squelette repos 2", "squelette repos 3", "squelette repos 4", "squelette marche 1", "squelette marche 2", "squelette marche 3", "squelette marche 4", "squelette marche 5", "squelette marche 6", "squelette marche 7", "squelette coup 1", "squelette coup 2", "squelette coup 3", "squelette coup 4", "squelette coup 5", "squelette coup 6", "squelette coup 7", "squelette coup 8", "squelette coup 9"],
+    ancres: { 2: [0.004, 0.02], 3: [0.012, 0.02], 4: [0.028, 0.02], 5: [0.007, 0.062], 6: [0.022, 0.058], 7: [0.012, 0.075], 8: [0.023, 0.05], 9: [0.032, 0.067], 10: [0.02, 0.039], 11: [-0.026, 0.017], 12: [0.009, 0.035], 13: [0.017, 0.017], 14: [0.027, -0.022], 15: [0.035, -0.019], 16: [0.029, -0.01], 17: [0.027, 0.007], 20: [-0.022, -0.019], 21: [0.03, -0.069], 22: [0.031, -0.052], 23: [0.07, -0.058], 24: [0.064, -0.042], 25: [0.016, -0.013], 26: [0.012, -0.01], 27: [0.019, -0.028] }, // le corps (centre, pieds) reste au même endroit quelle que soit l'image (la magie déborde)
+    squelettePieds: { 28: [37.2, 125], 29: [36.4, 118], 30: [39.9, 119], 31: [38.7, 120], 32: [50.4, 112], 33: [44.0, 112], 34: [40.3, 111], 35: [36.1, 115], 36: [46.8, 120], 37: [48.3, 122], 38: [45.9, 123], 39: [43.5, 103], 40: [42.0, 98], 41: [51.6, 123], 42: [69.1, 121], 43: [77.8, 123], 44: [74.9, 100], 45: [62.9, 101], 46: [43.8, 97], 47: [41.4, 99] }, // squelettes : centre du corps (x) et bas des pieds (y) dans chaque image, en pixels
+    sonNom: "orbe", son2: "invocation", son3: "squelette brisé", son4: "coup de squelette",
+    // repos : 1 à 4 ; marche : 5 à 10 ; orbe : 11 à 17 ; invocation : 20 à 27 (18-19 : l'orbe qui vole, 28-47 : les squelettes)
+    imageDe: f => {
+      if (f.sort) return f.sort.type === "orbe" ? 11 + Math.min(6, Math.floor(f.sort.t / SORT_ORBE * 7)) : 20 + Math.min(7, Math.floor(f.sort.t / SORT_INVOC * 8));
+      return Math.hypot(f.vx, f.vy) > 10 ? 5 + Math.floor((f.pas || 0) * 9) % 6 : 1 + Math.floor((f.pas || 0) * 5) % 4;
+    },
+    desc: "Une sorcière qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire. Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée. Les squelettes ont peu de PV, disparaissent au bout d’un moment, et prennent les tirs et les attaques de zone qui passent sur eux (ils protègent la sorcière). Quand elle invoque, elle reste sur place, sans défense.",
+    svg: `<g ${O}>
+      <path d='M30 140 Q34 96 46 70 L74 70 Q86 96 90 140Z' fill='#2a1f38'/>
+      <path d='M52 70 Q46 92 40 120 M68 70 Q74 92 80 120' fill='none' stroke='#cfd0dc' stroke-width='5'/>
+      <circle cx='60' cy='58' r='13' fill='#f1e3e3'/>
+      <path d='M18 50 Q60 34 102 50 Q86 54 60 52 Q34 54 18 50Z' fill='#3b2a52'/>
+      <path d='M40 46 Q50 6 86 4 Q70 20 74 46Z' fill='#3b2a52'/>
+      <circle cx='60' cy='38' r='5' fill='#e8e2d0'/><circle cx='98' cy='86' r='7' fill='#b04cff' stroke='none'/></g>`,
+    // son orbe qui arrive sur f (projectile : vu par tout le monde) ; un squelette qui va frapper f
+    menacePour(o, f) {
+      for (const d of o.drones || []) if (d.squelette && d.etat === "coup" && d.t < SQ_FRAPPE && Math.hypot(d.x - f.x, d.y - f.y) < 90) return { x: d.x, y: d.y, zone: true };
+      return null;
+    },
+    nouveauSquelette(f, o) {
+      const s = f.face || 1, x = Math.min(W - 30, Math.max(30, f.x + s * f.hw * 0.75)), y = Math.min(W - 40, Math.max(40, f.y + f.hh - SQ_HAUTEUR * 0.5));
+      return { squelette: true, x, y, hp: SQ_PV, etat: "repos", t: 0, cd: 0, vie: SQ_VIE, face: s, nouveau: 0 };
+    },
+    attaque(f, o, g, dt) {
+      f.pas = (f.pas || 0) + dt; f.drones ||= [];
+      f.orbeCd = (f.orbeCd ?? SORT_ORBE_PREMIER) - dt; f.invocCd = (f.invocCd ?? SORT_INVOC_PREMIER) - dt;
+      const vu = !o.mort && !cache(o, f);
+      if (f.sort) { // en train de lancer un sort : elle reste sur place, tournée vers l'adversaire
+        const S = f.sort; S.t += dt; f.vx = 0; f.vy = 0; if (vu) f.face = o.x >= f.x ? 1 : -1;
+        if (S.type === "orbe" && !S.parti && S.t >= SORT_ORBE * 0.55) { // l'orbe part de sa main
+          S.parti = true; son(f);
+          const mx = f.x + f.face * f.hw * 0.75, my = f.y - f.hh * 0.05, a = Math.atan2(o.y - my, o.x - mx);
+          g.proj.push({ kind: "orbe", x: mx, y: my, vx: Math.cos(a) * ORBE_VITESSE, vy: Math.sin(a) * ORBE_VITESSE, r: 11, dmg: ORBE_DEGATS, owner: f, rot: 0, homing: true, virage: ORBE_VIRAGE, guideT: 1.4 });
+        }
+        if (S.type === "invoc" && !S.parti && S.t >= SORT_INVOC * 0.8) { // le squelette sort du cercle (là où il apparaît sur l'image)
+          S.parti = true; f.drones.push(this.nouveauSquelette(f, o));
+          for (let i = 0; i < 16; i++) { const d = f.drones[f.drones.length - 1], a = Math.random() * Math.PI * 2; g.parts.push({ x: d.x, y: d.y + 20, vx: Math.cos(a) * 120, vy: -60 - Math.random() * 120, t: 0.6, c: i % 2 ? "#b04cff" : "#e6c8ff" }); }
+        }
+        if (S.t >= (S.type === "orbe" ? SORT_ORBE : SORT_INVOC)) { f.sort = null; normaliser(f); }
+        return;
+      }
+      // invocation : de temps en temps, s'il y a de la place pour un squelette de plus
+      if (f.invocCd <= 0 && !o.mort && f.drones.length < SQ_MAX) { f.invocCd = SORT_INVOC_CD; f.sort = { type: "invoc", t: 0 }; son(f, 2); return; }
+      if (f.orbeCd <= 0 && vu) { f.orbeCd = SORT_ORBE_CD; f.sort = { type: "orbe", t: 0 }; return; }
+      // déplacement : elle garde ses distances (recule si l'adversaire est trop près, s'approche s'il est loin)
+      const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
+      let vx = f.vx, vy = f.vy;
+      if (vu && d < SORCIERE_DIST[0]) { vx = -dx / d + (f.cote || 1) * dy / d * 0.6; vy = -dy / d - (f.cote || 1) * dx / d * 0.6; }
+      else if (vu && d > SORCIERE_DIST[1]) { vx = dx / d; vy = dy / d; }
+      else { f.flane = (f.flane ?? 0) - dt; if (f.flane <= 0) { f.flane = 1 + Math.random() * 1.5; f.arret = Math.random() < 0.4; f.cote = Math.random() < 0.5 ? -1 : 1; const a = angleAleatoire(); f.dirF = [Math.cos(a), Math.sin(a)]; } if (f.arret) { f.vx = 0; f.vy = 0; return; } vx = f.dirF[0]; vy = f.dirF[1]; }
+      const n = Math.hypot(vx, vy) || 1; f.vx = vx / n * SORCIERE_VITESSE; f.vy = vy / n * SORCIERE_VITESSE;
+    },
+    // les squelettes : naissance, marche vers l'adversaire, coup d'épée, fin de vie
+    monde(f, o, g, dt) {
+      if (!f.drones) return;
+      for (const d of [...f.drones]) {
+        d.t += dt; d.nouveau = Math.max(0, (d.nouveau || 0) - dt); d.vie -= dt; d.cd = Math.max(0, d.cd - dt);
+        if (d.vie <= 0 || f.mort) { f.drones = f.drones.filter(x => x !== d); for (let i = 0; i < 10; i++) g.parts.push({ x: d.x, y: d.y, vx: (Math.random() - 0.5) * 160, vy: -Math.random() * 160, t: 0.5, g: 500, c: "#e8dfc8" }); continue; }
+        if (d.etat === "naissance") { if (d.t >= 0.35) { d.etat = "repos"; d.t = 0; } continue; }
+        const vise = !o.mort && !cache(o, f) && !o.enLair;
+        // distance entre le squelette et le bord de l'adversaire
+        const ex = Math.max(0, Math.abs(o.x - d.x) - o.hw * 0.8), ey = Math.max(0, Math.abs(o.y - d.y) - o.hh * 0.8), e = Math.hypot(ex, ey);
+        if (d.etat === "coup") {
+          if (!d.frappe && d.t >= SQ_FRAPPE) {
+            d.frappe = true; son(f, 4);
+            if (vise && e < SQ_PORTEE + 14) { const att = attaquant; attaquant = null; degats(g, o, SQ_DEGATS, (d.x + o.x) / 2, (d.y + o.y) / 2); attaquant = att; }
+          }
+          if (d.t >= SQ_COUP) { d.etat = "repos"; d.t = 0; d.cd = SQ_COUP_CD; }
+          continue;
+        }
+        if (vise) d.face = o.x >= d.x ? 1 : -1;
+        if (vise && e < SQ_PORTEE && d.cd <= 0) { d.etat = "coup"; d.t = 0; d.frappe = false; continue; }
+        if (vise && e >= SQ_PORTEE * 0.6) { // il marche vers l'adversaire
+          const dx = o.x - d.x, dy = o.y - d.y, n = Math.hypot(dx, dy) || 1;
+          d.x = Math.min(W - 20, Math.max(20, d.x + dx / n * SQ_VITESSE * dt)); d.y = Math.min(W - 30, Math.max(30, d.y + dy / n * SQ_VITESSE * dt));
+          if (d.etat !== "marche") { d.etat = "marche"; d.t = 0; }
+        } else if (d.etat !== "repos") { d.etat = "repos"; d.t = 0; }
+      }
+    },
+    // image d'un squelette : naissance (sort du sol), repos, marche, coup
+    imageSquelette(d) {
+      if (d.etat === "coup") return 39 + Math.min(8, Math.floor(d.t / SQ_COUP * 9));
+      if (d.etat === "marche") return 32 + Math.floor(d.t * 10) % 7;
+      return 28 + Math.floor(d.t * 5) % 4;
+    },
+    dessinerDrones(f, g, ctx) {
+      for (const d of f.drones) {
+        const n = this.imageSquelette(d), s = this.spr && this.spr[n], p = this.squelettePieds[n];
+        ctx.save(); ctx.globalAlpha = Math.min(1, d.etat === "naissance" ? d.t / 0.35 : 1) * Math.min(1, d.vie / 0.5);
+        if (d.flash > 0) d.flash -= 1 / 60;
+        if (s && p) {
+          const k = SQ_HAUTEUR / s.th * (s.th / (this.squelettePieds[28][1] || s.th)); // même échelle pour toutes les images
+          const sortie = d.etat === "naissance" ? (1 - d.t / 0.35) * 30 : 0; // il sort du sol
+          ctx.translate(d.x, d.y + SQ_HAUTEUR * 0.5 + sortie); ctx.scale(d.face || 1, 1);
+          ctx.drawImage(s.img, -p[0] * k, -p[1] * k, s.tw * k, s.th * k);
+        } else { // dessin par défaut : petit squelette
+          ctx.translate(d.x, d.y); ctx.fillStyle = "#e8dfc8"; ctx.strokeStyle = "#1b2033"; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(0, -14, 9, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillRect(-3, -5, 6, 22); ctx.strokeRect(-3, -5, 6, 22);
+        }
+        ctx.restore();
+      }
+    }
   }
 };
 
@@ -2365,7 +2474,7 @@ function blesserDrone(g, f, d, n) {
   d.hp -= n; g.txt.push({ x: p.x, y: p.y - 14, t: 0.6, s: "-" + n }); eclats(g, p.x, p.y, "#8b93a6");
   if (d.hp <= 0) { // appareil détruit : le Bombardier perd un petit pourcentage de ses PV
     f.drones = f.drones.filter(x => x !== d); son(f, 3);
-    degats(g, f, Math.round(f.hpMax * DRONE_LIEN), f.x, f.y - f.hh * 0.4);
+    if (DRONE_LIEN > 0 && !CHARS[f.type].squelettePieds) degats(g, f, Math.round(f.hpMax * DRONE_LIEN), f.x, f.y - f.hh * 0.4);
     for (let i = 0; i < 14; i++) g.parts.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.5) * 260 - 60, t: 0.6, g: 500, forme: "eclat", rot: Math.random() * 6, c: i % 2 ? "#8b93a6" : "#f2b134" });
   }
 }
@@ -2609,6 +2718,11 @@ const EJECTION_DEGATS = 12, EJECTION_RAYON = 110;
 const TORTUE_FURIE_PV = 30, TORTUE_RELANCE = 3, TORTUE_SEUIL_RELANCE = 15, TORTUE_SEUIL = 26, TORTUE_COLERE = 0.75, TORTUE_VITESSE = 520, TORTUE_DEGATS = 7, TORTUE_TOUCHE_CD = 0.5;
 const TORTUE_ETOURDIE_FRAGILE = 1.3, TORTUE_ETOURDIE_BASE = 0.7, TORTUE_ETOURDIE_RICOCHET = 0.3, TORTUE_PIQUE = 3, TORTUE_PIQUE_CD = 0.6;
 const TORTUE_ANIM_MARCHE = 6, TORTUE_ANIM_ROULE = 14, TORTUE_ANIM_ETOURDIE = 6;
+// Sorcière : orbe qui suit un peu, invocation de squelettes (2 au plus) qui marchent vers l'adversaire et le frappent
+const SORCIERE_VITESSE = 120, SORCIERE_DIST = [210, 360];
+const SORT_ORBE = 0.5, SORT_ORBE_CD = 1.6, SORT_ORBE_PREMIER = 1.2, ORBE_VITESSE = 300, ORBE_DEGATS = 14, ORBE_VIRAGE = 1.4;
+const SORT_INVOC = 1.3, SORT_INVOC_CD = 5, SORT_INVOC_PREMIER = 1;
+const SQ_MAX = 2, SQ_PV = 30, SQ_VIE = 22, SQ_VITESSE = 160, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 8, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 58;
 const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 200 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
 const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.7, GELEE_CONTACT_CD = 0.8, GELEE_TRAINEE = 2, GELEE_TRAINEE_TIC = 0.4;
@@ -3453,6 +3567,7 @@ function dessiner() {
   }
   for (const f of g.f) { // appareils du Titan : faisceau bleu quand ils cherchent, rouge quand ils ont repéré
     if (!f.drones || f.mort) continue;
+    if (CHARS[f.type].dessinerDrones) { CHARS[f.type].dessinerDrones(f, g, ctx); continue; } // squelettes de la Sorcière
     const img = spriteImage(f.type + "-3"), o = g.f.find(x => x !== f);
     for (const d of f.drones) {
       const p = dronePos(f, d), bob = Math.sin(performance.now() / 200 + d.bob) * 3;
@@ -3534,6 +3649,11 @@ function dessiner() {
       ctx.fillStyle = "#5e1470";
       ctx.beginPath(); ctx.arc(-r * 0.35, r * 0.3, r * 0.18, 0, 7); ctx.fill();
       ctx.beginPath(); ctx.arc(r * 0.1, -r * 0.5, r * 0.12, 0, 7); ctx.fill();
+    } else if (p.kind === "orbe") { // orbe de la Sorcière : ses deux images en alternance, tournées dans le sens du vol
+      const c = CHARS.sorciere, im = c.spr && c.spr[18 + (Math.floor(p.rot * 2) % 2)];
+      ctx.rotate(Math.atan2(p.vy, p.vx));
+      if (im) { const k = 46 / im.tw; ctx.drawImage(im.img, -im.tw * k * 0.78, -im.th * k / 2, im.tw * k, im.th * k); }
+      else { ctx.fillStyle = "rgba(176,76,255,.4)"; ctx.beginPath(); ctx.arc(0, 0, p.r + 6, 0, 7); ctx.fill(); ctx.fillStyle = "#e6c8ff"; ctx.beginPath(); ctx.arc(0, 0, p.r * 0.6, 0, 7); ctx.fill(); }
     } else if (p.kind === "feu") {
       const r = p.attise ? p.r * 1.45 : p.r; // boule attisée : plus grosse, cœur blanc
       ctx.fillStyle = p.attise ? "rgba(255,70,20,.45)" : "rgba(255,138,42,.35)"; ctx.beginPath(); ctx.arc(0, 0, r + 6 + Math.sin(p.rot) * 2, 0, 7); ctx.fill();
@@ -4525,7 +4645,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.59.6", NOTES = "La Tortue à piques s’appelle maintenant la Grosse Tortue. Correction : le petit gel (environ une seconde) la première fois qu’on choisit la Chose Impie après avoir chargé la page a disparu (ses images tournées sont préparées plus vite, et à l’avance).";
+const VERSION = "1.60.0", NOTES = "Nouveau perso : la Sorcière ! Elle garde ses distances, lance des orbes violettes qui suivent un peu l’adversaire, et invoque des squelettes (2 au plus) qui marchent vers lui et le frappent de leur épée. Les squelettes prennent les tirs et les attaques de zone qui passent sur eux, et disparaissent au bout d’un moment. Pendant qu’elle lance un sort, elle reste sur place.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };

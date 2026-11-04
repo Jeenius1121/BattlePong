@@ -4696,14 +4696,14 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.61.0", NOTES = "Application Android : Battle Pong s’installe maintenant comme une appli (fichier APK, sans passer par le Play Store), le jeu est rangé dedans et marche sans le site. Quand une nouvelle version sort, le bouton « Mettre à jour » de l’appli télécharge et installe la nouvelle version.";
+const VERSION = "1.61.1", NOTES = "Application Android : Battle Pong s’installe maintenant comme une appli (fichier APK, sans passer par le Play Store), le jeu est rangé dedans et marche sans le site. Quand une nouvelle version sort, le bouton « Mettre à jour » de l’appli télécharge et installe la nouvelle version.";
 document.getElementById("version").innerHTML = `Version <b>${VERSION}</b> · ${NOTES}`;
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 /* Dans l'application Android, le jeu est rangé dans l'APK : on regarde la version de l'APK publié
    (branche « apk » du dépôt) et le bouton télécharge puis installe le nouvel APK au lieu de recharger la page. */
 const APP = window.BattlePongApp || null;
-const APK_DEPOT = "https://raw.githubusercontent.com/Jeenius1121/battlepong/apk/";
+const APK_DEPOT = "https://raw.githubusercontent.com/Jeenius1121/BattlePong/apk/";
 async function verifierVersion() {
   try {
     const r = await fetch((APP ? APK_DEPOT : "") + "version.json?t=" + Date.now(), { cache: "no-store" });

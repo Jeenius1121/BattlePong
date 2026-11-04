@@ -1,0 +1,48 @@
+# À chaque mise à jour du jeu, fabrique l'application Android (APK signé) et la publie sur la branche « apk ».
+# L'application y lit version.json et y télécharge battlepong.apk quand une nouvelle version existe.
+name: Application Android
+on:
+  push:
+    branches: [main]
+    paths: [index.html, version.json, "perso/**", "outils/apk/**"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: apk
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Fabriquer l'APK
+        env:
+          CLE: ${{ secrets.APK_KEYSTORE }}
+          MDP: ${{ secrets.APK_MOT_DE_PASSE }}
+        run: |
+          if [ -z "$CLE" ]; then echo "::warning::Secrets APK_KEYSTORE / APK_MOT_DE_PASSE absents : APK non fabriqué"; exit 0; fi
+          echo "$CLE" | base64 -d > "$RUNNER_TEMP/cle.keystore"
+          touch "$RUNNER_TEMP/ok"
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          AJ="$ANDROID_HOME/platforms/android-34/android.jar"
+          [ -f "$AJ" ] || AJ=$(ls "$ANDROID_HOME"/platforms/*/android.jar | sort -V | tail -1)
+          echo "build-tools : $BT ; plateforme : $AJ"
+          bash outils/apk/build.sh "$BT" "$AJ" "$RUNNER_TEMP/cle.keystore" "$MDP" "$RUNNER_TEMP/battlepong.apk"
+      - name: Publier sur la branche apk
+        run: |
+          [ -f "$RUNNER_TEMP/ok" ] || exit 0
+          mkdir "$RUNNER_TEMP/apk" && cd "$RUNNER_TEMP/apk"
+          cp "$RUNNER_TEMP/battlepong.apk" "$GITHUB_WORKSPACE/version.json" .
+          git init -q -b apk
+          git config user.name "application-battle-pong"
+          git config user.email "actions@users.noreply.github.com"
+          git add battlepong.apk version.json
+          git commit -q -m "APK $(python3 -c "import json;print(json.load(open('version.json'))['version'])")"
+          git config http.https://github.com/.extraheader "$(git -C "$GITHUB_WORKSPACE" config --get http.https://github.com/.extraheader)"
+          git push -f "https://github.com/${{ github.repository }}.git" apk

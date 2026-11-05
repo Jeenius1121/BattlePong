@@ -72,6 +72,8 @@ body.vue-combat .entete{display:none}
 
 /* deux écrans séparés : la sélection des persos, puis le combat */
 body.vue-selection [data-vue="combat"], body.vue-combat [data-vue="selection"]{display:none !important}
+body.vue-combat [data-vue="combat"], body.vue-selection [data-vue="selection"]{animation:apparait .28s ease-out}
+@keyframes apparait{from{opacity:0; transform:translateY(8px)}}
 
 /* sélection façon jeu de combat : deux grands panneaux + grille de portraits */
 .duel{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:6px}
@@ -1711,7 +1713,7 @@ const CHARS = {
     creation: true,
     nom: "Slime", emoji: "💧", vitesse: 80, pv: 180, taille: 2, portrait: { cx: 0.62, cy: 0.52, taille: 1.08 }, // portrait centré sur ses deux yeux et sa bouche
     sonNom: "fonce", son2: "se sépare", son3: "un morceau disparaît",
-    desc: "Un énorme slime (200 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction (au hasard) qu’en touchant un mur. Il laisse derrière lui une traînée bleue qui blesse l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’il traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant lui, il fonce (il accélère sans tourner), et il ne le blesse au contact que pendant qu’il fonce. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petits slimes : plus ils sont petits, plus ils sont rapides, mais plus ils sont fragiles et moins ils font mal ; les plus petits disparaissent quand ils n’ont plus de PV. Les adversaires frappent le morceau le plus proche d’eux, leurs tirs touchent n’importe quel morceau sur leur chemin, et leurs attaques de zone touchent tous les morceaux pris dedans, en partageant leurs dégâts entre eux (6 morceaux touchés : chacun prend un sixième). Il faut détruire tous les morceaux pour gagner.",
+    desc: "Un énorme slime (180 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction (au hasard) qu’en touchant un mur. Il laisse derrière lui une traînée bleue qui blesse l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’il traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant lui, il fonce (il accélère sans tourner), et il ne le blesse au contact que pendant qu’il fonce. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petits slimes : plus ils sont petits, plus ils sont rapides, mais plus ils sont fragiles et moins ils font mal ; les plus petits disparaissent quand ils n’ont plus de PV. Les adversaires frappent le morceau le plus proche d’eux, leurs tirs touchent n’importe quel morceau sur leur chemin, et leurs attaques de zone touchent tous les morceaux pris dedans, en partageant leurs dégâts entre eux (6 morceaux touchés : chacun prend un sixième) ; un coup ne retouche jamais les petits nés du morceau qu’il vient de couper. Il faut détruire tous les morceaux pour gagner.",
     svg: `<g ${O}>
       <path d='M14 128 Q10 100 34 92 Q30 50 64 44 Q100 42 104 84 Q116 92 112 118 Q118 132 100 136 L24 136 Q8 136 14 128Z' fill='#4aa8f0'/>
       <ellipse cx='50' cy='80' rx='12' ry='13' fill='#fff'/><ellipse cx='82' cy='74' rx='12' ry='13' fill='#fff'/>
@@ -2002,7 +2004,7 @@ const CHARS = {
       if (T.etat === "roule") return 13 + Math.floor(T.t * TORTUE_ANIM_ROULE) % 4;
       return T.t < 0.25 ? 17 : 18 + Math.floor(T.t * TORTUE_ANIM_ETOURDIE) % 3;
     },
-    desc: "Une tortue à carapace piquante (150 PV) qui marche tout doucement. Elle ne s’énerve que quand on l’attaque : dès qu’elle a encaissé 28 dégâts, elle rugit, rentre dans sa carapace et fonce en boule piquante droit sur l’adversaire (elle le blesse et le repousse en le traversant). Elle ricoche ensuite contre les murs, et à chaque rebond elle repart droit vers l’adversaire (sans le suivre ensuite) : 2 à 4 ricochets en tout, puis elle s’arrête, étourdie ; plus elle a ricoché, plus elle reste étourdie longtemps. En colère et en boule, elle ne prend aucun dégât et aucun effet ne la touche (ni ralentissement, ni piège, ni aveuglement, ni projection, et la langue du Smoker glisse sur elle) ; étourdie, elle en prend 1,3 fois plus. Seuls les coups reçus pendant qu’elle marche comptent pour la mettre en colère. Si sa boule n’a touché personne, elle se relance toute seule 3 secondes plus tard (ou avant, si elle reprend 15 dégâts). À 30 PV ou moins, elle n’attend plus : elle enchaîne attaque, étourdissement, attaque… Sa carapace la protège de tout ce qui vient d’en haut (projectiles qui tombent, coups portés par-dessus) ; par les côtés et par en bas, elle est touchable normalement. Un adversaire qui la touche par le dessus se pique sur sa carapace et perd quelques PV.",
+    desc: "Une tortue à carapace piquante (150 PV) qui marche tout doucement. Elle ne s’énerve que quand on l’attaque : dès qu’elle a encaissé 28 dégâts, elle rugit, rentre dans sa carapace et fonce en boule piquante droit sur l’adversaire (elle le blesse et le repousse en le traversant). Sa boule renverse les squelettes comme des quilles puis file vers l’adversaire. Elle ricoche ensuite contre les murs, et à chaque rebond elle repart droit vers l’adversaire (sans le suivre ensuite) : 2 à 4 ricochets en tout, puis elle s’arrête, étourdie ; plus elle a ricoché, plus elle reste étourdie longtemps. En colère et en boule, elle ne prend aucun dégât et aucun effet ne la touche (ni ralentissement, ni piège, ni aveuglement, ni projection, et la langue du Smoker glisse sur elle) ; étourdie, elle en prend 1,3 fois plus. Seuls les coups reçus pendant qu’elle marche comptent pour la mettre en colère. Si sa boule n’a touché personne, elle se relance toute seule 3 secondes plus tard (ou avant, si elle reprend 15 dégâts). À 30 PV ou moins, elle n’attend plus : elle enchaîne attaque, étourdissement, attaque… Sa carapace la protège de tout ce qui vient d’en haut (projectiles qui tombent, coups portés par-dessus) ; par les côtés et par en bas, elle est touchable normalement. Un adversaire qui la touche par le dessus se pique sur sa carapace et perd quelques PV.",
     svg: `<g ${O}>
       <ellipse cx='60' cy='112' rx='46' ry='14' fill='#5a3d4a'/>
       <path d='M14 104 Q18 52 60 46 Q102 52 106 104Z' fill='#b4532a'/>
@@ -3589,7 +3591,7 @@ function animerPerso(f, dtv, now) {
 function dessinerImage(f, img, s) {
   const A = ALLURES[f.type], S = A && A.souple, v = f.v;
   if (!S || !v || s !== CHARS[f.type].sprite || f.capture || f.roulade > 0) { ctx.drawImage(img, -f.hw, -f.hh, f.hw * 2, f.hh * 2); return; }
-  const n = Math.max(8, Math.min(24, Math.round(f.hh / 4))), hS = s.th / n, hD = f.hh * 2 / n, bouge = Math.min(1, (v.vit || 0) / 90);
+  const n = Math.max(8, Math.min(24, Math.round(f.hh / 4))), hS = s.th / n, bouge = Math.min(1, (v.vit || 0) / 90);
   const amp = S.amp * (0.35 + 0.65 * bouge), ph = v.phase + (performance.now() / 1000) * (1.4 + bouge);
   for (let i = 0; i < n; i++) {
     const y = i / (n - 1), w = S.bas ? y ** 1.6 : (1 - y) ** 1.6;
@@ -5178,7 +5180,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.61.1", NOTES = "Application Android : Battle Pong s’installe maintenant comme une appli (fichier APK, sans passer par le Play Store), le jeu est rangé dedans et marche sans le site. Quand une nouvelle version sort, le bouton « Mettre à jour » de l’appli télécharge et installe la nouvelle version.";
+const VERSION = "1.62.0", NOTES = "Grosse mise à jour : tout le jeu a été refait en beau.\n• Nouvelle interface : thème de jeu de combat, fiche des pouvoirs du perso choisi, bouton COMBAT toujours sous le pouce, dé 🎲 pour deux persos au hasard, nouveautés et guide des persos repliés, bouton des sons.\n• Combat : arène en terrain de pong, face-à-face avant READY / FIGHT, barres de vie avec portraits, chiffres de dégâts qui jaillissent, confettis de victoire, mise en page en paysage, mort subite après 2 minutes.\n• Animations : chaque perso marche à sa façon (Steve se dandine, l’Inconnu et le Smoker titubent, la robe du Sorcier ondule), ombres au sol, écrasés contre les murs, reculent quand on les touche ; bâton lumineux du Sorcier, antenne et étincelles du Robot, douilles de McCree, fumée du Smoker, plumes de Steve, aura de Bison, souffle de Myers, boules de feu enflammées.\n• Corrections : gel de plusieurs secondes avec Bouldozer, Slime haché par une seule onde ou une seule balle, Tortue qui ne se relançait plus, son de sa boule, portrait de la Nécromancienne, noms trop longs, combats sans fin.\n• Équilibrage : missiles du Bombardier 27, Slime 180 PV, la boule de la Tortue renverse les squelettes comme des quilles, on voit venir Bouldozer en feu.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;
@@ -5201,7 +5203,8 @@ async function verifierVersion() {
     if (!r.ok) return;
     const v = await r.json();
     if (!v.version || !plusRecente(v.version, VERSION)) return;
-    document.getElementById("majTexte").textContent = `Version ${v.version} disponible${v.notes ? " : " + v.notes : ""}`;
+    const resume = v.notes ? v.notes.split(/(?<=[.!])\s|\n/)[0].slice(0, 110) : ""; // le bandeau ne montre que la première phrase des nouveautés
+    document.getElementById("majTexte").textContent = `Version ${v.version} disponible${resume ? " : " + resume : ""}`;
     const b = document.getElementById("majDispo");
     b.hidden = false; b.dataset.version = v.version;
   } catch (e) {}

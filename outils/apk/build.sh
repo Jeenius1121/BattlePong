@@ -8,7 +8,7 @@ T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 VER=$(python3 -c "import json;print(json.load(open('$RACINE/version.json'))['version'])")
 CODE=$(python3 -c "a=[int(x) for x in '$VER'.split('.')]+[0,0];print(a[0]*10000+a[1]*100+a[2])")
 mkdir -p "$T/assets/jeu" "$T/classes" "$T/gen"
-cp "$RACINE/index.html" "$RACINE/version.json" "$T/assets/jeu/"; cp -r "$RACINE/perso" "$T/assets/jeu/"
+cp "$RACINE/index.html" "$RACINE/version.json" "$RACINE/stats.html" "$RACINE/stats.json" "$T/assets/jeu/"; cp -r "$RACINE/perso" "$T/assets/jeu/"
 "$BT/aapt2" compile --dir "$ICI/res" -o "$T/res.zip"
 "$BT/aapt2" link -I "$AJ" --manifest "$ICI/AndroidManifest.xml" -A "$T/assets" -o "$T/base.apk" --java "$T/gen" \
   --version-code "$CODE" --version-name "$VER" --min-sdk-version 24 --target-sdk-version 34 "$T/res.zip"

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Victoires Battle Pong</title>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-:root{--fond:#f6f4ef;--carte:#ffffff;--encre:#1f2430;--doux:#6b7080;--trait:#e2ded5;--vert:22,150,90;--rouge:210,60,60}
-@media (prefers-color-scheme: dark){:root{--fond:#15171c;--carte:#1e2129;--encre:#eceef3;--doux:#9aa0ad;--trait:#323642;--vert:60,200,130;--rouge:240,95,95}}
+:root{--fond:#0d1020;--carte:#191e34;--encre:#eef1f8;--doux:#9aa3c4;--trait:#2d3556;--vert:60,200,130;--rouge:240,95,95;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--fond);color:var(--encre);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:20px 16px 40px}
+body{margin:0;background:var(--fond) radial-gradient(130% 60% at 50% -10%, #3d2c70 0%, #1b1838 42%, var(--fond) 78%) no-repeat;color:var(--encre);font:15px/1.45 "Rubik",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:20px 16px 40px}
+h1{font-family:"Bowlby One","Arial Black",Impact,sans-serif;font-weight:400;color:#fff;text-shadow:0 3px 0 #e0302a}
 main{max-width:980px;margin:0 auto}
 h1{font-size:1.5rem;margin:0 0 4px}
 .sous{color:var(--doux);margin:0 0 22px}
@@ -65,7 +66,10 @@ if (!proprio) {
 const COURT = { marin: "Jeune beau", oeil: "Chose Impie", hammond: "Bouldozer", titan: "Bombardier", rodeur: "Myers", hurleur: "Steve", cowboy: "McCree", inconnu: "L’Inconnu" };
 const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const pct = v => (Math.round(v * 10) / 10).toString().replace(".", ",") + " %";
-if (proprio) fetch("stats.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.json()).then(d => {
+// dans l'application Android, les résultats les plus récents sont lus en ligne (ceux rangés dans l'appli datent de sa fabrication)
+const local = () => fetch("stats.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.json());
+const charger = () => window.BattlePongApp ? fetch("https://raw.githubusercontent.com/Jeenius1121/BattlePong/main/stats.json?t=" + Date.now(), { cache: "no-store" }).then(r => { if (!r.ok) throw 0; return r.json(); }).catch(local) : local();
+if (proprio) charger().then(d => {
   const nc = a => COURT[a] || d.noms[a], ordre = [...d.ids].sort((a, b) => d.total[b] - d.total[a]);
   const date = new Date(d.date).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
   document.getElementById("sous").textContent = `Version ${d.version} · ${d.combatsParPaire} combats par paire de personnages (chacun joue la moitié du temps à gauche, la moitié à droite) · simulé le ${date}.`;

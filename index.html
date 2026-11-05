@@ -94,6 +94,10 @@ body.vue-selection [data-vue="combat"], body.vue-combat [data-vue="selection"]{d
 .nomGrand.deux-lignes{white-space:normal}
 .chips{display:flex; justify-content:center; gap:4px; margin-top:5px; flex-wrap:wrap}
 .chip{font-size:.64rem; font-weight:800; line-height:1; padding:3px 6px; border-radius:999px; background:rgba(0,0,0,.4); color:#fff; white-space:nowrap}
+.milieu{display:flex; flex-direction:column; align-items:center; gap:10px}
+.rond.de{width:40px; height:40px; font-size:1.1rem}
+.rond.de.roule{animation:de .45s ease-out}
+@keyframes de{50%{transform:rotate(200deg) scale(1.15)}}
 .duel .vs{font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(1.5rem,7vw,2.2rem); color:#fff; transform:rotate(-8deg); text-shadow:0 3px 0 #e0302a, 0 0 18px rgba(255,80,52,.55)}
 .aide{margin:10px 0 10px; text-align:center; font-size:.84rem; color:var(--muted)}
 .aide b{color:var(--team)}
@@ -302,7 +306,7 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibili
   <button class="nouveautes" id="nouveautes" type="button" aria-haspopup="dialog"><span class="pastille">NOUVEAU</span><span class="txt" id="version"></span><span class="fleche" aria-hidden="true">›</span></button>
   <div class="duel">
     <button class="panneau" data-side="0" type="button" aria-label="Choisir le perso du joueur 1"><span class="joueur">Joueur 1</span><span class="sol" aria-hidden="true"></span><img class="grand" alt=""><span class="bas"><span class="nomGrand"></span><span class="chips"></span></span></button>
-    <div class="vs" aria-hidden="true">VS</div>
+    <div class="milieu"><div class="vs" aria-hidden="true">VS</div><button class="rond de" id="hasard" type="button" aria-label="Deux persos au hasard" title="Au hasard">🎲</button></div>
     <button class="panneau" data-side="1" type="button" aria-label="Choisir le perso du joueur 2"><span class="joueur">Joueur 2</span><span class="sol" aria-hidden="true"></span><img class="grand" alt=""><span class="bas"><span class="nomGrand"></span><span class="chips"></span></span></button>
   </div>
   <p class="aide" id="aide"></p>
@@ -1720,6 +1724,7 @@ const CHARS = {
     // en dessous : il se sépare (il a perdu GELEE_SEPARE de ses PV de départ), ou disparaît à 0 pour les plus petits
     seuil: B => B.niv < GELEE_NIV.length - 1 ? B.pv0 * (1 - GELEE_SEPARE) : 0,
     plafond: f => f.actif ? Math.max(1, Math.ceil(f.actif.pv)) : Infinity, // un coup ne touche que le morceau frappé
+    modifDegats: (f, n) => f.actif && f.actif.ne > ((jeu && jeu.temps) || 0) ? 0 : n, // un morceau qui vient de naître ne prend rien un court instant
     attaque(f, o, g, dt) {
       if (!f.blobs) { f.blobs = [this.nouveau(f.x, f.y, 0, GELEE_NIV[0].pv)]; f.actif = f.blobs[0]; f.trainee = []; f.traineeT = 0; f.choixT = 0; }
       if (!f.blobs.length) { f.vx = 0; f.vy = 0; return; }
@@ -1790,7 +1795,9 @@ const CHARS = {
           f.blobs = f.blobs.filter(x => x !== A);
           if (A.niv < GELEE_NIV.length - 1 && A.pv > 0) { // il se sépare en deux, qui partent chacun de leur côté
             const a = this.direction();
-            for (const s of [1, -1]) f.blobs.push(this.nouveau(A.x + Math.cos(a) * 18 * s, A.y + Math.sin(a) * 18 * s, A.niv + 1, A.pv / 2, s > 0 ? a : a + Math.PI));
+            // les deux petits qui naissent ne prennent aucun coup pendant un court instant : sans ça, une onde ou une explosion
+            // qui passe encore sur eux les touchait de nouveau, ils se recoupaient aussitôt, et ainsi de suite
+            for (const s of [1, -1]) { const N = this.nouveau(A.x + Math.cos(a) * 18 * s, A.y + Math.sin(a) * 18 * s, A.niv + 1, A.pv / 2, s > 0 ? a : a + Math.PI); N.ne = (g.temps || 0) + GELEE_NAISSANCE; f.blobs.push(N); }
             son(f, 2);
           } else son(f, 3);
           for (let i = 0; i < 16; i++) g.parts.push({ x: A.x, y: A.y, vx: (Math.random() - 0.5) * 300, vy: (Math.random() - 0.5) * 300 - 80, t: 0.6, g: 500, c: i % 2 ? "#4aa8f0" : "#bfe6ff" });
@@ -2872,7 +2879,7 @@ const SORT_ORBE = 0.5, SORT_ORBE_CD = 1.65, SORT_ORBE_PREMIER = 1.2, ORBE_VITESS
 const SORT_INVOC = 1.3, SORT_INVOC_CD = 10, SORT_INVOC_PREMIER = 1;
 const SQ_MAX = 2, SQ_PV = 30, SQ_VIE = 15, SQ_VITESSE = 160, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 6, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
 const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 200 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
-const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
+const GELEE_SEPARE = 0.2, GELEE_NAISSANCE = 0.3; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux ; instant où un morceau qui vient de naître ne prend aucun coup
 const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.7, GELEE_CONTACT_CD = 0.8, GELEE_TRAINEE = 2, GELEE_TRAINEE_TIC = 0.4;
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
@@ -4081,6 +4088,9 @@ function dessiner() {
       else { ctx.fillStyle = "rgba(176,76,255,.4)"; ctx.beginPath(); ctx.arc(0, 0, p.r + 6, 0, 7); ctx.fill(); ctx.fillStyle = "#e6c8ff"; ctx.beginPath(); ctx.arc(0, 0, p.r * 0.6, 0, 7); ctx.fill(); }
     } else if (p.kind === "feu") {
       const r = p.attise ? p.r * 1.45 : p.r; // boule attisée : plus grosse, cœur blanc
+      ctx.save(); ctx.rotate(Math.atan2(p.vy, p.vx)); ctx.globalCompositeOperation = "lighter"; // traînée de flammes derrière la boule
+      for (let i = 5; i >= 1; i--) { const k = i / 5; ctx.fillStyle = `rgba(255,${130 - i * 14},30,${0.2 * (1.15 - k)})`; ctx.beginPath(); ctx.arc(-i * r * 0.6, Math.sin(p.rot * 1.3 + i) * 2.5, r * (1 - k * 0.5), 0, 7); ctx.fill(); }
+      ctx.restore();
       ctx.fillStyle = p.attise ? "rgba(255,70,20,.45)" : "rgba(255,138,42,.35)"; ctx.beginPath(); ctx.arc(0, 0, r + 6 + Math.sin(p.rot) * 2, 0, 7); ctx.fill();
       ctx.fillStyle = p.attise ? "#ff5a1f" : "#ff8a2a"; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
       ctx.fillStyle = "#ffd23f"; ctx.beginPath(); ctx.arc(0, 0, r * 0.5, 0, 7); ctx.fill();
@@ -4445,6 +4455,14 @@ function construireUI() {
     dessinerTuile(id);
   }
   document.querySelectorAll(".panneau").forEach(p => p.addEventListener("click", () => { coteActif = coteFiche = +p.dataset.side; majSelection(); musiqueSelection(); }));
+  // dé : deux persos différents tirés au hasard
+  document.getElementById("hasard").addEventListener("click", e => {
+    const ids = Object.keys(CHARS), a = ids[Math.floor(Math.random() * ids.length)];
+    let b; do { b = ids[Math.floor(Math.random() * ids.length)]; } while (b === a);
+    choix[0] = a; choix[1] = b; coteActif = 0; coteFiche = 0;
+    e.currentTarget.classList.remove("roule"); void e.currentTarget.offsetWidth; e.currentTarget.classList.add("roule");
+    annoncerNom(a); musiqueSelection(); nouveauJeu(false); majSelection(0); majSelection(1);
+  });
   majSelection();
   const desc = c => `<p class="desc">${c.emoji} <strong>${c.nom}</strong> (${c.pv || PV_BASE} PV) : ${c.desc}</p>`;
   document.getElementById("descs").innerHTML =
@@ -4934,7 +4952,7 @@ async function brancherNuageSuite() {
   const progres = () => {
     const b = document.getElementById("chBarre"), t = document.getElementById("chTexte");
     if (b) b.style.width = Math.round(recus / chemins.length * 100) + "%";
-    if (t) t.textContent = `Chargement des persos… ${recus}/${chemins.length}`;
+    if (t) t.textContent = recus < chemins.length ? `Chargement des persos… ${recus}/${chemins.length}` : "Préparation des persos…"; // tout est arrivé : il reste à décoder images et sons
   };
   for (const c of chemins) pre[c] = db.doc(c).get().finally(() => { recus++; progres(); });
   progres();

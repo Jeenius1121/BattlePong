@@ -267,6 +267,17 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibili
 .swatch{width:20px; height:20px; border-radius:5px; border:2px solid var(--ink); display:inline-block}
 .hint{font-size:.82rem; color:var(--muted); margin:8px 0 0}
 .editeur .actions{margin-top:12px}
+/* téléphone tenu en paysage : l'arène prend toute la hauteur, les deux joueurs de chaque côté */
+@media (orientation:landscape) and (max-height:560px){
+  body.vue-combat main{max-width:none; padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px))}
+  body.vue-combat [data-vue="combat"]{display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); grid-template-rows:auto 1fr; gap:10px 16px; align-items:start; min-height:calc(100svh - 16px)}
+  body.vue-combat .hud{display:contents}
+  .hud .hudVs{display:none}
+  .carteJ.j1{grid-column:1; grid-row:1; align-self:start}
+  .carteJ.j2{grid-column:3; grid-row:1; align-self:start}
+  body.vue-combat .stage{grid-column:2; grid-row:1 / span 2; width:calc(100vh - 16px); width:calc(100svh - 16px); min-width:0; margin:0}
+  body.vue-combat .commandes{grid-column:1; grid-row:2; align-self:end; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; margin:0; padding:0}
+}
 @media (prefers-reduced-motion:reduce){ .panneau .grand,.chEntrer,.btn.revanche,.bar.bas .vie{animation:none} }
 </style>
 </head>
@@ -3063,8 +3074,21 @@ function eclats(g, x, y, c) {
   }
 }
 
+// mort subite : un combat qui dure plus de 2 minutes (deux persos qui ne s'attaquent jamais, comme deux Slimes) finit quand même :
+// chaque seconde, les deux perdent des PV, de plus en plus
+const MORT_SUBITE = 120, MORT_SUBITE_PAS = 5;
+function mortSubite(g, dt) {
+  g.temps = (g.temps || 0) + dt;
+  if (g.temps < MORT_SUBITE) return;
+  if (!g.mortSubite) { g.mortSubite = true; g.ms = 0; g.txt.push({ x: W / 2, y: W / 2 - 40, t: 2, s: "MORT SUBITE !", annonce: true }); g.secousse = Math.max(g.secousse, 0.2); }
+  if ((g.ms -= dt) > 0) return;
+  g.ms = 1;
+  const n = 2 + Math.floor((g.temps - MORT_SUBITE) / MORT_SUBITE_PAS);
+  for (const f of g.f) if (!f.mort && f.hp > 0) { const att = attaquant; attaquant = null; degats(g, f, n, f.x, f.y - f.hh * 0.4); attaquant = att; }
+}
 function maj(dt) {
   const g = jeu, [a, b] = g.f;
+  if (g.running) mortSubite(g, dt);
   // attaques mises en attente pour tomber pile avec leur son
   const prets = [];
   g.retards = g.retards.filter(r => { r.t -= dt; if (r.t <= 0) { prets.push(r.fn); return false; } return true; });
@@ -3689,6 +3713,9 @@ function dessiner() {
   }
   ctx.fillStyle = "#0f1222"; ctx.fillRect(-40, -40, W + 80, W + 80); // ce qu'on voit au bord quand l'écran tremble
   ctx.drawImage(fondArene(), 0, 0, W, W);
+  if (g.mortSubite) { // mort subite : le bord de l'arène rougeoie
+    ctx.save(); ctx.strokeStyle = `rgba(255,60,40,${0.45 + 0.3 * Math.sin(now * 6)})`; ctx.lineWidth = 14; ctx.strokeRect(7, 7, W - 14, W - 14); ctx.restore();
+  }
   if (g.mer && g.mer.ile) dessinerIle(g, g.mer.ile); // derrière les persos : le bateau peut s'y poser
   if (g.mer && g.mer.tempete > 0) { ctx.fillStyle = `rgba(8,10,25,${0.35 * Math.min(1, g.mer.tempete, TEMPETE_DUREE - g.mer.tempete + 0.3)})`; ctx.fillRect(0, 0, W, W); }
 
@@ -4127,11 +4154,11 @@ function dessiner() {
   ctx.lineJoin = "round";
   for (const t of g.txt) {
     const vie = t.vie ||= t.t, age = vie - t.t, pop = 1 + 0.55 * Math.max(0, 1 - age / 0.12); // le chiffre jaillit puis se pose
-    const gros = t.n ? Math.min(1, Math.max(0, (t.n - 6) / 18)) : 0, taille = t.n ? 20 + 14 * gros : 19;
+    const gros = t.n ? Math.min(1, Math.max(0, (t.n - 6) / 18)) : 0, taille = t.annonce ? 50 : t.n ? 20 + 14 * gros : 19;
     ctx.globalAlpha = Math.min(1, t.t * 2.5);
     ctx.font = `400 ${Math.round(taille * pop)}px "Bowlby One", "Arial Black", sans-serif`;
     ctx.lineWidth = 5; ctx.strokeStyle = "rgba(10,12,28,.85)"; ctx.strokeText(t.s, t.x, t.y);
-    ctx.fillStyle = t.soin ? "#5ef08a" : t.n ? (gros > 0.55 ? "#ff6a3d" : gros > 0.2 ? "#ffc23d" : "#ffffff") : "#eef1f8"; // soin en vert
+    ctx.fillStyle = t.annonce ? "#ff4d3a" : t.soin ? "#5ef08a" : t.n ? (gros > 0.55 ? "#ff6a3d" : gros > 0.2 ? "#ffc23d" : "#ffffff") : "#eef1f8"; // soin en vert
     ctx.fillText(t.s, t.x, t.y);
   }
   ctx.globalAlpha = 1;

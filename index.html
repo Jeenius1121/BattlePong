@@ -562,7 +562,7 @@ const CHARS = {
     creation: true,
     nom: "Robot", emoji: "🤖", vitesse: 220, images: ["attaque"], sonNom: "laser", son2: "minuteur",
     imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : 1,
-    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle ce qu’il touche. Chaque nouveau tir fait plus de dégâts que le précédent : plus le combat dure, plus il est dangereux. Le rayon ricoche sur les autres ennemis (jusqu’à 3), avec des dégâts divisés par deux à chaque ricochet. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire : c’est une victoire pour lui.",
+    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle ce qu’il touche. Chaque nouveau tir fait plus de dégâts que le précédent : plus le combat dure, plus il est dangereux. Le rayon ricoche sur les autres ennemis (jusqu’à 2), avec des dégâts divisés par deux à chaque ricochet. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire : c’est une victoire pour lui.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='26' fill='#8b93a6'/><rect x='64' y='112' width='12' height='26' fill='#8b93a6'/>
       <rect x='40' y='134' width='20' height='10' rx='2' fill='#5d6476'/><rect x='60' y='134' width='20' height='10' rx='2' fill='#5d6476'/>
@@ -654,7 +654,7 @@ const CHARS = {
   inconnu: {
     nom: "L’Inconnu", emoji: "👁️", vitesse: 230, son2: "téléportation", images: ["attaque"],
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit l’adversaire (déplacements et attaques), puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter : à chaque téléportation, il regagne 3 PV.",
+    desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit l’adversaire (déplacements et attaques), puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter : à chaque téléportation, il regagne 2 PV.",
     svg: `<g ${O}>
       <path d='M36 60 Q60 50 84 60 L94 140 Q86 132 78 142 Q70 132 60 144 Q50 132 42 142 Q34 132 26 140Z' fill='#2a2440'/>
       <path d='M80 74 Q96 78 104 70' fill='none' stroke='#2a2440' stroke-width='11'/>
@@ -781,7 +781,7 @@ const CHARS = {
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 3,2 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise. Quand sa langue est annulée, il attend un peu plus longtemps avant de la relancer. Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose, Bouldozer en feu qui la brûle), l’adversaire prend quand même une partie des dégâts de l’étranglement. Un adversaire accroché aux murs (la Chose Impie) ne peut pas être ramené : la langue l’étrangle sur place, et pendant ce temps le Smoker reste touchable (il encaisse 60 % de moins).",
+    desc: "Frappe au corps à corps. Toutes les 3,2 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire, sauf le Bombardier, trop gros, qui continue de tirer au ralenti), l’étrangle pendant 4 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise. Quand sa langue est annulée, il attend un peu plus longtemps avant de la relancer. Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose, Bouldozer en feu qui la brûle), l’adversaire prend quand même une partie des dégâts de l’étranglement. Un adversaire accroché aux murs (la Chose Impie) ne peut pas être ramené : la langue l’étrangle sur place, et pendant ce temps le Smoker reste touchable (il encaisse 60 % de moins).",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -911,10 +911,10 @@ const CHARS = {
     }
   },
   titan: {
-    nom: "Bombardier", emoji: "🛰️", vitesse: 80, pv: 200, taille: 1.5, portrait: "entier", images: ["tir", "appareil"],
+    nom: "Bombardier", emoji: "🛰️", lourd: true, vitesse: 80, pv: 200, taille: 1.5, portrait: "entier", images: ["tir", "appareil"],
     sonNom: "lancement", son2: "explosion du missile", son3: "appareil détruit", son4: "sifflement du missile",
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Énorme (200 PV) mais très lent. Deux petits appareils de 35 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Bombardier fait tomber de gros missiles du ciel sur lui. Sans appareil, il ne peut plus attaquer. Leurs faisceaux repèrent même les invisibles. Un appareil détruit revient au bout de 8 secondes, un par un. Les adversaires visent le Bombardier en priorité, mais leurs tirs peuvent toucher les appareils qui passent devant.",
+    desc: "Énorme (200 PV) mais très lent, et trop lourd pour être ralenti. Deux petits appareils de 25 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Bombardier fait tomber de gros missiles du ciel sur lui. Leurs faisceaux repèrent même les invisibles. Un appareil détruit revient au bout de 7 secondes, un par un. Quand il n’a plus aucun appareil, il tire quand même, mais au hasard sur l’arène (un missile toutes les 9 secondes). Attrapé par la langue du Smoker, il est trop gros pour être gêné : ses appareils volent toujours et il continue de tirer, au ralenti. Les adversaires visent le Bombardier en priorité, mais leurs tirs peuvent toucher les appareils qui passent devant.",
     svg: `<g ${O}>
       <rect x='36' y='108' width='20' height='34' rx='4' fill='#4a5160'/><rect x='64' y='108' width='20' height='34' rx='4' fill='#4a5160'/>
       <rect x='30' y='136' width='28' height='9' rx='3' fill='#2a2e38'/><rect x='62' y='136' width='28' height='9' rx='3' fill='#2a2e38'/>
@@ -924,6 +924,8 @@ const CHARS = {
       <rect x='42' y='16' width='36' height='32' rx='10' fill='#8b93a6'/>
       <rect x='48' y='26' width='24' height='9' rx='4' fill='#1b2033'/><circle cx='60' cy='30' r='3' fill='#ff3b3b' stroke='none'/>
       <path d='M60 16 V6' fill='none'/><circle cx='60' cy='5' r='3' fill='#f2b134'/></g>`,
+    // attrapé par la langue du Smoker : il est trop gros pour être gêné, ses appareils volent toujours et il continue de tirer, au ralenti
+    attrape(f, o, g, dt) { this.attaque(f, o, g, dt * 0.25); },
     // un de ses missiles qui va tomber sur f
     menacePour(o, f, g) {
       for (const m of g.missiles) if (m.owner === o && m.t < 0.5 && Math.hypot(m.x - f.x, m.y - f.y) < MISSILE_RAYON + f.hw * 0.4) return { x: m.x, y: m.y, zone: true };
@@ -932,7 +934,7 @@ const CHARS = {
     attaque(f, o, g, dt) {
       f.drones ??= [nouvelAppareil(f, 0), nouvelAppareil(f, 1)];
       for (const d of f.drones) bougerAppareil(f, o, d, dt);
-      // un appareil détruit revient au bout de 8 s, un par un
+      // un appareil détruit revient au bout de DRONE_RETOUR secondes, un par un
       if (f.drones.length < 2) {
         f.droneT = (f.droneT ?? DRONE_RETOUR) - dt;
         if (f.droneT <= 0) { f.droneT = DRONE_RETOUR; f.drones.push(nouvelAppareil(f, f.drones.length)); }
@@ -940,11 +942,16 @@ const CHARS = {
       // il ne tire que si au moins un appareil a repéré l'adversaire (faisceau rouge)
       const reperes = f.drones.filter(d => d.repere).length;
       f.cd -= dt;
-      if (reperes && f.cd <= 0) { // missile tiré vers le ciel, qui retombe là où est l'adversaire
-        f.cd = MISSILE_CD; f.attT = 0.4; son(f);
-        const k = MISSILE_DELAI * MISSILE_VISEE * reperes;
-        const vise = cibleDe(f, o) || o; // un squelette plus proche passe avant la Nécromancienne
-        g.missiles.push({ x: Math.min(W, Math.max(0, vise.x + (vise.vx || 0) * k)), y: Math.min(W, Math.max(0, vise.y + (vise.vy || 0) * k)), t: MISSILE_DELAI, owner: f });
+      const auHasard = !f.drones.length; // plus aucun appareil : il tire quand même, mais au hasard sur l'arène
+      if ((reperes || auHasard) && f.cd <= 0) { // missile tiré vers le ciel, qui retombe là où est l'adversaire (ou n'importe où, à l'aveugle)
+        f.cd = reperes ? MISSILE_CD : MISSILE_CD_HASARD; f.attT = 0.4; son(f);
+        let cx, cy;
+        if (reperes) {
+          const k = MISSILE_DELAI * MISSILE_VISEE * reperes;
+          const vise = cibleDe(f, o) || o; // un squelette plus proche passe avant la Nécromancienne
+          cx = vise.x + (vise.vx || 0) * k; cy = vise.y + (vise.vy || 0) * k;
+        } else { const p = pointAuHasard(); cx = p.x; cy = p.y; }
+        g.missiles.push({ x: Math.min(W, Math.max(0, cx)), y: Math.min(W, Math.max(0, cy)), t: MISSILE_DELAI, owner: f });
         // sifflement du missile qui tombe, calé pour finir pile à l'impact
         const s4 = sons["titan-4"];
         if (s4) plusTard(g, Math.max(0, MISSILE_DELAI - s4.buffer.duration), () => { if (!f.mort && g.running) son(f, 4); });
@@ -1065,7 +1072,7 @@ const CHARS = {
     nom: "Jeune beau et plein d’avenir", court: "Jeune beau", emoji: "⛵", vitesse: 70, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
     taille: 1.15, images: ["poisson", "île de la tortue"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", son9: "victoire sur l’île (à la place de « Wins »)", sonsLongs: [4, 7, 9],
     imageDe: () => 1,
-    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 6 secondes avant de replonger. Au bout de 40 à 42 secondes (au hasard), l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
+    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 10 secondes avant de replonger. Au bout de 50 à 52 secondes (au hasard), l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
     svg: `<g ${O}>
       <path d='M8 96 H112 Q104 128 60 130 Q16 128 8 96Z' fill='#6b3d1f'/><path d='M8 96 H112' stroke='#f2b134' stroke-width='5'/>
       <path d='M30 92 V14' stroke='#8a5228' stroke-width='6'/><path d='M34 18 Q58 30 54 86 H34Z' fill='#c4232f'/>
@@ -1331,7 +1338,7 @@ const CHARS = {
     portraitImage: 2, portraitAutre: { cx: 0.4, cy: 0.1, taille: 0.26 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
-    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute (en feu, il brûle la langue du Smoker). Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (38 % de dégâts en moins), avant de relancer son grappin.",
+    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute (en feu, il brûle la langue du Smoker). Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (25 % de dégâts en moins), avant de relancer son grappin.",
     svg: `<g ${O}>
       <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
       <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
@@ -1484,7 +1491,7 @@ const CHARS = {
   },
   oeil: {
     creation: true,
-    nom: "Chose Impie", emoji: "👁️", vitesse: 0, ancree: true, pv: 200, images: ["main à l’œil", "main à l’œil fermé"], reductionZone: 0, // dégâts de zone : 40 % de moins (les coups directs, eux, passent normalement)
+    nom: "Chose Impie", emoji: "👁️", vitesse: 0, ancree: true, pv: 200, images: ["main à l’œil", "main à l’œil fermé"], reductionZone: 0, // dégâts de zone : comme les coups directs (réglable : part de dégâts en moins)
     // l'avant-bras à l'œil (ce que les autres frappent) a une taille fixe ; images 4 et suivantes : le même, déjà tourné
     // d'un seizième de tour à chaque fois, pour que sa zone de touche suive son orientation
     get hauteurs() {
@@ -1498,7 +1505,7 @@ const CHARS = {
     // un coup ne peut vider que le bras à l'œil : elle ne tombe qu'avec son dernier bras
     plafond: f => f.brasActif ? Math.min(20, Math.ceil(f.brasActif.pv)) : Infinity,
     imageDe: f => { const ferme = f.oeilFerme > 0; return f.sens ? 3 + f.sens + (ferme ? MAIN_SENS : 0) : ferme ? 3 : 2; }, blindage: 0.26,
-    desc: "Énorme créature (200 PV) suspendue au milieu de l’arène, accrochée aux murs et au plafond par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains (sur les autres, il reste fermé), et c’est cet avant-bras qu’il faut frapper ; il est dur comme de la corne (26 % de dégâts en moins). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Ses PV, ce sont ses bras : chacun en porte un sixième, les coups entament le bras à l’œil, et quand il est vidé il est arraché ; un seul coup ne peut pas lui enlever plus de 20 PV. Tant qu’il reste un bras, il reste des PV ; quand le dernier est arraché, la Chose tombe. Son grand œil suit toujours l’adversaire. Les dégâts de zone (explosions, ondes…) lui font 15 % de moins ; les coups directs passent normalement. De temps en temps, l’œil fixe l’adversaire et vire au vert, puis lance son regard maudit : un large cône de lumière verte qui balaie l’arène d’un côté à l’autre en passant sur l’adversaire (il ne le suit pas) ; tant qu’il est dedans, il brûle (d’autant plus fort qu’il est rapide : un perso lent, qui ne peut pas y échapper, en prend moins) et il est ralenti. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place (jusqu’à 1,5 seconde) et lui fait de petits dégâts, à moins qu’il ne l’ait assez frappée pour se libérer avant. Accrochée aux murs, elle ne peut pas être ramenée par la langue du Smoker.",
+    desc: "Énorme créature (200 PV) suspendue au milieu de l’arène, accrochée aux murs et au plafond par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains (sur les autres, il reste fermé), et c’est cet avant-bras qu’il faut frapper ; il est dur comme de la corne (26 % de dégâts en moins). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Ses PV, ce sont ses bras : chacun en porte un sixième, les coups entament le bras à l’œil, et quand il est vidé il est arraché ; un seul coup ne peut pas lui enlever plus de 20 PV. Tant qu’il reste un bras, il reste des PV ; quand le dernier est arraché, la Chose tombe. Son grand œil suit toujours l’adversaire. De temps en temps, l’œil fixe l’adversaire et vire au vert, puis lance son regard maudit : un large cône de lumière verte qui balaie l’arène d’un côté à l’autre en passant sur l’adversaire (il ne le suit pas) ; tant qu’il est dedans, il brûle (d’autant plus fort qu’il est rapide : un perso lent, qui ne peut pas y échapper, en prend moins) et il est ralenti. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place (jusqu’à 1,5 seconde) et lui fait de petits dégâts, à moins qu’il ne l’ait assez frappée pour se libérer avant. Accrochée aux murs, elle ne peut pas être ramenée par la langue du Smoker.",
     svg: `<g ${O}>
       <path d='M60 40 Q30 60 34 110 Q40 140 60 146 Q80 140 86 110 Q90 60 60 40Z' fill='#e9c9c0' stroke='#7a1a22'/>
       <path d='M44 70 Q60 90 76 70 M46 100 Q60 116 74 100' fill='none' stroke='#b52a35' stroke-width='3'/>
@@ -1538,7 +1545,7 @@ const CHARS = {
             // plus l'adversaire est rapide, plus le regard lui fait mal (un lent, qui ne peut pas y échapper, en prend moins)
             const vit = o.vitesse ?? CHARS[o.type].vitesse, kv = Math.max(RAYON_VIT_MIN, Math.min(RAYON_VIT_MAX, vit / RAYON_VIT_REF));
             const dzR = (x, y, r) => this.dansRegard(f, { x, y, hw: r, hh: r }), nzR = partZone(o, dzR, Math.max(1, Math.round(RAYON_DEGATS * kv)));
-            if (vu && this.dansRegard(f, o)) { degats(g, o, nzR, o.x, o.y - o.hh * 0.3); o.lent = Math.max(o.lent || 0, RAYON_LENT); }
+            if (vu && this.dansRegard(f, o)) { degats(g, o, nzR, o.x, o.y - o.hh * 0.3); if (!CHARS[o.type].lourd) o.lent = Math.max(o.lent || 0, RAYON_LENT); } // le Bombardier, trop lourd, n'est pas ralenti
             zoneAutres(g, o, dzR, nzR);
             for (const d of [...(o.drones || [])]) { const q = dronePos(o, d); if (this.dansRegard(f, { x: q.x, y: q.y, hw: 14, hh: 14 })) blesserDrone(g, o, d, RAYON_DEGATS); } // et les appareils du Bombardier
           }
@@ -2110,7 +2117,7 @@ const CHARS = {
   },
   sorciere: {
     creation: true,
-    nom: "Nécromancienne", emoji: "🧹", vitesse: 120, memeEchelle: true, voitInvisible: true, gardes: true, portrait: { cx: 0.55, cy: 0.36, taille: 0.46 }, // gardes : ses squelettes sont visés avant elle ; portrait centré sur son visage et son chapeau
+    nom: "Nécromancienne", emoji: "🧹", vitesse: 120, memeEchelle: true, lienAme: true, voitInvisible: true, gardes: true, portrait: { cx: 0.55, cy: 0.36, taille: 0.46 }, // gardes : ses squelettes sont visés avant elle ; portrait centré sur son visage et son chapeau
     images: ["repos 2", "repos 3", "repos 4", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "orbe 1", "orbe 2", "orbe 3", "orbe 4", "orbe 5", "orbe 6", "orbe 7", "projectile 1", "projectile 2", "invocation 1", "invocation 2", "invocation 3", "invocation 4", "invocation 5", "invocation 6", "invocation 7", "invocation 8", "squelette repos 1", "squelette repos 2", "squelette repos 3", "squelette repos 4", "squelette marche 1", "squelette marche 2", "squelette marche 3", "squelette marche 4", "squelette marche 5", "squelette marche 6", "squelette marche 7", "squelette coup 1", "squelette coup 2", "squelette coup 3", "squelette coup 4", "squelette coup 5", "squelette coup 6", "squelette coup 7", "squelette coup 8", "squelette coup 9"],
     ancres: { 2: [0.007, 0.02], 3: [0.016, 0.02], 4: [0.023, 0.02], 5: [-0.031, 0.02], 6: [-0.016, 0.017], 7: [0.006, 0.031], 8: [0.015, 0.01], 9: [0.018, 0.024], 10: [0.014, 0.0], 11: [-0.05, -0.016], 12: [0.019, 0.017], 13: [0.073, 0.017], 14: [0.105, 0.017], 15: [0.121, 0.017], 16: [0.103, 0.017], 17: [0.053, 0.017], 20: [0.023, 0.017], 21: [0.086, 0.047], 22: [0.084, 0.061], 23: [0.103, 0.079], 24: [0.159, 0.064], 25: [0.128, 0.026], 26: [0.03, 0.017], 27: [0.033, 0.017] }, // le corps (centre, pieds) reste au même endroit quelle que soit l'image (la magie déborde)
     squelettePieds: { 28: [37.2, 125], 29: [36.4, 118], 30: [39.9, 119], 31: [38.7, 120], 32: [50.4, 112], 33: [44.0, 112], 34: [40.3, 111], 35: [36.1, 115], 36: [46.8, 120], 37: [48.3, 122], 38: [45.9, 123], 39: [43.5, 103], 40: [42.0, 98], 41: [51.6, 123], 42: [69.1, 121], 43: [77.8, 123], 44: [74.9, 100], 45: [62.9, 101], 46: [43.8, 97], 47: [41.4, 99] }, // squelettes : centre du corps (x) et bas des pieds (y) dans chaque image, en pixels
@@ -2120,7 +2127,7 @@ const CHARS = {
       if (f.sort) return f.sort.type === "orbe" ? 11 + Math.min(6, Math.floor(f.sort.t / SORT_ORBE * 7)) : 20 + Math.min(7, Math.floor(f.sort.t / SORT_INVOC * 8));
       return Math.hypot(f.vx, f.vy) > 10 ? 5 + Math.floor((f.pas || 0) * 9) % 6 : 1 + Math.floor((f.pas || 0) * 5) % 4;
     },
-    desc: "Une nécromancienne qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Elle voit les persos invisibles. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire (même invisible). Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée (lui ne voit pas les invisibles). Les squelettes ont peu de PV (une petite barre au-dessus d’eux les montre) et disparaissent au bout d’un moment, en laissant un tas d’os par terre ; les adversaires visent un squelette avant elle s’il est nettement plus près d’eux qu’elle, et ils prennent aussi les tirs et les attaques de zone qui passent sur eux (ils la protègent). Quand elle invoque, elle reste sur place, sans défense.",
+    desc: "Une nécromancienne qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Elle voit les persos invisibles. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire (même invisible). Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée (lui ne voit pas les invisibles). Les squelettes ont peu de PV (une petite barre au-dessus d’eux les montre) et disparaissent au bout d’un moment, en laissant un tas d’os par terre ; les adversaires visent un squelette avant elle s’il est nettement plus près d’eux qu’elle, et ils prennent aussi les tirs et les attaques de zone qui passent sur eux (ils la protègent). Lien d’âme : tant qu’un squelette est debout, chaque coup qu’elle reçoit lui fait 1 dégât de moins (son squelette le plus proche le prend à sa place). Bouclier d’os : quand une grosse explosion (missile du Bombardier, obus de l’Inconnu…) la prend avec un de ses squelettes, il se jette devant elle et en encaisse 80 %. Quand elle invoque, elle reste sur place, sans défense.",
     svg: `<g ${O}>
       <path d='M30 140 Q34 96 46 70 L74 70 Q86 96 90 140Z' fill='#2a1f38'/>
       <path d='M52 70 Q46 92 40 120 M68 70 Q74 92 80 120' fill='none' stroke='#cfd0dc' stroke-width='5'/>
@@ -2133,6 +2140,8 @@ const CHARS = {
       for (const d of o.drones || []) if (d.squelette && d.etat === "coup" && d.t < SQ_FRAPPE && Math.hypot(d.x - f.x, d.y - f.y) < 90) return { x: d.x, y: d.y, zone: true };
       return null;
     },
+    // bouclier d'os : une grosse explosion qui prend aussi un de ses squelettes la touche beaucoup moins (il se jette devant elle)
+    absorbeZone(f, dansZone, n) { return n >= SQ_BOUCLIER_SEUIL && (f.drones || []).some(d => !(d.nouveau > 0) && dansZone(d.x, d.y, d.hw)); },
     nouveauSquelette(f, o) {
       const s = f.face || 1, x = Math.min(W - 30, Math.max(30, f.x + s * f.hw * 0.75)), y = Math.min(W - 40, Math.max(40, f.y + f.hh - SQ_HAUTEUR * 0.5));
       return { squelette: true, x, y, hp: SQ_PV, etat: "repos", t: 0, cd: 0, vie: SQ_VIE, face: s, nouveau: 0, hw: SQ_HAUTEUR * 0.3, hh: SQ_HAUTEUR * 0.5, rayon: SQ_HAUTEUR * 0.35 };
@@ -2455,6 +2464,12 @@ function degats(g, cible, n, x, y) {
   if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction)));
   // blindage : dégâts toujours réduits de cette part (la main de la Chose Impie, dure comme de la corne)
   if (c.blindage) n = Math.max(1, Math.round(n * (1 - c.blindage * (1 - perce))));
+  if (c.lienAme && cible.drones && cible.drones.length) { // lien d'âme : le squelette le plus proche d'elle prend une part du coup
+    let d = null, dm = Infinity;
+    for (const x of cible.drones) { const dd = Math.hypot(x.x - cible.x, x.y - cible.y); if (!(x.nouveau > 0) && dd < dm) { dm = dd; d = x; } }
+    const part = d ? Math.min(SQ_LIEN_MAX, Math.round(n * SQ_LIEN)) : 0;
+    if (part > 0) { blesserDrone(g, cible, d, part); n -= part; if (n <= 0) return; }
+  }
   // plafond : le plus de dégâts qu'un seul coup peut lui faire (la Chose Impie : ce qui reste au bras à l'œil)
   if (c.plafond) n = Math.max(1, Math.min(n, c.plafond(cible)));
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
@@ -2484,7 +2499,7 @@ function explosion(g, x, y, cible, dmg, ang) {
       forme: "eclat", rot: Math.random() * 6, c: ["#e9a6ff", "#d46ae8", "#f6d2ff"][i % 3] });
   }
   const dx = Math.max(Math.abs(cible.x - x) - cible.hw, 0), dy = Math.max(Math.abs(cible.y - y) - cible.hh, 0);
-  const dzX = (px, py, r) => Math.hypot(px - x, py - y) < 140 + r, nzX = partZone(cible, dzX, dmg);
+  const dzX = (px, py, r) => Math.hypot(px - x, py - y) < 140 + r, nzX = partZone(cible, dzX, dmg, true);
   if (Math.hypot(dx, dy) < 140) degats(g, cible, nzX, cible.x, cible.y - cible.hh * 0.3);
   zoneAutres(g, cible, dzX, nzX);
   for (const d of [...(cible.drones || [])]) { const p = dronePos(cible, d); if (Math.hypot(p.x - x, p.y - y) < 150) blesserDrone(g, cible, d, dmg); }
@@ -2534,11 +2549,12 @@ const ABSORPTION_SOIN = 0.5;
 const ROBOT_RICOCHETS = 2; // nombre d'ennemis touchés au maximum par le rayon du robot
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
 const DRONE_LIEN = 0; // part des PV max du Bombardier perdue quand un de ses appareils est détruit
-const DRONE_PV = 25, DRONE_RETOUR = 6, MISSILE_CD = 3.4, MISSILE_DELAI = 1.5, MISSILE_RAYON = 240, MISSILE_DEGATS = 27;
+const DRONE_PV = 25, DRONE_RETOUR = 7, MISSILE_CD = 3.4, MISSILE_DELAI = 1.5, MISSILE_RAYON = 240, MISSILE_DEGATS = 25;
+const MISSILE_CD_HASARD = 9; // sans appareil qui voit l'adversaire : un missile au hasard, à ce rythme
 const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
 // appareils : ils patrouillent au hasard (faisceau bleu) ; quand l'adversaire passe dans leur faisceau,
 // ils le repèrent (faisceau rouge) et volent près de lui en le gardant en visée
-const FAISCEAU_PORTEE = 240, FAISCEAU_ANGLE = 0.45, APPAREIL_VITESSE = 150;
+const FAISCEAU_PORTEE = 220, FAISCEAU_ANGLE = 0.45, APPAREIL_VITESSE = 150;
 function nouvelAppareil(f, i) {
   return { x: f.x, y: f.y - f.hh * 0.5, dir: Math.random() * Math.PI * 2, hp: DRONE_PV, nouveau: 0.6, repere: false, but: null, butT: 0, bob: i * 2 };
 }
@@ -2597,8 +2613,9 @@ function menace(f, o, g) {
 function dejaVu(L, B) { for (let x = B; x; x = x.parent) if (L.has(x)) return true; return false; }
 // partage d'une attaque de zone : contre un perso en plusieurs morceaux (la Gelée), les dégâts de l'impact sont répartis
 // entre tous les morceaux pris dans la zone (6 morceaux touchés : chacun prend un sixième) ; contre les autres, rien ne change
-function partZone(o, dansZone, n) {
+function partZone(o, dansZone, n, explo) {
   const c = o && CHARS[o.type], k = c && c.morceauxDans ? c.morceauxDans(o, dansZone) : 1;
+  if (explo && c && c.absorbeZone && c.absorbeZone(o, dansZone, n)) return Math.max(1, Math.round(n * (1 - SQ_BOUCLIER))); // bouclier d'os : un squelette encaisse l'explosion à sa place
   const r = c && c.reductionZone ? n * (1 - c.reductionZone) : n; // reductionZone : encaisse moins les dégâts de zone (la Chose Impie)
   return k > 1 ? Math.max(1, Math.round(r / k)) : r === n ? n : Math.max(1, Math.round(r));
 }
@@ -2816,7 +2833,7 @@ function boumChacal(g, b, cible, dmg, rayon) {
   let touche = false;
   const dx = Math.max(Math.abs(cible.x - b.x) - cible.hw * 0.6, 0), dy = Math.max(Math.abs(cible.y - b.y) - cible.hh * 0.6, 0);
   coupRate = !!b.rate;
-  const dzK = (x, y, r) => Math.hypot(x - b.x, y - b.y) < rayon + r, nzK = partZone(cible, dzK, dmg);
+  const dzK = (x, y, r) => Math.hypot(x - b.x, y - b.y) < rayon + r, nzK = partZone(cible, dzK, dmg, true);
   if (!cible.mort && Math.hypot(dx, dy) < rayon) { degats(g, cible, nzK, cible.x, cible.y - cible.hh * 0.3); touche = true; }
   if (zoneAutres(g, cible, dzK, nzK)) touche = true;
   coupRate = false;
@@ -2887,7 +2904,9 @@ const TORTUE_ANIM_MARCHE = 6, TORTUE_ANIM_ROULE = 14, TORTUE_ANIM_ETOURDIE = 6;
 const SORCIERE_VITESSE = 120, SORCIERE_DIST = [210, 360];
 const SORT_ORBE = 0.5, SORT_ORBE_CD = 1.65, SORT_ORBE_PREMIER = 1.2, ORBE_VITESSE = 300, ORBE_DEGATS = 10, ORBE_VIRAGE = 1.4;
 const SORT_INVOC = 1.3, SORT_INVOC_CD = 10, SORT_INVOC_PREMIER = 1;
-const SQ_MAX = 2, SQ_PV = 30, SQ_VIE = 15, SQ_VITESSE = 130, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 6, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
+const SQ_LIEN = 0.3, SQ_LIEN_MAX = 1; // lien d'âme : part des coups reçus par la Nécromancienne que prend son squelette le plus proche (et au plus combien par coup)
+const SQ_BOUCLIER = 0.8, SQ_BOUCLIER_SEUIL = 20; // bouclier d'os : part d'une grosse explosion que prend le squelette, à partir de quels dégâts
+const SQ_MAX = 2, SQ_PV = 30, SQ_VIE = 15, SQ_VITESSE = 130, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 4, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
 const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 180 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
 const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.7, GELEE_CONTACT_CD = 0.8, GELEE_TRAINEE = 2, GELEE_TRAINEE_TIC = 0.4;
@@ -3040,7 +3059,7 @@ const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoy�
 const FEU_BONUS = 10; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 42, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
-const INCONNU_SOIN = 3; // PV regagnés par l'Inconnu à chaque téléportation
+const INCONNU_SOIN = 2; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
 const BALLE_VITESSE = 1320; // vitesse des balles de McCree
 // grenade flash de McCree : aveugle et ralentit énormément l'adversaire touché
@@ -3206,7 +3225,7 @@ function maj(dt) {
         if (p.perce) { // transperce : refait des dégâts à chaque nouveau passage à travers l'adversaire
           if (!p.dedans && !(p.hitCd > 0)) {
             p.hitCd = 0.6; coupVenu = p; degats(g, cible, p.dmg, p.x, p.y); coupVenu = null;
-            cible.lent = 2.5; eclats(g, p.x, p.y, "#d46ae8");
+            if (!CHARS[cible.type].lourd) cible.lent = 2.5; eclats(g, p.x, p.y, "#d46ae8"); // ralenti (sauf un perso trop lourd : le Bombardier)
           }
           p.dedans = true;
           continue;
@@ -3291,7 +3310,7 @@ function maj(dt) {
     g.boums.push({ x: m.x, y: m.y, t: 0.6 }); g.secousse = Math.max(g.secousse, 0.15); son(m.owner, 2);
     for (let i = 0; i < 24; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 260; g.parts.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, t: 0.6, g: 400, c: ["#ffd23f", "#ff8a2a", "#5b5b66"][i % 3] }); }
     coupRate = m.rate; // missile lancé à l'aveugle : il tombe à côté
-    const dzMi = (x, y, r) => Math.hypot(x - m.x, y - m.y) < MISSILE_RAYON + r, nzMi = partZone(o, dzMi, MISSILE_DEGATS);
+    const dzMi = (x, y, r) => Math.hypot(x - m.x, y - m.y) < MISSILE_RAYON + r, nzMi = partZone(o, dzMi, MISSILE_DEGATS, true);
     if (g.running && o && Math.hypot(o.x - m.x, o.y - m.y) < MISSILE_RAYON + Math.max(o.hw, o.hh) * 0.4) degats(g, o, nzMi, o.x, o.y - o.hh * 0.3);
     zoneAutres(g, o, dzMi, nzMi);
     coupRate = false;

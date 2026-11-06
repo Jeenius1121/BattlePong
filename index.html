@@ -396,7 +396,7 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibili
 const O = "stroke='#1b2033' stroke-width='3' stroke-linejoin='round' stroke-linecap='round'";
 const CHARS = {
   cowboy: {
-    nom: "McCree", emoji: "🤠", vitesse: 242, images: ["visée", "tir", "roulade 1", "roulade 2", "roulade 3", "roulade 4", "roulade 5", "roulade 6"], sonNom: "tirs", son2: "rechargement", son3: "grenade flash", son4: "roulade", sonFort: true, caler: true,
+    nom: "McCree", emoji: "🤠", vitesse: 242, pv: 100, images: ["visée", "tir", "roulade 1", "roulade 2", "roulade 3", "roulade 4", "roulade 5", "roulade 6"], sonNom: "tirs", son2: "rechargement", son3: "grenade flash", son4: "roulade", sonFort: true, caler: true,
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     // roulade : les images 4 à 9 s'enchaînent comme une animation (si elles sont fournies)
     imageDe: f => f.roulade > 0 && rouladeAnimee() ? 4 + Math.min(5, Math.floor((1 - f.roulade / ROULADE_DUREE) * 6)) : f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
@@ -490,7 +490,7 @@ const CHARS = {
   },
   sorcier: {
     creation: true, // perso inventé par le créateur du jeu (rangé dans « Personnage non licence »)
-    nom: "Sorcier", emoji: "🧙", vitesse: 200, voitInvisible: true, images: ["attaque", "bouclier"], son2: "bouclier",
+    nom: "Sorcier", emoji: "🧙", vitesse: 200, pv: 100, voitInvisible: true, images: ["attaque", "bouclier"], son2: "bouclier",
     tailles: { 3: 1.4 }, // l'image du bouclier (cercle de feu) est affichée plus grande
     imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : 1,
     desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 6 dégâts de plus.",
@@ -571,7 +571,7 @@ const CHARS = {
   },
   robot: {
     creation: true,
-    nom: "Robot", emoji: "🤖", vitesse: 220, images: ["attaque"], sonNom: "laser", son2: "minuteur",
+    nom: "Robot", emoji: "🤖", vitesse: 220, pv: 100, images: ["attaque"], sonNom: "laser", son2: "minuteur",
     imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : 1,
     desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle ce qu’il touche. Chaque nouveau tir fait plus de dégâts que le précédent : plus le combat dure, plus il est dangereux. Le rayon ricoche sur les autres ennemis (jusqu’à 2), avec des dégâts divisés par deux à chaque ricochet. À 20 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire : c’est une victoire pour lui.",
     svg: `<g ${O}>
@@ -663,7 +663,7 @@ const CHARS = {
     }
   },
   inconnu: {
-    nom: "L’Inconnu", emoji: "👁️", vitesse: 230, son2: "téléportation", images: ["attaque"],
+    nom: "L’Inconnu", emoji: "👁️", vitesse: 230, pv: 100, son2: "téléportation", images: ["attaque"],
     imageDe: f => f.attT > 0 ? 2 : 1,
     desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit l’adversaire (déplacements et attaques), puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter : à chaque téléportation, il regagne 2 PV.",
     svg: `<g ${O}>
@@ -719,7 +719,7 @@ const CHARS = {
   rodeur: {
     // relâché par le Smoker : sa musique de furie (ou de traque) reprend là où elle s'était coupée
     reprendre(f) { if (f.etat === "furie") son(f, 1, true, true); else if (f.etat === "stalk") son(f, 2, true, true); },
-    nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], reduction: 0.15, sonLong: true, son2: "traque", sonNom: "furie",
+    nom: "Myers", emoji: "🔪", vitesse: 240, pv: 100, images: ["furie"], reduction: 0.15, sonLong: true, son2: "traque", sonNom: "furie",
     imageDe: f => f.etat === "furie" ? 2 : 1,
     desc: "Rôde invisible, réapparaît dans un coin (le plus souvent le plus éloigné), puis se fige pour fixer l’adversaire et remplir sa jauge. Les coups ne l’interrompent pas, mais 4 coups en moins d’une seconde le font filer dans un autre coin, sans perdre sa jauge. Jauge pleine : il sort son couteau et fonce sur l’adversaire, en encaissant un peu moins les coups (15 % de moins). En furie, il tranche la langue du Smoker.",
     svg: `<g ${O}>
@@ -787,7 +787,7 @@ const CHARS = {
     }
   },
   smoker: {
-    nom: "Smoker", emoji: "👅", vitesse: 230, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
+    nom: "Smoker", emoji: "👅", vitesse: 230, pv: 100, images: ["coup", "langue"], sonNom: "coup", son2: "langue", son3: "étranglement", son4: "langue coupée", sonsLongs: [3],
     // image 3 (bouche ouverte, sans langue) pendant toute la prise, image 2 à chaque coup normal
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
@@ -875,7 +875,7 @@ const CHARS = {
     }
   },
   hurleur: {
-    nom: "Steve", emoji: "😱", vitesse: 265, taille: 0.9, images: ["cri"], sonNom: "cri", son2: "cri de sortie",
+    nom: "Steve", emoji: "😱", vitesse: 265, pv: 100, taille: 0.9, images: ["cri"], sonNom: "cri", son2: "cri de sortie",
     imageDe: f => f.attT > 0 ? 2 : 1,
     desc: "Crie toutes les 2 secondes : une onde de choc en anneau part de lui et blesse l’adversaire qu’elle traverse. Toutes les 6 secondes, il devient invisible, s’approche doucement, réapparaît en poussant un énorme cri (23 dégâts) puis s’enfuit.",
     svg: `<g ${O}>
@@ -970,7 +970,7 @@ const CHARS = {
     }
   },
   bison: {
-    nom: "Bison", emoji: "👊", vitesse: 200, perceBlindage: 0.5, taille: 1.15, tailles: { 2: 0.55 }, images: ["psycho crusher", "head stomp", "coup de genou"],
+    nom: "Bison", emoji: "👊", vitesse: 200, pv: 100, perceBlindage: 0.5, taille: 1.15, tailles: { 2: 0.55 }, images: ["psycho crusher", "head stomp", "coup de genou"],
     sonNom: "psycho crusher", son2: "head stomp", son3: "absorption", son4: "coup de genou",
     // image 4 pendant les coups de genou (seulement si elle est fournie, sinon l'image normale)
     imageDe: f => f.crusher ? 2 : f.stomp ? 3 : f.attT > 0 && CHARS.bison.spr && CHARS.bison.spr[4] ? 4 : 1,
@@ -1080,7 +1080,7 @@ const CHARS = {
     }
   },
   marin: {
-    nom: "Jeune beau et plein d’avenir", court: "Jeune beau", emoji: "⛵", vitesse: 70, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
+    nom: "Jeune beau et plein d’avenir", court: "Jeune beau", emoji: "⛵", vitesse: 70, pv: 100, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
     taille: 1.15, images: ["poisson", "île de la tortue"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", son9: "victoire sur l’île (à la place de « Wins »)", sonsLongs: [4, 7, 9],
     imageDe: () => 1,
     desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 7 secondes avant de replonger. Au bout de 50 à 52 secondes (au hasard), l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
@@ -1217,7 +1217,7 @@ const CHARS = {
     }
   },
   gigachad: {
-    nom: "GigaChad", emoji: "🗿", vitesse: 220, images: ["pose 1", "pose 2", "pose 3", "pose 4", "coup de poing", "pose 5", "pose 6", "pose 7"], memeEchelle: true,
+    nom: "GigaChad", emoji: "🗿", vitesse: 220, pv: 100, images: ["pose 1", "pose 2", "pose 3", "pose 4", "coup de poing", "pose 5", "pose 6", "pose 7"], memeEchelle: true,
     sonNom: "pose", son2: "coup de poing (faible, ne projette pas)", son3: "gros coup de poing (projette contre le mur)", son4: "musique (en boucle, tout le combat)", sonsMusique: [4],
     son6: "coup le plus puissant (5 poses)",
     // ses coups de poing : plus forts, et sa musique baisse un instant pour qu'on les entende bien
@@ -1296,7 +1296,7 @@ const CHARS = {
     }
   },
   chacal: {
-    nom: "Chacal", emoji: "💣", vitesse: 230, images: ["tir"],
+    nom: "Chacal", emoji: "💣", vitesse: 230, pv: 100, images: ["tir"],
     sonNom: "grenade", son2: "explosion", son3: "mine", son4: "piège", son6: "grenades de la fin",
     imageDe: f => f.attT > 0 ? 2 : 1,
     desc: "Lance des grenades vers l’adversaire : elles rebondissent sur les murs et explosent au contact, ou au bout de quelques instants. De temps en temps, il pose une mine incapacitante (elle explose quand l’adversaire passe dessus et le projette au loin) et un piège d’acier (l’adversaire qui marche dedans est bloqué sur place un moment). Quand il meurt, il lâche une poignée de petites grenades autour de lui : tant qu’elles n’ont pas explosé, le combat n’est pas fini, et si elles tuent l’adversaire, c’est une égalité.",
@@ -2128,7 +2128,7 @@ const CHARS = {
   },
   sorciere: {
     creation: true,
-    nom: "Nécromancienne", emoji: "🧹", vitesse: 120, memeEchelle: true, lienAme: true, voitInvisible: true, gardes: true, portrait: { cx: 0.55, cy: 0.36, taille: 0.46 }, // gardes : ses squelettes sont visés avant elle ; portrait centré sur son visage et son chapeau
+    nom: "Nécromancienne", emoji: "🧹", vitesse: 120, pv: 100, memeEchelle: true, lienAme: true, voitInvisible: true, gardes: true, portrait: { cx: 0.55, cy: 0.36, taille: 0.46 }, // gardes : ses squelettes sont visés avant elle ; portrait centré sur son visage et son chapeau
     images: ["repos 2", "repos 3", "repos 4", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "orbe 1", "orbe 2", "orbe 3", "orbe 4", "orbe 5", "orbe 6", "orbe 7", "projectile 1", "projectile 2", "invocation 1", "invocation 2", "invocation 3", "invocation 4", "invocation 5", "invocation 6", "invocation 7", "invocation 8", "squelette repos 1", "squelette repos 2", "squelette repos 3", "squelette repos 4", "squelette marche 1", "squelette marche 2", "squelette marche 3", "squelette marche 4", "squelette marche 5", "squelette marche 6", "squelette marche 7", "squelette coup 1", "squelette coup 2", "squelette coup 3", "squelette coup 4", "squelette coup 5", "squelette coup 6", "squelette coup 7", "squelette coup 8", "squelette coup 9"],
     ancres: { 2: [0.007, 0.02], 3: [0.016, 0.02], 4: [0.023, 0.02], 5: [-0.031, 0.02], 6: [-0.016, 0.017], 7: [0.006, 0.031], 8: [0.015, 0.01], 9: [0.018, 0.024], 10: [0.014, 0.0], 11: [-0.05, -0.016], 12: [0.019, 0.017], 13: [0.073, 0.017], 14: [0.105, 0.017], 15: [0.121, 0.017], 16: [0.103, 0.017], 17: [0.053, 0.017], 20: [0.023, 0.017], 21: [0.086, 0.047], 22: [0.084, 0.061], 23: [0.103, 0.079], 24: [0.159, 0.064], 25: [0.128, 0.026], 26: [0.03, 0.017], 27: [0.033, 0.017] }, // le corps (centre, pieds) reste au même endroit quelle que soit l'image (la magie déborde)
     squelettePieds: { 28: [37.2, 125], 29: [36.4, 118], 30: [39.9, 119], 31: [38.7, 120], 32: [50.4, 112], 33: [44.0, 112], 34: [40.3, 111], 35: [36.1, 115], 36: [46.8, 120], 37: [48.3, 122], 38: [45.9, 123], 39: [43.5, 103], 40: [42.0, 98], 41: [51.6, 123], 42: [69.1, 121], 43: [77.8, 123], 44: [74.9, 100], 45: [62.9, 101], 46: [43.8, 97], 47: [41.4, 99] }, // squelettes : centre du corps (x) et bas des pieds (y) dans chaque image, en pixels

@@ -2110,7 +2110,7 @@ const CHARS = {
   },
   sorciere: {
     creation: true,
-    nom: "Nécromancienne", emoji: "🧹", vitesse: 120, memeEchelle: true, gardes: true, portrait: { cx: 0.55, cy: 0.36, taille: 0.46 }, // gardes : ses squelettes sont visés avant elle ; portrait centré sur son visage et son chapeau
+    nom: "Nécromancienne", emoji: "🧹", vitesse: 120, memeEchelle: true, voitInvisible: true, gardes: true, portrait: { cx: 0.55, cy: 0.36, taille: 0.46 }, // gardes : ses squelettes sont visés avant elle ; portrait centré sur son visage et son chapeau
     images: ["repos 2", "repos 3", "repos 4", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "orbe 1", "orbe 2", "orbe 3", "orbe 4", "orbe 5", "orbe 6", "orbe 7", "projectile 1", "projectile 2", "invocation 1", "invocation 2", "invocation 3", "invocation 4", "invocation 5", "invocation 6", "invocation 7", "invocation 8", "squelette repos 1", "squelette repos 2", "squelette repos 3", "squelette repos 4", "squelette marche 1", "squelette marche 2", "squelette marche 3", "squelette marche 4", "squelette marche 5", "squelette marche 6", "squelette marche 7", "squelette coup 1", "squelette coup 2", "squelette coup 3", "squelette coup 4", "squelette coup 5", "squelette coup 6", "squelette coup 7", "squelette coup 8", "squelette coup 9"],
     ancres: { 2: [0.007, 0.02], 3: [0.016, 0.02], 4: [0.023, 0.02], 5: [-0.031, 0.02], 6: [-0.016, 0.017], 7: [0.006, 0.031], 8: [0.015, 0.01], 9: [0.018, 0.024], 10: [0.014, 0.0], 11: [-0.05, -0.016], 12: [0.019, 0.017], 13: [0.073, 0.017], 14: [0.105, 0.017], 15: [0.121, 0.017], 16: [0.103, 0.017], 17: [0.053, 0.017], 20: [0.023, 0.017], 21: [0.086, 0.047], 22: [0.084, 0.061], 23: [0.103, 0.079], 24: [0.159, 0.064], 25: [0.128, 0.026], 26: [0.03, 0.017], 27: [0.033, 0.017] }, // le corps (centre, pieds) reste au même endroit quelle que soit l'image (la magie déborde)
     squelettePieds: { 28: [37.2, 125], 29: [36.4, 118], 30: [39.9, 119], 31: [38.7, 120], 32: [50.4, 112], 33: [44.0, 112], 34: [40.3, 111], 35: [36.1, 115], 36: [46.8, 120], 37: [48.3, 122], 38: [45.9, 123], 39: [43.5, 103], 40: [42.0, 98], 41: [51.6, 123], 42: [69.1, 121], 43: [77.8, 123], 44: [74.9, 100], 45: [62.9, 101], 46: [43.8, 97], 47: [41.4, 99] }, // squelettes : centre du corps (x) et bas des pieds (y) dans chaque image, en pixels
@@ -2120,7 +2120,7 @@ const CHARS = {
       if (f.sort) return f.sort.type === "orbe" ? 11 + Math.min(6, Math.floor(f.sort.t / SORT_ORBE * 7)) : 20 + Math.min(7, Math.floor(f.sort.t / SORT_INVOC * 8));
       return Math.hypot(f.vx, f.vy) > 10 ? 5 + Math.floor((f.pas || 0) * 9) % 6 : 1 + Math.floor((f.pas || 0) * 5) % 4;
     },
-    desc: "Une nécromancienne qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire. Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée. Les squelettes ont peu de PV (une petite barre au-dessus d’eux les montre) et disparaissent au bout d’un moment, en laissant un tas d’os par terre ; les adversaires visent un squelette avant elle dès qu’il est plus près d’eux qu’elle, et ils prennent aussi les tirs et les attaques de zone qui passent sur eux (ils la protègent). Quand elle invoque, elle reste sur place, sans défense.",
+    desc: "Une nécromancienne qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Elle voit les persos invisibles. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire (même invisible). Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée (lui ne voit pas les invisibles). Les squelettes ont peu de PV (une petite barre au-dessus d’eux les montre) et disparaissent au bout d’un moment, en laissant un tas d’os par terre ; les adversaires visent un squelette avant elle s’il est nettement plus près d’eux qu’elle, et ils prennent aussi les tirs et les attaques de zone qui passent sur eux (ils la protègent). Quand elle invoque, elle reste sur place, sans défense.",
     svg: `<g ${O}>
       <path d='M30 140 Q34 96 46 70 L74 70 Q86 96 90 140Z' fill='#2a1f38'/>
       <path d='M52 70 Q46 92 40 120 M68 70 Q74 92 80 120' fill='none' stroke='#cfd0dc' stroke-width='5'/>
@@ -2173,7 +2173,7 @@ const CHARS = {
         d.t += dt; d.nouveau = Math.max(0, (d.nouveau || 0) - dt); d.vie -= dt; d.cd = Math.max(0, d.cd - dt);
         if (d.vie <= 0 || f.mort) { f.drones = f.drones.filter(x => x !== d); this.mortDrone(g, f, d); continue; }
         if (d.etat === "naissance") { if (d.t >= 0.35) { d.etat = "repos"; d.t = 0; } continue; }
-        const vise = !o.mort && !cache(o, f) && !o.enLair;
+        const vise = !o.mort && !cache(o) && !o.enLair; // les squelettes, eux, ne voient pas les invisibles
         // distance entre le squelette et le bord de l'adversaire
         const ex = Math.max(0, Math.abs(o.x - d.x) - o.hw * 0.8), ey = Math.max(0, Math.abs(o.y - d.y) - o.hh * 0.8), e = Math.hypot(ex, ey);
         if (d.etat === "coup") {
@@ -2568,11 +2568,12 @@ function bougerAppareil(f, o, d, dt) {
 function dronePos(f, d) { return { x: d.x, y: d.y }; }
 // cible visée : toujours l'adversaire en priorité ; les appareils du Bombardier ne sont visés
 // que si on ne le voit pas (un appareil est renvoyé sous forme de cible avec .drone)
+const GARDES_PART = 0.75; // un garde (squelette) n'est visé que s'il est à moins de cette part de la distance de son maître
 function cibleDe(f, o) {
   // gardes : ses « appareils » (les squelettes de la Nécromancienne) sont visés en priorité, même quand on la voit
   const gardes = CHARS[o.type].gardes && !o.mort && (o.drones || []).some(d => !(d.nouveau > 0));
   if (!cache(o, f) && !gardes) return o;
-  let best = null, dBest = cache(o, f) ? Infinity : Math.hypot(o.x - f.x, o.y - f.y); // un squelette n'est visé que s'il est plus près qu'elle
+  let best = null, dBest = cache(o, f) ? Infinity : Math.hypot(o.x - f.x, o.y - f.y) * GARDES_PART; // un squelette n'est visé que s'il est nettement plus près qu'elle
   if (!o.mort) for (const d of o.drones || []) {
     if (d.nouveau > 0) continue;
     const dd = Math.hypot(d.x - f.x, d.y - f.y);
@@ -2735,7 +2736,7 @@ function autodestruction(g, f, o) {
   for (let i = 0; i < 3; i++) g.boums.push({ x: f.x + (Math.random() - 0.5) * 60, y: f.y + (Math.random() - 0.5) * 60, t: 0.6 });
 }
 // Chacal : grenades qui rebondissent, mine incapacitante, piège d'acier, grenades de la fin
-const GRENADE_CD = 1.2, GRENADE_VITESSE = 430, GRENADE_MECHE = 2.2, GRENADE_REBONDS = 3, GRENADE_DEGATS = 11, GRENADE_RAYON = 55;
+const GRENADE_CD = 1.2, GRENADE_VITESSE = 430, GRENADE_MECHE = 2.2, GRENADE_REBONDS = 3, GRENADE_DEGATS = 10, GRENADE_RAYON = 55;
 const MINE_PREMIERE = 3, MINE_CD = 7, MINE_DEGATS = 8, MINE_RAYON = 28, MINE_PROJETE = 850;
 const PIEGE_PREMIER = 5, PIEGE_CD = 9, PIEGE_DEGATS = 6, PIEGE_DUREE = 1.5, PIEGE_RAYON = 26;
 const FINALE_NB = 6, FINALE_ECART = 70, FINALE_MECHE = [0.8, 1.6], FINALE_DEGATS = 9, FINALE_RAYON = 50;
@@ -5180,7 +5181,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.62.0", NOTES = "Grosse mise à jour : tout le jeu a été refait en beau.\n• Nouvelle interface : thème de jeu de combat, fiche des pouvoirs du perso choisi, bouton COMBAT toujours sous le pouce, dé 🎲 pour deux persos au hasard, nouveautés et guide des persos repliés, bouton des sons.\n• Combat : arène en terrain de pong, face-à-face avant READY / FIGHT, barres de vie avec portraits, chiffres de dégâts qui jaillissent, confettis de victoire, mise en page en paysage, mort subite après 2 minutes.\n• Animations : chaque perso marche à sa façon (Steve se dandine, l’Inconnu et le Smoker titubent, la robe du Sorcier ondule), ombres au sol, écrasés contre les murs, reculent quand on les touche ; bâton lumineux du Sorcier, antenne et étincelles du Robot, douilles de McCree, fumée du Smoker, plumes de Steve, aura de Bison, souffle de Myers, boules de feu enflammées.\n• Corrections : gel de plusieurs secondes avec Bouldozer, Slime haché par une seule onde ou une seule balle, Tortue qui ne se relançait plus, son de sa boule, portrait de la Nécromancienne, noms trop longs, combats sans fin.\n• Équilibrage : missiles du Bombardier 27, Slime 180 PV, la boule de la Tortue renverse les squelettes comme des quilles, on voit venir Bouldozer en feu.";
+const VERSION = "1.63.0", NOTES = "Équilibrage, suite de la grosse mise à jour (des milliers de combats simulés pour chaque réglage).\n• Nécromancienne : elle voit les persos invisibles (ses orbes suivent Steve et Myers, pas ses squelettes) ; ses squelettes n’attirent les coups que s’ils sont nettement plus près de l’attaquant qu’elle.\n• Chacal : grenades un peu moins fortes (11 → 10).\n• Rappel de la 1.62 : missiles du Bombardier 27, Slime 180 PV, la boule de la Tortue renverse les squelettes comme des quilles, on voit venir Bouldozer en feu, un coup ne retouche plus les petits du Slime qu’il vient de couper.\n• Résultat : tous les persos entre 48 et 54 % de victoires, et plus que 2 duels à 100 % (au lieu de 4).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

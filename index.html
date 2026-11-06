@@ -1349,7 +1349,7 @@ const CHARS = {
     portraitImage: 2, portraitAutre: { cx: 0.4, cy: 0.1, taille: 0.26 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
-    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute (en feu, il brûle la langue du Smoker). Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (25 % de dégâts en moins), avant de relancer son grappin.",
+    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute (en feu, il brûle la langue du Smoker). Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (20 % de dégâts en moins), avant de relancer son grappin.",
     svg: `<g ${O}>
       <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
       <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
@@ -2777,8 +2777,8 @@ const VOL_LIBRE = 1.2, VOL_LIBRE_MIN = 0.5, STASE_DUREE = 0.5, STASE_HAUTEUR = 3
 // écrasement : dégâts à l'adversaire au sol (pas trop loin), et plus petits s'il était sur la trajectoire
 const ECRASE_SOL = 8, ECRASE_TRAJET = 4, ECRASE_RAYON = 170, ECRASE_HAUTEUR_SOL = 60, ECRASE_PROJETE = 700, ECRASE_PROJETE_DUREE = 0.4;
 const HAMMOND_ENVOLEE = 450; // vitesse vers le haut ajoutée quand il lâche le grappin
-const HAMMOND_BLINDAGE = 0.25; // dégâts en moins quand il est posé en bas (mode tourelle)
-const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.4;
+const HAMMOND_BLINDAGE = 0.2; // dégâts en moins quand il est posé en bas (mode tourelle)
+const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.15;
 // mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
 // Repère du perso tourné vers l'avant (x vers l'avant) ; u = demi-hauteur de l'image
 const CANON_PIVOT = 5, CANON_ANGLE_MAX = 1.25, CANON_ANGLE_BAS = 0.45; // vitesse de pivot (radians/s), angle max vers le haut et vers le bas

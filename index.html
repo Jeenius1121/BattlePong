@@ -2595,7 +2595,7 @@ function bougerAppareil(f, o, d, dt) {
 function dronePos(f, d) { return { x: d.x, y: d.y }; }
 // cible visée : toujours l'adversaire en priorité ; les appareils du Bombardier ne sont visés
 // que si on ne le voit pas (un appareil est renvoyé sous forme de cible avec .drone)
-const GARDES_PART = 0.6; // un garde (squelette) n'est visé que s'il est à moins de cette part de la distance de son maître
+const GARDES_PART = 0.75; // un garde (squelette) n'est visé que s'il est à moins de cette part de la distance de son maître
 function cibleDe(f, o) {
   // gardes : ses « appareils » (les squelettes de la Nécromancienne) sont visés en priorité, même quand on la voit
   const gardes = CHARS[o.type].gardes && !o.mort && (o.drones || []).some(d => !(d.nouveau > 0));
@@ -2913,11 +2913,11 @@ const TORTUE_ETOURDIE_FRAGILE = 1.3, TORTUE_ETOURDIE_BASE = 0.85, TORTUE_ETOURDI
 const TORTUE_ANIM_MARCHE = 6, TORTUE_ANIM_ROULE = 14, TORTUE_ANIM_ETOURDIE = 6;
 // Sorcière : orbe qui suit un peu, invocation de squelettes (2 au plus) qui marchent vers l'adversaire et le frappent
 const SORCIERE_VITESSE = 120, SORCIERE_DIST = [210, 360];
-const SORT_ORBE = 0.5, SORT_ORBE_CD = 1.5, SORT_ORBE_PREMIER = 1.2, ORBE_VITESSE = 300, ORBE_DEGATS = 10, ORBE_VIRAGE = 1.4;
+const SORT_ORBE = 0.5, SORT_ORBE_CD = 1.65, SORT_ORBE_PREMIER = 1.2, ORBE_VITESSE = 250, ORBE_DEGATS = 10, ORBE_VIRAGE = 1.4;
 const SORT_INVOC = 1.3, SORT_INVOC_CD = 10, SORT_INVOC_PREMIER = 1;
 const SQ_LIEN = 0.3, SQ_LIEN_MAX = 1; // lien d'âme : part des coups reçus par la Nécromancienne que prend son squelette le plus proche (et au plus combien par coup)
 const SQ_BOUCLIER = 0.8, SQ_BOUCLIER_SEUIL = 20; // bouclier d'os : part d'une grosse explosion que prend le squelette, à partir de quels dégâts
-const SQ_MAX = 2, SQ_PV = 30, SQ_VIE = 15, SQ_VITESSE = 160, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 4, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
+const SQ_MAX = 2, SQ_PV = 27, SQ_VIE = 18, SQ_VITESSE = 160, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 4, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
 const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 180 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
 const GELEE_TRAINEE_LENT = 0.6; // traînée gluante : ralentit l'adversaire qui marche dedans
@@ -5215,7 +5215,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.65.0", NOTES = "Mise à jour directement dans l’application, et suite de l’équilibrage.\n• Application Android : quand une nouvelle version sort, un bandeau « Une nouvelle mise à jour est disponible » apparaît ; le bouton « Mettre à jour » ne télécharge que ce qui a changé, puis le jeu redémarre tout seul sur la nouvelle version, sans réinstaller l’application (cette version 1.65.0 est la dernière à installer).\n• Slime : sa traînée devient gluante : elle ralentit et ne fait plus qu’1 dégât ; il attend un peu plus entre deux coups au contact.\n• McCree : balles 8, rechargement un peu plus long, roulade toutes les 10 s ; il tire sur l’ennemi le plus proche qui passe à son côté (morceau du Slime, squelette, appareil…).\n• Nécromancienne : une orbe toutes les 2 s, squelettes plus rapides et un peu moins visés.\n• Bison : Head Stomp plus fort (16). Marin : mer 2, plongée toutes les 7 s, poisson au contact 16. Smoker : langue toutes les 2,8 s. GigaChad : un peu plus rapide. Chacal : mine 10.\n• Tortue : sa carapace arrête le missile du Bombardier qui tombe pile sur elle.";
+const VERSION = "1.66.0", NOTES = "Suite de l’équilibrage (première mise à jour qui arrive directement dans l’application).\n• Bombardier : sans appareil, un missile au hasard toutes les 7 s (au lieu de 9).\n• Inconnu : obus 13 (au lieu de 11). Les ralentissements (obus de l’Inconnu, regard de la Chose, traînée du Slime) sont moins forts : on garde 75 % de sa vitesse.\n• Tortue : elle se met en colère après 34 dégâts (au lieu de 28), et sa boule roule un peu moins vite.\n• Nécromancienne : orbe un peu moins fréquente et plus lente ; squelettes de 27 PV qui durent 18 s.\n• Sorcier : bouclier 48, boule attisée +6. Robot : autodestruction à 20 PV. GigaChad : choc contre le mur 15.\n• Résultat : 26 duels à 80 % ou plus (au lieu de 33), et 5 à 90 % ou plus (au lieu de 7).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

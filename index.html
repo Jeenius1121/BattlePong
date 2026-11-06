@@ -2506,7 +2506,7 @@ const GIGA_COUP = 5, GIGA_COUP_POSE = 6, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_P
 // Bison
 const CRUSHER_CD = 2.75, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
-const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 3;
+const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 4;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
 const POISSON_CD = [3.5, 5], POISSON_MONTEE = 1.4, POISSON_PAUSE = 1, POISSON_CHUTE = 0.8, POISSON_HAUT = 70, POISSON_RAYON = 42;
 const POISSON_SOIN = 5; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
@@ -2524,7 +2524,7 @@ function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (
 // l'île de la tortue : au bout d'un moment, le Marin rentre chez lui (c'est une victoire pour lui)
 // plongée du Marin quand une attaque va le toucher : il ne la voit venir qu'une fois sur PLONGEE_VU (sinon il est surpris un instant)
 const PLONGEE_DUREE = 1.2, PLONGEE_CD = 10, PLONGEE_VU = 0.1, PLONGEE_RATE = 1;
-const ILE_DELAI = [40, 42], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
+const ILE_DELAI = [50, 52], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
 const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 13, GENOU_CD = 2, GENOU_DEGATS = 4;

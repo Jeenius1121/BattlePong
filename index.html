@@ -925,7 +925,7 @@ const CHARS = {
     nom: "Bombardier", emoji: "🛰️", lourd: true, vitesse: 80, pv: 200, taille: 1.5, portrait: "entier", images: ["tir", "appareil"],
     sonNom: "lancement", son2: "explosion du missile", son3: "appareil détruit", son4: "sifflement du missile",
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Énorme (200 PV) mais très lent, et trop lourd pour être ralenti. Deux petits appareils de 25 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Bombardier fait tomber de gros missiles du ciel sur lui. Leurs faisceaux repèrent même les invisibles. Un appareil détruit revient au bout de 7 secondes, un par un. Quand il n’a plus aucun appareil, il tire quand même, mais au hasard sur l’arène (un missile toutes les 9 secondes). Attrapé par la langue du Smoker, il est trop gros pour être gêné : ses appareils volent toujours et il continue de tirer, au ralenti. Les adversaires visent le Bombardier en priorité, mais leurs tirs peuvent toucher les appareils qui passent devant.",
+    desc: "Énorme (200 PV) mais très lent, et trop lourd pour être ralenti. Deux petits appareils de 25 PV patrouillent dans l’arène avec un faisceau bleu. Quand l’adversaire passe dans le faisceau, ils le repèrent (faisceau rouge) et le suivent : tant qu’au moins un appareil l’a repéré, le Bombardier fait tomber de gros missiles du ciel sur lui. Leurs faisceaux repèrent même les invisibles. Un appareil détruit revient au bout de 7 secondes, un par un. Quand il n’a plus aucun appareil, il tire quand même, mais au hasard sur l’arène (un missile toutes les 7 secondes). Attrapé par la langue du Smoker, il est trop gros pour être gêné : ses appareils volent toujours et il continue de tirer, au ralenti. Les adversaires visent le Bombardier en priorité, mais leurs tirs peuvent toucher les appareils qui passent devant.",
     svg: `<g ${O}>
       <rect x='36' y='108' width='20' height='34' rx='4' fill='#4a5160'/><rect x='64' y='108' width='20' height='34' rx='4' fill='#4a5160'/>
       <rect x='30' y='136' width='28' height='9' rx='3' fill='#2a2e38'/><rect x='62' y='136' width='28' height='9' rx='3' fill='#2a2e38'/>
@@ -2561,7 +2561,7 @@ const ROBOT_RICOCHETS = 2; // nombre d'ennemis touchés au maximum par le rayon 
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
 const DRONE_LIEN = 0; // part des PV max du Bombardier perdue quand un de ses appareils est détruit
 const DRONE_PV = 25, DRONE_RETOUR = 7, MISSILE_CD = 3.4, MISSILE_DELAI = 1.5, MISSILE_RAYON = 240, MISSILE_DEGATS = 25;
-const MISSILE_CD_HASARD = 9; // sans appareil qui voit l'adversaire : un missile au hasard, à ce rythme
+const MISSILE_CD_HASARD = 7; // sans appareil qui voit l'adversaire : un missile au hasard, à ce rythme
 const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
 // appareils : ils patrouillent au hasard (faisceau bleu) ; quand l'adversaire passe dans leur faisceau,
 // ils le repèrent (faisceau rouge) et volent près de lui en le gardant en visée

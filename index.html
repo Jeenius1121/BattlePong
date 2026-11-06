@@ -2898,9 +2898,9 @@ function majBombes(g, dt) {
 // Chose Impie : 6 bras accrochés aux murs ; la main où l'œil est ouvert est ce que les autres frappent
 // MAIN_HAUTEUR : longueur de l'avant-bras + main ; MAIN_MUR : distance du centre au mur (le bout des griffes touche le bord)
 // Grenouille : bulle du canon (charge, taille, vitesse, temps de vol, arrêt avant d'éclater, dégâts selon la taille, attente entre deux bulles)
-const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 150, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 8, BULLE_DEG_MAX = 29, BULLE_CD = 1;
+const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 150, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 6, BULLE_DEG_MAX = 29, BULLE_CD = 1;
 const BULLE_MARCHE = 90; // vitesse de la Grenouille pendant qu'elle gonfle sa bulle (elle marche lentement au lieu de sauter)
-const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 5;
+const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 6;
 // pilote éjecté : PV qui lui restent, bonds, et son pistolet à petites bulles ; explosion du mécha à l'éjection
 const PILOTE_ECART = 2.2; // écart au hasard des bonds du pilote autour de la direction de l'adversaire (radians)
 const PILOTE_PV = 30, PILOTE_VITESSE = 330, PILOTE_BOND_DUREE = 0.35, PILOTE_PAUSE = 0.25, PILOTE_TIR_CD = 0.3, PILOTE_BULLE_R = 7, PILOTE_BULLE_VITESSE = 340, PILOTE_BULLE_VOL = 0.8, PILOTE_BULLE_DEG = 2;

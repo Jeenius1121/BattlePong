@@ -47,10 +47,11 @@ body.vue-combat .entete{display:none}
 .feuille .notes{margin:0; font-size:.92rem; color:#d4d9ee; white-space:pre-line}
 .feuille .fermer{position:absolute; top:10px; right:10px; width:38px; height:38px; font-size:1rem}
 @keyframes monte{from{transform:translateY(60px); opacity:0}}
-.majDispo{position:fixed; left:50%; top:calc(10px + env(safe-area-inset-top,0px)); transform:translateX(-50%); z-index:30; width:min(92vw,440px); display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; background:#fff; color:#1b2033; box-shadow:0 10px 30px rgba(0,0,0,.45); font-weight:700; font-size:.88rem}
+.majDispo{position:fixed; left:50%; top:calc(10px + env(safe-area-inset-top,0px)); transform:translateX(-50%); z-index:60; width:min(92vw,440px); display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; background:#fff; color:#1b2033; box-shadow:0 10px 30px rgba(0,0,0,.45); font-weight:700; font-size:.88rem}
 .majDispo[hidden]{display:none}
 .majDispo span{flex:1}
 .majDispo button{font:inherit; font-weight:800; border:0; border-radius:10px; padding:8px 12px; background:var(--accent); color:#fff; cursor:pointer}
+.majDispo button:disabled{opacity:.6; cursor:default}
 
 /* écran de chargement */
 .chargement{position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; color:#fff; transition:opacity .35s;
@@ -5214,7 +5215,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.64.0", NOTES = "Grosse passe d’équilibrage (des dizaines de milliers de combats simulés, perso par perso).\n• Bombardier : quand il n’a plus aucun appareil, il tire quand même au hasard sur l’arène (un missile toutes les 9 s) ; il est trop lourd pour être ralenti (obus de l’Inconnu, regard de la Chose) ; attrapé par la langue du Smoker, il continue de tirer, au ralenti. En échange : missiles 25 (au lieu de 27), appareils de 25 PV (au lieu de 35) qui reviennent en 7 s, faisceau un peu plus court.\n• Nécromancienne : ses squelettes la protègent. Lien d’âme : tant qu’un squelette est debout, chaque coup lui fait 1 dégât de moins. Bouclier d’os : un squelette pris avec elle dans une grosse explosion en encaisse 80 %. Squelettes un peu plus lents, épée à 4.\n• Chose Impie : les dégâts de zone lui font autant que les coups directs ; l’œil se referme dès 6 dégâts.\n• Marin : l’île sort à 50-52 s, la mer fait 4 dégâts. Bouldozer : blindage 25 %, mitraillettes plus dispersées, percute plus souvent. Steve : première disparition plus tôt, ondes plus rapides.\n• D.Nouille : bulle un peu plus lente. Bison : un peu moins rapide. Robot : laser à 2 ricochets. Inconnu : 2 PV par téléportation. Myers : il faut 4 coups rapides pour le faire changer de coin.\n• Résultat : le Bombardier ne gagne plus à 100 % contre la Nécromancienne, et ses duels les plus extrêmes passent de 10 à 3.";
+const VERSION = "1.65.0", NOTES = "Mise à jour directement dans l’application, et suite de l’équilibrage.\n• Application Android : quand une nouvelle version sort, un bandeau « Une nouvelle mise à jour est disponible » apparaît ; le bouton « Mettre à jour » ne télécharge que ce qui a changé, puis le jeu redémarre tout seul sur la nouvelle version, sans réinstaller l’application (cette version 1.65.0 est la dernière à installer).\n• Slime : sa traînée devient gluante : elle ralentit et ne fait plus qu’1 dégât ; il attend un peu plus entre deux coups au contact.\n• McCree : balles 8, rechargement un peu plus long, roulade toutes les 10 s ; il tire sur l’ennemi le plus proche qui passe à son côté (morceau du Slime, squelette, appareil…).\n• Nécromancienne : une orbe toutes les 2 s, squelettes plus rapides et un peu moins visés.\n• Bison : Head Stomp plus fort (16). Marin : mer 2, plongée toutes les 7 s, poisson au contact 16. Smoker : langue toutes les 2,8 s. GigaChad : un peu plus rapide. Chacal : mine 10.\n• Tortue : sa carapace arrête le missile du Bombardier qui tombe pile sur elle.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;
@@ -5227,27 +5228,54 @@ addEventListener("keydown", e => { if (e.key === "Escape" && !feuilleNotes.hidde
 try { if (localStorage.getItem("duel-muet") === "1") { sonsActifs = true; basculerSons(); } } catch (e) {} // sons coupés la dernière fois : ils le restent
 if (document.getElementById("chVersion")) document.getElementById("chVersion").textContent = "Version " + VERSION;
 const plusRecente = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
-/* Dans l'application Android, le jeu est rangé dans l'APK : on regarde la version de l'APK publié
-   (branche « apk » du dépôt) et le bouton télécharge puis installe le nouvel APK au lieu de recharger la page. */
+/* Mises à jour.
+   - Sur le site : la page compare sa version avec version.json en ligne ; « Mettre à jour » recharge la page.
+   - Dans l'application Android : le jeu est rangé dans l'application, mais elle sait le mettre à jour toute seule
+     (BattlePongApp.mettreAJourJeu) : elle ne télécharge, depuis le dépôt, que les fichiers du jeu qui ont changé,
+     puis la page redémarre sur la nouvelle version. Pas de nouvel APK à installer.
+   - Une application trop ancienne pour une version du jeu (champ « appli » de version.json : numéro minimum de
+     l'application) propose le nouvel APK (branche « apk » du dépôt), comme les toutes premières applications. */
 const APP = window.BattlePongApp || null;
-const APK_DEPOT = "https://raw.githubusercontent.com/Jeenius1121/BattlePong/apk/";
+const MAJ_JEU = !!(APP && APP.mettreAJourJeu); // application qui met le jeu à jour elle-même
+const DEPOT_BRUT = "https://raw.githubusercontent.com/Jeenius1121/BattlePong/";
+let majLancee = false;
 async function verifierVersion() {
+  if (majLancee) return;
   try {
-    const r = await fetch((APP ? APK_DEPOT : "") + "version.json?t=" + Date.now(), { cache: "no-store" });
+    const r = await fetch((APP ? DEPOT_BRUT + (MAJ_JEU ? "main" : "apk") + "/" : "") + "version.json?t=" + Date.now(), { cache: "no-store" });
     if (!r.ok) return;
     const v = await r.json();
     if (!v.version || !plusRecente(v.version, VERSION)) return;
     const resume = v.notes ? v.notes.split(/(?<=[.!])\s|\n/)[0].slice(0, 110) : ""; // le bandeau ne montre que la première phrase des nouveautés
-    document.getElementById("majTexte").textContent = `Version ${v.version} disponible${resume ? " : " + resume : ""}`;
+    const apk = MAJ_JEU && v.appli && APP.versionAppli && APP.versionAppli() < v.appli; // cette version demande une application plus récente
+    document.getElementById("majTexte").textContent = `Une nouvelle mise à jour est disponible (version ${v.version})${resume ? " : " + resume : ""}`;
     const b = document.getElementById("majDispo");
-    b.hidden = false; b.dataset.version = v.version;
+    b.hidden = false; b.dataset.version = v.version; b.dataset.apk = apk ? "1" : "";
+    const bouton = document.getElementById("majOk"); bouton.disabled = false; bouton.textContent = "Mettre à jour";
   } catch (e) {}
 }
 document.getElementById("majOk").addEventListener("click", () => {
-  const v = document.getElementById("majDispo").dataset.version;
-  if (APP) { APP.mettreAJour(APK_DEPOT + "battlepong.apk?v=" + v); document.getElementById("majTexte").textContent = "Téléchargement de la version " + v + "… puis touche « Installer »."; return; }
+  const b = document.getElementById("majDispo"), v = b.dataset.version, t = document.getElementById("majTexte"), bouton = document.getElementById("majOk");
+  if (MAJ_JEU && !b.dataset.apk) { // l'application télécharge les fichiers qui ont changé, puis la page redémarre
+    majLancee = true; bouton.disabled = true; bouton.textContent = "…";
+    t.textContent = "Mise à jour en cours…";
+    APP.mettreAJourJeu();
+    return;
+  }
+  if (APP) { APP.mettreAJour(DEPOT_BRUT + "apk/battlepong.apk?v=" + v); t.textContent = "Téléchargement de la nouvelle application… puis touche « Mettre à jour »."; return; }
   location.href = location.pathname + "?v=" + v;
 });
+// l'application prévient la page : avancement, fin (la page redémarre sur la nouvelle version), échec
+window.majProgres = (fait, total) => { document.getElementById("majTexte").textContent = `Mise à jour en cours… ${Math.round(fait / Math.max(1, total) * 100)} %`; };
+window.majFinie = version => {
+  document.getElementById("majTexte").textContent = "Mise à jour terminée ! Le jeu redémarre…";
+  setTimeout(() => location.replace("index.html?v=" + encodeURIComponent(version || Date.now())), 700);
+};
+window.majErreur = () => {
+  majLancee = false;
+  const bouton = document.getElementById("majOk"); bouton.disabled = false; bouton.textContent = "Réessayer";
+  document.getElementById("majTexte").textContent = "La mise à jour n’a pas pu se faire (pas de connexion ?).";
+};
 verifierVersion();
 setInterval(verifierVersion, 30000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) verifierVersion(); });

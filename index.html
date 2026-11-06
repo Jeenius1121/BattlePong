@@ -2928,9 +2928,9 @@ const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTE
 const OEIL_DUREE = [4, 5], OEIL_FERME = 2, OEIL_GROS_COUP = 6; // temps de l'œil sur une main, temps fermé après un gros coup, ce qu'est un gros coup
 // regard maudit : charge, durée du balayage, angle balayé, ouverture du cône, portée, dégâts tous les RAYON_TIC, ralentissement
 const RAYON_PREMIER = 3, RAYON_CD = 4.6, RAYON_CHARGE = 1, RAYON_DUREE = 1.6, RAYON_ARC = 1.4, RAYON_CONE = 0.5, RAYON_PORTEE = 440;
-const RAYON_VIT_REF = 200, RAYON_VIT_MIN = 0.65, RAYON_VIT_MAX = 1.15; // dégâts du regard selon la vitesse de l'adversaire (vitesse de référence, bornes)
+const RAYON_VIT_REF = 180, RAYON_VIT_MIN = 0.5, RAYON_VIT_MAX = 1.15; // dégâts du regard selon la vitesse de l'adversaire (vitesse de référence, bornes)
 const RAYON_TIC = 0.2, RAYON_DEGATS = 6, RAYON_LENT = 1.2;
-const SAISIE_PREMIERE = 5, SAISIE_CD = 4.5, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 2, SAISIE_SEUIL = 15, SAISIE_MAX = 1.5;
+const SAISIE_PREMIERE = 5, SAISIE_CD = 3.5, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 2, SAISIE_SEUIL = 15, SAISIE_MAX = 1.5;
 const OEIL_POS = { x: 0.527, y: 0.217, rx: 0.09, ry: 0.079 }; // le grand œil sur l'image du corps (proportions)
 function corpsEchelle(f) { return CORPS_HAUTEUR / CHARS.oeil.sprite.th; }
 // géométrie d'un bras : épaule sur le corps, point de pli (coude), main (x, y)

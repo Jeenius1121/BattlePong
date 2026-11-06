@@ -974,7 +974,7 @@ const CHARS = {
     sonNom: "psycho crusher", son2: "head stomp", son3: "absorption", son4: "coup de genou",
     // image 4 pendant les coups de genou (seulement si elle est fournie, sinon l'image normale)
     imageDe: f => f.crusher ? 2 : f.stomp ? 3 : f.attT > 0 && CHARS.bison.spr && CHARS.bison.spr[4] ? 4 : 1,
-    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (touchable pendant qu’il monte, intouchable une fois disparu et en retombant). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Absorption : absorbe certains projectiles (6 boules de feu sur 10, 1 mortier sur 10, 1 balle sur 50) au lieu de les subir, et regagne des PV. Sa puissance psychique traverse la moitié du blindage (bras de la Chose Impie, Bouldozer posé). Une balle de McCree qui le touche en plein Psycho Crusher l’arrête net. Attrapé par la langue du Smoker, il s’en arrache avec son Head Stomp après 2 secondes, s’il est prêt.",
+    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (touchable pendant qu’il monte, intouchable une fois disparu et en retombant). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Absorption : absorbe certains projectiles (4 boules de feu sur 10, 1 mortier sur 20, 1 balle sur 50) au lieu de les subir, et regagne des PV. Sa puissance psychique traverse la moitié du blindage (bras de la Chose Impie, Bouldozer posé). Une balle de McCree qui le touche en plein Psycho Crusher l’arrête net. Attrapé par la langue du Smoker, il s’en arrache avec son Head Stomp après 2 secondes, s’il est prêt.",
     svg: `<g ${O}>
       <path d='M30 64 Q18 104 22 146 L98 146 Q102 104 90 64Z' fill='#7a1020'/>
       <rect x='44' y='108' width='13' height='28' fill='#b3202c'/><rect x='63' y='108' width='13' height='28' fill='#b3202c'/>
@@ -2530,7 +2530,7 @@ const GIGA_VIRAGE = 0.8; // en se baladant, il tourne doucement (radians par sec
 // coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
 const GIGA_COUP = 5, GIGA_COUP_POSE = 6, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 15, GIGA_MUR_POSE = 4;
 // Bison
-const CRUSHER_CD = 2.75, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
+const CRUSHER_CD = 3.2, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
 const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 2;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
@@ -2555,7 +2555,7 @@ const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
 const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 16, GENOU_CD = 2, GENOU_DEGATS = 4;
 // Psycho Absorption : chance d'absorber un projectile (plus faible pour les balles de McCree) ; il regagne une part de ses dégâts
-const REFLET_CHANCE = { balle: 0.02, feu: 0.6, mortier: 0.1 };
+const REFLET_CHANCE = { balle: 0.02, feu: 0.4, mortier: 0.05 };
 const ABSORPTION_SOIN = 0.5;
 const ROBOT_RICOCHETS = 2; // nombre d'ennemis touchés au maximum par le rayon du robot
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)

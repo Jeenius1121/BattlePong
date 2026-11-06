@@ -711,7 +711,7 @@ const CHARS = {
           const G = 900, x0 = f.x, y0 = f.y - f.hh * 0.3, c = t.drone || o;
           const dx = c.x - x0, dy = c.y - y0, T = 0.55 + Math.hypot(dx, dy) / 650;
           g.proj.push({ kind: "mortier", x: x0, y: y0, vx: dx / T, vy: dy / T - 0.5 * G * T, gravite: G,
-            r: 30, dmg: 11, owner: f, rot: 0, perce: true });
+            r: 30, dmg: 13, owner: f, rot: 0, perce: true });
         });
       }
     }
@@ -3072,7 +3072,7 @@ const FEU_BONUS = 10; // dégâts en plus d'une boule de feu lancée depuis sa f
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 42, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 2; // PV regagnés par l'Inconnu à chaque téléportation
-const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
+const RALENTI = 0.75; // vitesse (déplacement et recharges) d'un perso ralenti (obus de l'Inconnu, regard de la Chose, traînée du Slime)
 const BALLE_VITESSE = 1000; // vitesse des balles de McCree
 // grenade flash de McCree : aveugle et ralentit énormément l'adversaire touché
 const FLASH_PREMIERE = 4, FLASH_CD = 16, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3, FLASH_FLOU = 2, FLASH_PRECISION = 0.2;

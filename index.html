@@ -2536,7 +2536,7 @@ const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 2;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
 const POISSON_CD = [3.5, 5], POISSON_MONTEE = 1.4, POISSON_PAUSE = 1, POISSON_CHUTE = 0.8, POISSON_HAUT = 70, POISSON_RAYON = 42;
 const POISSON_SOIN = 5; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
-const CROQUE_DEGATS = 31, POISSON_CONTACT = 16, POISSON_ECART = 150;
+const CROQUE_DEGATS = 33, POISSON_CONTACT = 16, POISSON_ECART = 150;
 // hauteur de l'eau (depuis le bas) à la position x : niveau de base, petites ondulations et vagues de la tempête
 function merHauteur(g, x) {
   let h = W * MER_NIVEAU + Math.sin(g.mer.t * 2 + x / 45) * 4;
@@ -2549,7 +2549,7 @@ function vapeur(g, x, y) { for (let i = 0; i < 18; i++) g.parts.push({ x: x + (M
 function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (Math.random() - 0.5) * 120, vy: -60 - Math.random() * 120, t: 0.45, g: 500, c: i % 2 ? "#9fd8ff" : "#e8f6ff" }); }
 // l'île de la tortue : au bout d'un moment, le Marin rentre chez lui (c'est une victoire pour lui)
 // plongée du Marin quand une attaque va le toucher : il ne la voit venir qu'une fois sur PLONGEE_VU (sinon il est surpris un instant)
-const PLONGEE_DUREE = 1.2, PLONGEE_CD = 7, PLONGEE_VU = 0.1, PLONGEE_RATE = 1;
+const PLONGEE_DUREE = 0.9, PLONGEE_CD = 7, PLONGEE_VU = 0.1, PLONGEE_RATE = 1;
 const ILE_DELAI = [50, 52], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel

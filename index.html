@@ -573,7 +573,7 @@ const CHARS = {
     creation: true,
     nom: "Robot", emoji: "🤖", vitesse: 220, images: ["attaque"], sonNom: "laser", son2: "minuteur",
     imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : 1,
-    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle ce qu’il touche. Chaque nouveau tir fait plus de dégâts que le précédent : plus le combat dure, plus il est dangereux. Le rayon ricoche sur les autres ennemis (jusqu’à 2), avec des dégâts divisés par deux à chaque ricochet. À 25 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire : c’est une victoire pour lui.",
+    desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle ce qu’il touche. Chaque nouveau tir fait plus de dégâts que le précédent : plus le combat dure, plus il est dangereux. Le rayon ricoche sur les autres ennemis (jusqu’à 2), avec des dégâts divisés par deux à chaque ricochet. À 20 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire : c’est une victoire pour lui.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='26' fill='#8b93a6'/><rect x='64' y='112' width='12' height='26' fill='#8b93a6'/>
       <rect x='40' y='134' width='20' height='10' rx='2' fill='#5d6476'/><rect x='60' y='134' width='20' height='10' rx='2' fill='#5d6476'/>
@@ -2757,7 +2757,7 @@ function myersCoin(g, f, o, autre) {
   f.x = c.x; f.y = c.y; f.vis = 0;
   eclats(g, f.x, f.y, "#55555f");
 }
-const AUTODESTRUCTION_PV = 25, AUTODESTRUCTION_DUREE = 5; // Robot
+const AUTODESTRUCTION_PV = 20, AUTODESTRUCTION_DUREE = 5; // Robot
 // le Robot déclenche son explosion et emporte l'adversaire : c'est une victoire pour lui
 function autodestruction(g, f, o) {
   g.autodestruction = true; o.hp = 0; g.secousse = 0.9;

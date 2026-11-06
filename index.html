@@ -710,7 +710,7 @@ const CHARS = {
     reprendre(f) { if (f.etat === "furie") son(f, 1, true, true); else if (f.etat === "stalk") son(f, 2, true, true); },
     nom: "Myers", emoji: "🔪", vitesse: 240, images: ["furie"], reduction: 0.15, sonLong: true, son2: "traque", sonNom: "furie",
     imageDe: f => f.etat === "furie" ? 2 : 1,
-    desc: "Rôde invisible, réapparaît dans un coin (le plus souvent le plus éloigné), puis se fige pour fixer l’adversaire et remplir sa jauge. Les coups ne l’interrompent pas, mais 3 coups en moins d’une seconde le font filer dans un autre coin, sans perdre sa jauge. Jauge pleine : il sort son couteau et fonce sur l’adversaire, en encaissant un peu moins les coups (15 % de moins). En furie, il tranche la langue du Smoker.",
+    desc: "Rôde invisible, réapparaît dans un coin (le plus souvent le plus éloigné), puis se fige pour fixer l’adversaire et remplir sa jauge. Les coups ne l’interrompent pas, mais 4 coups en moins d’une seconde le font filer dans un autre coin, sans perdre sa jauge. Jauge pleine : il sort son couteau et fonce sur l’adversaire, en encaissant un peu moins les coups (15 % de moins). En furie, il tranche la langue du Smoker.",
     svg: `<g ${O}>
       <rect x='46' y='118' width='11' height='22' fill='#2b2b30'/><rect x='63' y='118' width='11' height='22' fill='#2b2b30'/>
       <rect x='42' y='136' width='17' height='8' rx='2' fill='#151518'/><rect x='61' y='136' width='17' height='8' rx='2' fill='#151518'/>
@@ -2735,7 +2735,7 @@ function couperLangue(f, o, g, x, y) {
   son(f, 4); // « aïe ! »
   const L = f.langue; L.etat = "rentre"; L.x = coupe.x; L.y = coupe.y; L.annulee = true;
 }
-const MYERS_COUPS = 3; // coups reçus en moins d'une seconde pendant la traque avant de changer de coin
+const MYERS_COUPS = 4; // coups reçus en moins d'une seconde pendant la traque avant de changer de coin
 // Myers file dans un coin, de préférence loin de l'adversaire (autre = jamais le coin où il est déjà)
 function myersCoin(g, f, o, autre) {
   const coins = [[f.hw, f.hh], [W - f.hw, f.hh], [f.hw, W - f.hh], [W - f.hw, W - f.hh]]
@@ -5200,7 +5200,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.63.0", NOTES = "Équilibrage, suite de la grosse mise à jour (des milliers de combats simulés pour chaque réglage).\n• Nécromancienne : elle voit les persos invisibles (ses orbes suivent Steve et Myers, pas ses squelettes) ; ses squelettes n’attirent les coups que s’ils sont nettement plus près de l’attaquant qu’elle.\n• Chacal : grenades un peu moins fortes (11 → 10).\n• Rappel de la 1.62 : missiles du Bombardier 27, Slime 180 PV, la boule de la Tortue renverse les squelettes comme des quilles, on voit venir Bouldozer en feu, un coup ne retouche plus les petits du Slime qu’il vient de couper.\n• Résultat : tous les persos entre 48 et 54 % de victoires, et plus que 2 duels à 100 % (au lieu de 4).";
+const VERSION = "1.64.0", NOTES = "Grosse passe d’équilibrage (des dizaines de milliers de combats simulés, perso par perso).\n• Bombardier : quand il n’a plus aucun appareil, il tire quand même au hasard sur l’arène (un missile toutes les 9 s) ; il est trop lourd pour être ralenti (obus de l’Inconnu, regard de la Chose) ; attrapé par la langue du Smoker, il continue de tirer, au ralenti. En échange : missiles 25 (au lieu de 27), appareils de 25 PV (au lieu de 35) qui reviennent en 7 s, faisceau un peu plus court.\n• Nécromancienne : ses squelettes la protègent. Lien d’âme : tant qu’un squelette est debout, chaque coup lui fait 1 dégât de moins. Bouclier d’os : un squelette pris avec elle dans une grosse explosion en encaisse 80 %. Squelettes un peu plus lents, épée à 4.\n• Chose Impie : les dégâts de zone lui font autant que les coups directs ; l’œil se referme dès 6 dégâts.\n• Marin : l’île sort à 50-52 s, la mer fait 4 dégâts. Bouldozer : blindage 25 %, mitraillettes plus dispersées, percute plus souvent. Steve : première disparition plus tôt, ondes plus rapides.\n• D.Nouille : bulle un peu plus lente. Bison : un peu moins rapide. Robot : laser à 2 ricochets. Inconnu : 2 PV par téléportation. Myers : il faut 4 coups rapides pour le faire changer de coin.\n• Résultat : le Bombardier ne gagne plus à 100 % contre la Nécromancienne, et ses duels les plus extrêmes passent de 10 à 3.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

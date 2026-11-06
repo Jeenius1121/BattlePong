@@ -399,7 +399,7 @@ const CHARS = {
     // pendant la rafale : image « visée », et image « tir » (étincelle) à chaque balle
     // roulade : les images 4 à 9 s'enchaînent comme une animation (si elles sont fournies)
     imageDe: f => f.roulade > 0 && rouladeAnimee() ? 4 + Math.min(5, Math.floor((1 - f.roulade / ROULADE_DUREE) * 6)) : f.burst > 0 || f.muzzle > 0 ? (f.muzzle > 0 ? 3 : 2) : 1,
-    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles quand l’adversaire passe sur le côté, puis recharge. Ses balles transpercent les ennemis (elles touchent chaque morceau du Slime qu’elles traversent). Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui éclate en zone (sur l’adversaire ou là où elle arrive) et aveugle l’adversaire : quelques dégâts (sur tout ce qui est dans la zone, chaque morceau du Slime compris) et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 2 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
+    desc: "Se déplace surtout de haut en bas. Tire une rafale de 6 balles dès qu’un ennemi passe sur son côté (l’adversaire, un morceau du Slime, un squelette ou un appareil du Bombardier : le plus proche), puis recharge. Ses balles transpercent les ennemis (elles touchent chaque morceau du Slime qu’elles traversent). Quand il est sur le point d’être touché, il fait parfois une roulade : intouchable pendant la roulade, puis 50 % de dégâts en moins pendant 1 seconde ; la roulade finit son rechargement, et une rafale lancée juste après part 1,5 fois plus vite. De temps en temps, il lance une grenade flash qui éclate en zone (sur l’adversaire ou là où elle arrive) et aveugle l’adversaire : quelques dégâts (sur tout ce qui est dans la zone, chaque morceau du Slime compris) et il est aveuglé un peu plus d’une seconde (très ralenti, tous ses coups ratent), puis il garde la vue trouble 2 secondes (20 % de ses coups ratent). Chaque balle qui touche lui donne 5 % de chance de ne pas recharger et d’enchaîner directement une autre rafale.",
     // va-t-il être touché ? renvoie la direction du danger (projectile, laser, langue) ou sa source (zone, corps à corps)
     // moments des 6 balles : calés sur les 6 coups du son de tir s'il y en a un, sinon rafale rapide
     horaires(f) {
@@ -422,6 +422,16 @@ const CHARS = {
       <path d='M24 34 Q60 44 96 34 Q92 42 60 46 Q28 42 24 34Z' fill='#8a5228'/>
       <path d='M42 35 Q42 10 60 13 Q78 10 78 35 Q60 40 42 35Z' fill='#a8642f'/>
       <path d='M43 30 Q60 35 77 30' fill='none' stroke='#5a3317' stroke-width='4'/></g>`,
+    // le plus proche des ennemis qui passent sur son côté : l'adversaire (s'il le voit), ses autres morceaux, ses squelettes ou appareils
+    aligne(f, o) {
+      if (o.mort) return null;
+      let best = null, dB = Infinity;
+      const essai = (x, y, hh) => { if (Math.abs(y - f.y) < Math.max(hh, 30) * 0.8 && Math.abs(x - f.x) < dB) { dB = Math.abs(x - f.x); best = { x, y }; } };
+      if (!cache(o, f)) essai(o.x, o.y, o.hh);
+      if (o.blobs) for (const B of o.blobs) if (B !== o.actif) essai(B.x, B.y, CHARS[o.type].rayon(o, B).h);
+      for (const d of o.drones || []) if (!(d.nouveau > 0)) essai(d.x, d.y, d.hh || 14);
+      return best;
+    },
     attaque(f, o, g, dt) {
       let t;
       f.rouladeCd = Math.max(0, (f.rouladeCd ?? 2) - dt);
@@ -465,7 +475,7 @@ const CHARS = {
             else { son(f, 2); f.cd = f.recharge = RECHARGE; }
           }
         }
-      } else if (f.cd <= 0 && (t = cibleDe(f, o)) && Math.abs(t.y - f.y) < Math.max(t.hh, 30) * 0.8) {
+      } else if (f.cd <= 0 && (t = this.aligne(f, o))) {
         f.burst = 6; f.burstT = 0; f.rafale = { touches: 0, rapide: f.esquive > 0 }; f.horaires = this.horaires(f); f.dir = Math.sign(t.x - f.x) || 1; son(f);
         if (f.rafale.rapide) f.horaires = f.horaires.map(h => h / ROULADE_BONUS); // juste après une roulade : 6 balles 1,5 fois plus vite
       }
@@ -3062,16 +3072,16 @@ const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, com
 const BOUCLIER_PV = 42, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 2; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.65; // vitesse (déplacement et recharges) d'un perso ralenti par l'Inconnu
-const BALLE_VITESSE = 1320; // vitesse des balles de McCree
+const BALLE_VITESSE = 1000; // vitesse des balles de McCree
 // grenade flash de McCree : aveugle et ralentit énormément l'adversaire touché
 const FLASH_PREMIERE = 4, FLASH_CD = 16, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3, FLASH_FLOU = 2, FLASH_PRECISION = 0.2;
 // roulade de McCree : esquive rapide quand il va être touché
-const ROULADE_CD = 8, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUIVE = 1, ROULADE_BONUS = 1.5;
+const ROULADE_CD = 10, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUIVE = 1, ROULADE_BONUS = 1.5;
 // les 6 images de roulade de McCree sont-elles toutes là ?
 function rouladeAnimee() { const s = CHARS.cowboy.spr; return !!s && [4, 5, 6, 7, 8, 9].every(n => s[n]); }
-const ENCHAINE_CHANCE = 0.02; // chance par balle qui touche de ne pas recharger (McCree)
-const RECHARGE = 1.46; // rechargement du Cowboy après chaque rafale (secondes)
-const BALLE_DEGATS = 7; // dégâts de chaque balle de McCree (toutes pareilles)
+const ENCHAINE_CHANCE = 0.05; // chance par balle qui touche de ne pas recharger (McCree)
+const RECHARGE = 1.7; // rechargement du Cowboy après chaque rafale (secondes)
+const BALLE_DEGATS = 8; // dégâts de chaque balle de McCree (toutes pareilles)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
 const FIN = 3.2, ANNONCE_DELAI = 1; // durée de la séquence de fin, attente avant d'annoncer le gagnant (secondes réelles)

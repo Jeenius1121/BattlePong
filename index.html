@@ -1082,7 +1082,7 @@ const CHARS = {
     nom: "Jeune beau et plein d’avenir", court: "Jeune beau", emoji: "⛵", vitesse: 70, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
     taille: 1.15, images: ["poisson", "île de la tortue"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", son9: "victoire sur l’île (à la place de « Wins »)", sonsLongs: [4, 7, 9],
     imageDe: () => 1,
-    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 10 secondes avant de replonger. Au bout de 50 à 52 secondes (au hasard), l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
+    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 7 secondes avant de replonger. Au bout de 50 à 52 secondes (au hasard), l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
     svg: `<g ${O}>
       <path d='M8 96 H112 Q104 128 60 130 Q16 128 8 96Z' fill='#6b3d1f'/><path d='M8 96 H112' stroke='#f2b134' stroke-width='5'/>
       <path d='M30 92 V14' stroke='#8a5228' stroke-width='6'/><path d='M34 18 Q58 30 54 86 H34Z' fill='#c4232f'/>
@@ -2531,11 +2531,11 @@ const GIGA_COUP = 5, GIGA_COUP_POSE = 6, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_P
 // Bison
 const CRUSHER_CD = 2.75, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
-const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 4;
+const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 2;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
 const POISSON_CD = [3.5, 5], POISSON_MONTEE = 1.4, POISSON_PAUSE = 1, POISSON_CHUTE = 0.8, POISSON_HAUT = 70, POISSON_RAYON = 42;
 const POISSON_SOIN = 5; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
-const CROQUE_DEGATS = 31, POISSON_CONTACT = 12, POISSON_ECART = 150;
+const CROQUE_DEGATS = 31, POISSON_CONTACT = 16, POISSON_ECART = 150;
 // hauteur de l'eau (depuis le bas) à la position x : niveau de base, petites ondulations et vagues de la tempête
 function merHauteur(g, x) {
   let h = W * MER_NIVEAU + Math.sin(g.mer.t * 2 + x / 45) * 4;
@@ -2548,7 +2548,7 @@ function vapeur(g, x, y) { for (let i = 0; i < 18; i++) g.parts.push({ x: x + (M
 function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (Math.random() - 0.5) * 120, vy: -60 - Math.random() * 120, t: 0.45, g: 500, c: i % 2 ? "#9fd8ff" : "#e8f6ff" }); }
 // l'île de la tortue : au bout d'un moment, le Marin rentre chez lui (c'est une victoire pour lui)
 // plongée du Marin quand une attaque va le toucher : il ne la voit venir qu'une fois sur PLONGEE_VU (sinon il est surpris un instant)
-const PLONGEE_DUREE = 1.2, PLONGEE_CD = 10, PLONGEE_VU = 0.1, PLONGEE_RATE = 1;
+const PLONGEE_DUREE = 1.2, PLONGEE_CD = 7, PLONGEE_VU = 0.1, PLONGEE_RATE = 1;
 const ILE_DELAI = [50, 52], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel

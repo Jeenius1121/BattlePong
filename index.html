@@ -2138,7 +2138,7 @@ const CHARS = {
       if (f.sort) return f.sort.type === "orbe" ? 11 + Math.min(6, Math.floor(f.sort.t / SORT_ORBE * 7)) : 20 + Math.min(7, Math.floor(f.sort.t / SORT_INVOC * 8));
       return Math.hypot(f.vx, f.vy) > 10 ? 5 + Math.floor((f.pas || 0) * 9) % 6 : 1 + Math.floor((f.pas || 0) * 5) % 4;
     },
-    desc: "Une nécromancienne qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Elle voit les persos invisibles. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire (même invisible). Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée (lui ne voit pas les invisibles). Les squelettes ont peu de PV (une petite barre au-dessus d’eux les montre) et disparaissent au bout d’un moment, en laissant un tas d’os par terre ; les adversaires visent un squelette avant elle s’il est nettement plus près d’eux qu’elle, et ils prennent aussi les tirs et les attaques de zone qui passent sur eux (ils la protègent). Lien d’âme : tant qu’un squelette est debout, chaque coup qu’elle reçoit lui fait 1 dégât de moins (son squelette le plus proche le prend à sa place). Bouclier d’os : quand une grosse explosion (missile du Bombardier, obus de l’Inconnu…) la prend avec un de ses squelettes, il se jette devant elle et en encaisse 80 %. Quand elle invoque, elle reste sur place, sans défense.",
+    desc: "Une nécromancienne qui garde ses distances : elle recule quand l’adversaire s’approche et se rapproche quand il est loin. Elle voit les persos invisibles. Toutes les 2 secondes environ, elle lance une orbe violette qui suit un peu l’adversaire (même invisible). Et de temps en temps, elle invoque un squelette (2 au plus) : il marche vers l’adversaire et le frappe de son épée (lui ne voit pas les invisibles). Les squelettes ont peu de PV (une petite barre au-dessus d’eux les montre) et disparaissent au bout d’un moment, en laissant un tas d’os par terre ; les adversaires visent un squelette avant elle s’il est nettement plus près d’eux qu’elle, et ils prennent aussi les tirs et les attaques de zone qui passent sur eux (ils la protègent). Lien d’âme : tant qu’un squelette est debout, chaque coup qu’elle reçoit lui fait 1 dégât de moins (son squelette le plus proche le prend à sa place). Bouclier d’os : quand une grosse attaque de zone (15 dégâts ou plus : missile du Bombardier, obus de l’Inconnu, gros cri de Steve, Head Stomp de Bison…) la prend avec un de ses squelettes, il se jette devant elle et en encaisse 80 %. Quand elle invoque, elle reste sur place, sans défense.",
     svg: `<g ${O}>
       <path d='M30 140 Q34 96 46 70 L74 70 Q86 96 90 140Z' fill='#2a1f38'/>
       <path d='M52 70 Q46 92 40 120 M68 70 Q74 92 80 120' fill='none' stroke='#cfd0dc' stroke-width='5'/>
@@ -2151,7 +2151,7 @@ const CHARS = {
       for (const d of o.drones || []) if (d.squelette && d.etat === "coup" && d.t < SQ_FRAPPE && Math.hypot(d.x - f.x, d.y - f.y) < 90) return { x: d.x, y: d.y, zone: true };
       return null;
     },
-    // bouclier d'os : une grosse explosion qui prend aussi un de ses squelettes la touche beaucoup moins (il se jette devant elle)
+    // bouclier d'os : une grosse attaque de zone qui prend aussi un de ses squelettes la touche beaucoup moins (il se jette devant elle)
     absorbeZone(f, dansZone, n) { return n >= SQ_BOUCLIER_SEUIL && (f.drones || []).some(d => !(d.nouveau > 0) && dansZone(d.x, d.y, d.hw)); },
     nouveauSquelette(f, o) {
       const s = f.face || 1, x = Math.min(W - 30, Math.max(30, f.x + s * f.hw * 0.75)), y = Math.min(W - 40, Math.max(40, f.y + f.hh - SQ_HAUTEUR * 0.5));
@@ -2510,7 +2510,7 @@ function explosion(g, x, y, cible, dmg, ang) {
       forme: "eclat", rot: Math.random() * 6, c: ["#e9a6ff", "#d46ae8", "#f6d2ff"][i % 3] });
   }
   const dx = Math.max(Math.abs(cible.x - x) - cible.hw, 0), dy = Math.max(Math.abs(cible.y - y) - cible.hh, 0);
-  const dzX = (px, py, r) => Math.hypot(px - x, py - y) < 140 + r, nzX = partZone(cible, dzX, dmg, true);
+  const dzX = (px, py, r) => Math.hypot(px - x, py - y) < 140 + r, nzX = partZone(cible, dzX, dmg);
   if (Math.hypot(dx, dy) < 140) degats(g, cible, nzX, cible.x, cible.y - cible.hh * 0.3);
   zoneAutres(g, cible, dzX, nzX);
   for (const d of [...(cible.drones || [])]) { const p = dronePos(cible, d); if (Math.hypot(p.x - x, p.y - y) < 150) blesserDrone(g, cible, d, dmg); }
@@ -2624,9 +2624,9 @@ function menace(f, o, g) {
 function dejaVu(L, B) { for (let x = B; x; x = x.parent) if (L.has(x)) return true; return false; }
 // partage d'une attaque de zone : contre un perso en plusieurs morceaux (la Gelée), les dégâts de l'impact sont répartis
 // entre tous les morceaux pris dans la zone (6 morceaux touchés : chacun prend un sixième) ; contre les autres, rien ne change
-function partZone(o, dansZone, n, explo) {
+function partZone(o, dansZone, n) {
   const c = o && CHARS[o.type], k = c && c.morceauxDans ? c.morceauxDans(o, dansZone) : 1;
-  if (explo && c && c.absorbeZone && c.absorbeZone(o, dansZone, n)) return Math.max(1, Math.round(n * (1 - SQ_BOUCLIER))); // bouclier d'os : un squelette encaisse l'explosion à sa place
+  if (c && c.absorbeZone && c.absorbeZone(o, dansZone, n)) return Math.max(1, Math.round(n * (1 - SQ_BOUCLIER))); // bouclier d'os : un squelette encaisse la grosse attaque de zone à sa place
   const r = c && c.reductionZone ? n * (1 - c.reductionZone) : n; // reductionZone : encaisse moins les dégâts de zone (la Chose Impie)
   return k > 1 ? Math.max(1, Math.round(r / k)) : r === n ? n : Math.max(1, Math.round(r));
 }
@@ -2844,7 +2844,7 @@ function boumChacal(g, b, cible, dmg, rayon) {
   let touche = false;
   const dx = Math.max(Math.abs(cible.x - b.x) - cible.hw * 0.6, 0), dy = Math.max(Math.abs(cible.y - b.y) - cible.hh * 0.6, 0);
   coupRate = !!b.rate;
-  const dzK = (x, y, r) => Math.hypot(x - b.x, y - b.y) < rayon + r, nzK = partZone(cible, dzK, dmg, true);
+  const dzK = (x, y, r) => Math.hypot(x - b.x, y - b.y) < rayon + r, nzK = partZone(cible, dzK, dmg);
   if (!cible.mort && Math.hypot(dx, dy) < rayon) { degats(g, cible, nzK, cible.x, cible.y - cible.hh * 0.3); touche = true; }
   if (zoneAutres(g, cible, dzK, nzK)) touche = true;
   coupRate = false;
@@ -2916,7 +2916,7 @@ const SORCIERE_VITESSE = 120, SORCIERE_DIST = [210, 360];
 const SORT_ORBE = 0.5, SORT_ORBE_CD = 1.65, SORT_ORBE_PREMIER = 1.2, ORBE_VITESSE = 250, ORBE_DEGATS = 10, ORBE_VIRAGE = 1.4;
 const SORT_INVOC = 1.3, SORT_INVOC_CD = 10, SORT_INVOC_PREMIER = 1;
 const SQ_LIEN = 0.3, SQ_LIEN_MAX = 1; // lien d'âme : part des coups reçus par la Nécromancienne que prend son squelette le plus proche (et au plus combien par coup)
-const SQ_BOUCLIER = 0.8, SQ_BOUCLIER_SEUIL = 20; // bouclier d'os : part d'une grosse explosion que prend le squelette, à partir de quels dégâts
+const SQ_BOUCLIER = 0.8, SQ_BOUCLIER_SEUIL = 15; // bouclier d'os : part d'une grosse attaque de zone que prend le squelette, à partir de quels dégâts
 const SQ_MAX = 2, SQ_PV = 27, SQ_VIE = 20, SQ_VITESSE = 160, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 4, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
 const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 180 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
@@ -3322,7 +3322,7 @@ function maj(dt) {
     g.boums.push({ x: m.x, y: m.y, t: 0.6 }); g.secousse = Math.max(g.secousse, 0.15); son(m.owner, 2);
     for (let i = 0; i < 24; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 260; g.parts.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, t: 0.6, g: 400, c: ["#ffd23f", "#ff8a2a", "#5b5b66"][i % 3] }); }
     coupRate = m.rate; // missile lancé à l'aveugle : il tombe à côté
-    const dzMi = (x, y, r) => Math.hypot(x - m.x, y - m.y) < MISSILE_RAYON + r, nzMi = partZone(o, dzMi, MISSILE_DEGATS, true);
+    const dzMi = (x, y, r) => Math.hypot(x - m.x, y - m.y) < MISSILE_RAYON + r, nzMi = partZone(o, dzMi, MISSILE_DEGATS);
     if (g.running && o && Math.hypot(o.x - m.x, o.y - m.y) < MISSILE_RAYON + Math.max(o.hw, o.hh) * 0.4) {
       coupVenu = Math.abs(o.x - m.x) < o.hw && Math.abs(o.y - m.y) < o.hh ? { vx: 0, vy: 1 } : null; // tombé pile sur lui : il vient d'en haut (la carapace de la Tortue l'arrête)
       degats(g, o, nzMi, o.x, o.y - o.hh * 0.3); coupVenu = null;
@@ -5215,7 +5215,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.67.0", NOTES = "Troisième passe d’équilibrage (des milliers de combats simulés pour chaque réglage).\n• Bison : Psycho Crusher un peu moins souvent ; il absorbe moins les tirs (4 boules de feu sur 10, 1 mortier sur 20).\n• Slime : sa traînée gluante fait mal plus souvent et ralentit plus longtemps ; il fonce quand l’adversaire est bien en face et touche plus souvent au contact.\n• Chose Impie : sa main attrape plus souvent (toutes les 3,5 s) ; son regard fait plus mal aux persos rapides et moins aux lents.\n• Tortue : 140 PV. D.Nouille : petites bulles moins fortes, bulle de protection un peu moins souvent. McCree : grenade flash toutes les 12 s.\n• Résultat : plus que 3 duels à 90 % ou plus (au lieu de 7) et 20 à 80 % ou plus (au lieu de 25) ; tous les persos entre 47 et 54 % de victoires.";
+const VERSION = "1.68.0", NOTES = "Quatrième passe d’équilibrage.\n• Nécromancienne : son bouclier d’os la protège de toutes les grosses attaques de zone (15 dégâts ou plus : missile, obus, gros cri de Steve, Head Stomp de Bison…), plus seulement des explosions ; ses squelettes durent 20 s.\n• Slime : sa traînée gluante ralentit un peu moins longtemps (0,7 s).\n• Résultat : plus qu’un duel au-delà de 90 % (au lieu de 3), et tous les persos entre 47 et 54 % de victoires.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

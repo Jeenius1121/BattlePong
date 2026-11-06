@@ -493,7 +493,7 @@ const CHARS = {
     nom: "Sorcier", emoji: "🧙", vitesse: 200, voitInvisible: true, images: ["attaque", "bouclier"], son2: "bouclier",
     tailles: { 3: 1.4 }, // l'image du bouclier (cercle de feu) est affichée plus grande
     imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : 1,
-    desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 5 dégâts de plus.",
+    desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 6 dégâts de plus.",
     svg: `<g ${O}>
       <rect x='92' y='34' width='6' height='112' rx='3' fill='#8a5228'/><circle cx='95' cy='30' r='10' fill='#4fc3f7'/>
       <rect x='28' y='72' width='12' height='30' rx='6' fill='#6a4bb5'/>
@@ -2515,7 +2515,7 @@ function explosion(g, x, y, cible, dmg, ang) {
   zoneAutres(g, cible, dzX, nzX);
   for (const d of [...(cible.drones || [])]) { const p = dronePos(cible, d); if (Math.hypot(p.x - x, p.y - y) < 150) blesserDrone(g, cible, d, dmg); }
 }
-const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (38 → 7,6 s max)
+const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (48 → 9,6 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
 // laser du robot : de plus en plus fort, un palier tous les LASER_TIC (très petit, petit, moyen, gros, très gros)
 const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 4.2;
@@ -3068,9 +3068,9 @@ function dessinerRayonOeil(f) {
   ctx.restore();
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
-const FEU_BONUS = 10; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
+const FEU_BONUS = 6; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
-const BOUCLIER_PV = 42, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
+const BOUCLIER_PV = 48, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 2; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.75; // vitesse (déplacement et recharges) d'un perso ralenti (obus de l'Inconnu, regard de la Chose, traînée du Slime)
 const BALLE_VITESSE = 1000; // vitesse des balles de McCree

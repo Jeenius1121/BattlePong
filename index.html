@@ -952,7 +952,7 @@ const CHARS = {
     }
   },
   bison: {
-    nom: "Bison", emoji: "👊", vitesse: 220, perceBlindage: 0.5, taille: 1.15, tailles: { 2: 0.55 }, images: ["psycho crusher", "head stomp", "coup de genou"],
+    nom: "Bison", emoji: "👊", vitesse: 200, perceBlindage: 0.5, taille: 1.15, tailles: { 2: 0.55 }, images: ["psycho crusher", "head stomp", "coup de genou"],
     sonNom: "psycho crusher", son2: "head stomp", son3: "absorption", son4: "coup de genou",
     // image 4 pendant les coups de genou (seulement si elle est fournie, sinon l'image normale)
     imageDe: f => f.crusher ? 2 : f.stomp ? 3 : f.attT > 0 && CHARS.bison.spr && CHARS.bison.spr[4] ? 4 : 1,
@@ -1484,7 +1484,7 @@ const CHARS = {
   },
   oeil: {
     creation: true,
-    nom: "Chose Impie", emoji: "👁️", vitesse: 0, ancree: true, pv: 200, images: ["main à l’œil", "main à l’œil fermé"], reductionZone: 0.15, // dégâts de zone : 40 % de moins (les coups directs, eux, passent normalement)
+    nom: "Chose Impie", emoji: "👁️", vitesse: 0, ancree: true, pv: 200, images: ["main à l’œil", "main à l’œil fermé"], reductionZone: 0, // dégâts de zone : 40 % de moins (les coups directs, eux, passent normalement)
     // l'avant-bras à l'œil (ce que les autres frappent) a une taille fixe ; images 4 et suivantes : le même, déjà tourné
     // d'un seizième de tour à chaque fois, pour que sa zone de touche suive son orientation
     get hauteurs() {
@@ -2534,7 +2534,7 @@ const ABSORPTION_SOIN = 0.5;
 const ROBOT_RICOCHETS = 3; // nombre d'ennemis touchés au maximum par le rayon du robot
 const DRONE_TAILLE = 42, DRONE_BAS = [0.64, 0.97]; // hauteur de l'image de l'appareil, sortie des faisceaux (en bas)
 const DRONE_LIEN = 0; // part des PV max du Bombardier perdue quand un de ses appareils est détruit
-const DRONE_PV = 35, DRONE_RETOUR = 8, MISSILE_CD = 3.4, MISSILE_DELAI = 1.5, MISSILE_RAYON = 240, MISSILE_DEGATS = 27;
+const DRONE_PV = 25, DRONE_RETOUR = 6, MISSILE_CD = 3.4, MISSILE_DELAI = 1.5, MISSILE_RAYON = 240, MISSILE_DEGATS = 27;
 const MISSILE_VISEE = 0.08; // anticipation du déplacement de l'adversaire par appareil qui l'a repéré
 // appareils : ils patrouillent au hasard (faisceau bleu) ; quand l'adversaire passe dans leur faisceau,
 // ils le repèrent (faisceau rouge) et volent près de lui en le gardant en visée
@@ -2652,7 +2652,7 @@ function droneTouche(g, f, x, y, rad, n, deja) {
 }
 /* ===== CRI DU HURLEUR =====
    Une onde de choc en anneau part de lui et grandit ; elle blesse une fois l'adversaire qu'elle traverse. */
-const HURLEUR_DEGATS = 13, HURLEUR_CRI_SORTIE = 23, HURLEUR_INVIS_CD = 4.9, HURLEUR_INVIS_DEBUT = 2.5, ONDE_VITESSE = 490;
+const HURLEUR_DEGATS = 13, HURLEUR_CRI_SORTIE = 23, HURLEUR_INVIS_CD = 4.9, HURLEUR_INVIS_DEBUT = 3.5, ONDE_VITESSE = 580;
 function crier(g, f, dmg, portee, epais) {
   g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
 }
@@ -2743,14 +2743,14 @@ const FINALE_NB = 6, FINALE_ECART = 70, FINALE_MECHE = [0.8, 1.6], FINALE_DEGATS
 // Bouldozer : balancement au bout du grappin, en feu au-delà d'une certaine vitesse, mitraillettes une fois en bas
 const HAMMOND_GRAVITE = 900, HAMMOND_POMPE = 950, HAMMOND_VITESSE_MAX = 1020, HAMMOND_VITESSE_PLAFOND = 1250, HAMMOND_FEU_VITESSE = 700, HAMMOND_REBOND = 0.85, HAMMOND_REBOND_SOL = 0.5, HAMMOND_ATTERRIT = 450;
 const HAMMOND_ESSAIS = 6, HAMMOND_VISEE = 0.6; // endroits essayés pour le grappin ; angle (radians) pour lâcher vers l'adversaire
-const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 9, HAMMOND_CHOC_CD = 0.6;
+const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 9, HAMMOND_CHOC_CD = 0.45;
 // après le grappin : vol libre, puis il s'arrête en hauteur (tremble), puis s'écrase au sol
 const VOL_LIBRE = 1.2, VOL_LIBRE_MIN = 0.5, STASE_DUREE = 0.5, STASE_HAUTEUR = 300, STASE_MONTEE = 800, HAMMOND_CHUTE = 1500;
 // écrasement : dégâts à l'adversaire au sol (pas trop loin), et plus petits s'il était sur la trajectoire
 const ECRASE_SOL = 8, ECRASE_TRAJET = 4, ECRASE_RAYON = 170, ECRASE_HAUTEUR_SOL = 60, ECRASE_PROJETE = 700, ECRASE_PROJETE_DUREE = 0.4;
 const HAMMOND_ENVOLEE = 450; // vitesse vers le haut ajoutée quand il lâche le grappin
-const HAMMOND_BLINDAGE = 0.38; // dégâts en moins quand il est posé en bas (mode tourelle)
-const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.25;
+const HAMMOND_BLINDAGE = 0.25; // dégâts en moins quand il est posé en bas (mode tourelle)
+const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.4;
 // mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
 // Repère du perso tourné vers l'avant (x vers l'avant) ; u = demi-hauteur de l'image
 const CANON_PIVOT = 5, CANON_ANGLE_MAX = 1.25, CANON_ANGLE_BAS = 0.45; // vitesse de pivot (radians/s), angle max vers le haut et vers le bas
@@ -2870,7 +2870,7 @@ function majBombes(g, dt) {
 // Chose Impie : 6 bras accrochés aux murs ; la main où l'œil est ouvert est ce que les autres frappent
 // MAIN_HAUTEUR : longueur de l'avant-bras + main ; MAIN_MUR : distance du centre au mur (le bout des griffes touche le bord)
 // Grenouille : bulle du canon (charge, taille, vitesse, temps de vol, arrêt avant d'éclater, dégâts selon la taille, attente entre deux bulles)
-const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 180, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 8, BULLE_DEG_MAX = 29, BULLE_CD = 1;
+const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 150, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 8, BULLE_DEG_MAX = 29, BULLE_CD = 1;
 const BULLE_MARCHE = 90; // vitesse de la Grenouille pendant qu'elle gonfle sa bulle (elle marche lentement au lieu de sauter)
 const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 5;
 // pilote éjecté : PV qui lui restent, bonds, et son pistolet à petites bulles ; explosion du mécha à l'éjection
@@ -2887,14 +2887,14 @@ const TORTUE_ANIM_MARCHE = 6, TORTUE_ANIM_ROULE = 14, TORTUE_ANIM_ETOURDIE = 6;
 const SORCIERE_VITESSE = 120, SORCIERE_DIST = [210, 360];
 const SORT_ORBE = 0.5, SORT_ORBE_CD = 1.65, SORT_ORBE_PREMIER = 1.2, ORBE_VITESSE = 300, ORBE_DEGATS = 10, ORBE_VIRAGE = 1.4;
 const SORT_INVOC = 1.3, SORT_INVOC_CD = 10, SORT_INVOC_PREMIER = 1;
-const SQ_MAX = 2, SQ_PV = 30, SQ_VIE = 15, SQ_VITESSE = 160, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 6, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
+const SQ_MAX = 2, SQ_PV = 30, SQ_VIE = 15, SQ_VITESSE = 130, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 6, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
 const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 180 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
 const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.7, GELEE_CONTACT_CD = 0.8, GELEE_TRAINEE = 2, GELEE_TRAINEE_TIC = 0.4;
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;
-const OEIL_DUREE = [4, 5], OEIL_FERME = 2, OEIL_GROS_COUP = 8; // temps de l'œil sur une main, temps fermé après un gros coup, ce qu'est un gros coup
+const OEIL_DUREE = [4, 5], OEIL_FERME = 2, OEIL_GROS_COUP = 6; // temps de l'œil sur une main, temps fermé après un gros coup, ce qu'est un gros coup
 // regard maudit : charge, durée du balayage, angle balayé, ouverture du cône, portée, dégâts tous les RAYON_TIC, ralentissement
 const RAYON_PREMIER = 3, RAYON_CD = 4.6, RAYON_CHARGE = 1, RAYON_DUREE = 1.6, RAYON_ARC = 1.4, RAYON_CONE = 0.5, RAYON_PORTEE = 440;
 const RAYON_VIT_REF = 200, RAYON_VIT_MIN = 0.65, RAYON_VIT_MAX = 1.15; // dégâts du regard selon la vitesse de l'adversaire (vitesse de référence, bornes)

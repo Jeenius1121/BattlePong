@@ -1729,9 +1729,9 @@ const CHARS = {
   },
   gelee: {
     creation: true,
-    nom: "Slime", emoji: "💧", vitesse: 80, pv: 170, taille: 2, portrait: { cx: 0.62, cy: 0.52, taille: 1.08 }, // portrait centré sur ses deux yeux et sa bouche
+    nom: "Slime", emoji: "💧", vitesse: 80, pv: 140, taille: 2, portrait: { cx: 0.62, cy: 0.52, taille: 1.08 }, // portrait centré sur ses deux yeux et sa bouche
     sonNom: "fonce", son2: "se sépare", son3: "un morceau disparaît",
-    desc: "Un énorme slime (170 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction (au hasard) qu’en touchant un mur. Il laisse derrière lui une traînée bleue et gluante qui blesse un peu et ralentit l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’il traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant lui, il fonce (il accélère sans tourner), et il ne le blesse au contact que pendant qu’il fonce. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petits slimes : plus ils sont petits, plus ils sont rapides, mais plus ils sont fragiles et moins ils font mal ; les plus petits disparaissent quand ils n’ont plus de PV. Les adversaires frappent le morceau le plus proche d’eux, leurs tirs touchent n’importe quel morceau sur leur chemin, et leurs attaques de zone touchent tous les morceaux pris dedans, en partageant leurs dégâts entre eux (6 morceaux touchés : chacun prend un sixième) ; un coup ne retouche jamais les petits nés du morceau qu’il vient de couper. Il faut détruire tous les morceaux pour gagner.",
+    desc: "Un énorme slime (140 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction qu’en touchant un mur : il repart alors le plus souvent vers l’adversaire. Il laisse derrière lui une traînée bleue et gluante qui blesse un peu et ralentit l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’il traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant lui, il fonce (il accélère sans tourner), et il ne le blesse au contact que pendant qu’il fonce. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petits slimes : plus ils sont petits, plus ils sont rapides, mais plus ils sont fragiles et moins ils font mal ; les plus petits disparaissent quand ils n’ont plus de PV. Les adversaires frappent le morceau le plus proche d’eux, leurs tirs touchent n’importe quel morceau sur leur chemin, et leurs attaques de zone touchent tous les morceaux pris dedans, en partageant leurs dégâts entre eux (6 morceaux touchés : chacun prend un sixième) ; un coup ne retouche jamais les petits nés du morceau qu’il vient de couper. Il faut détruire tous les morceaux pour gagner.",
     svg: `<g ${O}>
       <path d='M14 128 Q10 100 34 92 Q30 50 64 44 Q100 42 104 84 Q116 92 112 118 Q118 132 100 136 L24 136 Q8 136 14 128Z' fill='#4aa8f0'/>
       <ellipse cx='50' cy='80' rx='12' ry='13' fill='#fff'/><ellipse cx='82' cy='74' rx='12' ry='13' fill='#fff'/>
@@ -1743,8 +1743,13 @@ const CHARS = {
       return { x, y, niv, pv, pv0: pv, ang: ang ?? this.direction(), fonceCd: GELEE_FONCE_CD * (0.4 + Math.random() * 0.6), fonce: 0, cd: 0, dernier: null };
     },
     // une des 8 directions (gauche, droite, haut, bas, diagonales) au hasard ; avec un mur touché (nx, ny : vers l'intérieur), une qui s'en éloigne
-    direction(nx = 0, ny = 0) {
+    direction(nx = 0, ny = 0, vers = null, B = null) {
       const ok = [0, 1, 2, 3, 4, 5, 6, 7].map(k => k * Math.PI / 4).filter(a => Math.cos(a) * nx + Math.sin(a) * ny > 0.1 || (!nx && !ny));
+      if (vers && B && Math.random() < GELEE_REBOND_VISE) { // de préférence la direction qui va le plus vers l'adversaire
+        const a0 = Math.atan2(vers.y - B.y, vers.x - B.x); let mieux = ok[0], e = Infinity;
+        for (const a of ok) { const d = Math.abs(((a - a0) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (d < e) { e = d; mieux = a; } }
+        return mieux;
+      }
       return ok[Math.floor(Math.random() * ok.length)];
     },
     // en dessous : il se sépare (il a perdu GELEE_SEPARE de ses PV de départ), ou disparaît à 0 pour les plus petits
@@ -1769,9 +1774,9 @@ const CHARS = {
           if (ecartA < GELEE_FONCE_ANGLE) { B.fonce = GELEE_FONCE_DUREE; B.fonceCd = GELEE_FONCE_CD; son(f); }
         }
         if (B !== A) { const v0 = N.vit * (B.fonce > 0 ? GELEE_FONCE_VITESSE : 1); B.x += Math.cos(B.ang) * v0 * dt; B.y += Math.sin(B.ang) * v0 * dt; }
-        // mur touché : nouvelle direction au hasard, qui l'éloigne du mur
+        // mur touché : nouvelle direction qui l'éloigne du mur, le plus souvent vers l'adversaire
         const nx = B.x <= r.w + 1 ? 1 : B.x >= W - r.w - 1 ? -1 : 0, ny = B.y <= r.h + 1 ? 1 : B.y >= W - r.h - 1 ? -1 : 0;
-        if ((nx && Math.cos(B.ang) * nx <= 0) || (ny && Math.sin(B.ang) * ny <= 0)) B.ang = this.direction(nx, ny);
+        if ((nx && Math.cos(B.ang) * nx <= 0) || (ny && Math.sin(B.ang) * ny <= 0)) B.ang = this.direction(nx, ny, !o.mort && !cache(o, f) ? o : null, B);
         B.x = Math.min(W - r.w, Math.max(r.w, B.x)); B.y = Math.min(W - r.h, Math.max(r.h, B.y));
         const v = N.vit * (B.fonce > 0 ? GELEE_FONCE_VITESSE : 1);
         if (B === A) { f.vitesse = v; f.x = B.x; f.y = B.y; if (!(f.recul > 0)) { f.vx = Math.cos(B.ang) * v; f.vy = Math.sin(B.ang) * v; } }
@@ -2918,9 +2923,10 @@ const SORT_INVOC = 1.3, SORT_INVOC_CD = 10, SORT_INVOC_PREMIER = 1;
 const SQ_LIEN = 0.3, SQ_LIEN_MAX = 1; // lien d'âme : part des coups reçus par la Nécromancienne que prend son squelette le plus proche (et au plus combien par coup)
 const SQ_BOUCLIER = 0.8, SQ_BOUCLIER_SEUIL = 15; // bouclier d'os : part d'une grosse attaque de zone que prend le squelette, à partir de quels dégâts
 const SQ_MAX = 2, SQ_PV = 27, SQ_VIE = 20, SQ_VITESSE = 160, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 4, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
-const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 170 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
+const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 140 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
 const GELEE_TRAINEE_LENT = 0.7; // traînée gluante : ralentit l'adversaire qui marche dedans
+const GELEE_REBOND_VISE = 0.7; // chance qu'un morceau du Slime reparte vers l'adversaire en touchant un mur
 const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.45, GELEE_CONTACT_CD = 0.5, GELEE_TRAINEE = 1, GELEE_TRAINEE_TIC = 0.3;
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;

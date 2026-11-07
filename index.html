@@ -3075,13 +3075,13 @@ const INCONNU_SOIN = 3; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.75; // vitesse (déplacement et recharges) d'un perso ralenti (obus de l'Inconnu, regard de la Chose, traînée du Slime)
 const BALLE_VITESSE = 1000; // vitesse des balles de McCree
 // grenade flash de McCree : aveugle et ralentit énormément l'adversaire touché
-const FLASH_PREMIERE = 4, FLASH_CD = 12, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3, FLASH_FLOU = 2, FLASH_PRECISION = 0.2;
+const FLASH_PREMIERE = 4, FLASH_CD = 20, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3, FLASH_FLOU = 2, FLASH_PRECISION = 0.2;
 // roulade de McCree : esquive rapide quand il va être touché
 const ROULADE_CD = 10, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUIVE = 1, ROULADE_BONUS = 1.5;
 // les 6 images de roulade de McCree sont-elles toutes là ?
 function rouladeAnimee() { const s = CHARS.cowboy.spr; return !!s && [4, 5, 6, 7, 8, 9].every(n => s[n]); }
 const ENCHAINE_CHANCE = 0.05; // chance par balle qui touche de ne pas recharger (McCree)
-const RECHARGE = 1.7; // rechargement du Cowboy après chaque rafale (secondes)
+const RECHARGE = 1.9; // rechargement du Cowboy après chaque rafale (secondes)
 const BALLE_DEGATS = 8; // dégâts de chaque balle de McCree (toutes pareilles)
 /* ===== FIN DU COMBAT =====
    Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */

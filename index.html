@@ -1502,7 +1502,7 @@ const CHARS = {
   },
   oeil: {
     creation: true,
-    nom: "Chose Impie", emoji: "👁️", vitesse: 0, ancree: true, pv: 200, images: ["main à l’œil", "main à l’œil fermé"], reductionZone: 0, // dégâts de zone : comme les coups directs (réglable : part de dégâts en moins)
+    nom: "Chose Impie", emoji: "👁️", vitesse: 0, ancree: true, pv: 210, images: ["main à l’œil", "main à l’œil fermé"], reductionZone: 0, // dégâts de zone : comme les coups directs (réglable : part de dégâts en moins)
     // l'avant-bras à l'œil (ce que les autres frappent) a une taille fixe ; images 4 et suivantes : le même, déjà tourné
     // d'un seizième de tour à chaque fois, pour que sa zone de touche suive son orientation
     get hauteurs() {
@@ -1516,7 +1516,7 @@ const CHARS = {
     // un coup ne peut vider que le bras à l'œil : elle ne tombe qu'avec son dernier bras
     plafond: f => f.brasActif ? Math.min(20, Math.ceil(f.brasActif.pv)) : Infinity,
     imageDe: f => { const ferme = f.oeilFerme > 0; return f.sens ? 3 + f.sens + (ferme ? MAIN_SENS : 0) : ferme ? 3 : 2; }, blindage: 0.26,
-    desc: "Énorme créature (200 PV) suspendue au milieu de l’arène, accrochée aux murs et au plafond par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains (sur les autres, il reste fermé), et c’est cet avant-bras qu’il faut frapper ; il est dur comme de la corne (26 % de dégâts en moins). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Ses PV, ce sont ses bras : chacun en porte un sixième, les coups entament le bras à l’œil, et quand il est vidé il est arraché ; un seul coup ne peut pas lui enlever plus de 20 PV. Tant qu’il reste un bras, il reste des PV ; quand le dernier est arraché, la Chose tombe. Son grand œil suit toujours l’adversaire. De temps en temps, l’œil fixe l’adversaire et vire au vert, puis lance son regard maudit : un large cône de lumière verte qui balaie l’arène d’un côté à l’autre en passant sur l’adversaire (il ne le suit pas) ; tant qu’il est dedans, il brûle (d’autant plus fort qu’il est rapide : un perso lent, qui ne peut pas y échapper, en prend moins) et il est ralenti. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place (jusqu’à 1,5 seconde) et lui fait de petits dégâts, à moins qu’il ne l’ait assez frappée pour se libérer avant. Accrochée aux murs, elle ne peut pas être ramenée par la langue du Smoker.",
+    desc: "Énorme créature (210 PV) suspendue au milieu de l’arène, accrochée aux murs et au plafond par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains (sur les autres, il reste fermé), et c’est cet avant-bras qu’il faut frapper ; il est dur comme de la corne (26 % de dégâts en moins). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Ses PV, ce sont ses bras : chacun en porte un sixième, les coups entament le bras à l’œil, et quand il est vidé il est arraché ; un seul coup ne peut pas lui enlever plus de 20 PV. Tant qu’il reste un bras, il reste des PV ; quand le dernier est arraché, la Chose tombe. Son grand œil suit toujours l’adversaire. De temps en temps, l’œil fixe l’adversaire et vire au vert, puis lance son regard maudit : un large cône de lumière verte qui balaie l’arène d’un côté à l’autre en passant sur l’adversaire (il ne le suit pas) ; tant qu’il est dedans, il brûle (d’autant plus fort qu’il est rapide : un perso lent, qui ne peut pas y échapper, en prend moins) et il est ralenti. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place (jusqu’à 1,5 seconde) et lui fait de petits dégâts, à moins qu’il ne l’ait assez frappée pour se libérer avant. Accrochée aux murs, elle ne peut pas être ramenée par la langue du Smoker.",
     svg: `<g ${O}>
       <path d='M60 40 Q30 60 34 110 Q40 140 60 146 Q80 140 86 110 Q90 60 60 40Z' fill='#e9c9c0' stroke='#7a1a22'/>
       <path d='M44 70 Q60 90 76 70 M46 100 Q60 116 74 100' fill='none' stroke='#b52a35' stroke-width='3'/>
@@ -2925,7 +2925,7 @@ const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;
-const OEIL_DUREE = [4, 5], OEIL_FERME = 2, OEIL_GROS_COUP = 6; // temps de l'œil sur une main, temps fermé après un gros coup, ce qu'est un gros coup
+const OEIL_DUREE = [4, 5], OEIL_FERME = 2, OEIL_GROS_COUP = 8; // temps de l'œil sur une main, temps fermé après un gros coup, ce qu'est un gros coup
 // regard maudit : charge, durée du balayage, angle balayé, ouverture du cône, portée, dégâts tous les RAYON_TIC, ralentissement
 const RAYON_PREMIER = 3, RAYON_CD = 4.6, RAYON_CHARGE = 1, RAYON_DUREE = 1.6, RAYON_ARC = 1.4, RAYON_CONE = 0.5, RAYON_PORTEE = 440;
 const RAYON_VIT_REF = 180, RAYON_VIT_MIN = 0.5, RAYON_VIT_MAX = 1.15; // dégâts du regard selon la vitesse de l'adversaire (vitesse de référence, bornes)

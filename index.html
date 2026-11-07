@@ -665,7 +665,7 @@ const CHARS = {
   inconnu: {
     nom: "L’Inconnu", emoji: "👁️", vitesse: 230, pv: 100, son2: "téléportation", images: ["attaque"],
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit l’adversaire (déplacements et attaques), puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter : à chaque téléportation, il regagne 2 PV.",
+    desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit l’adversaire (déplacements et attaques), puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter : à chaque téléportation, il regagne 3 PV.",
     svg: `<g ${O}>
       <path d='M36 60 Q60 50 84 60 L94 140 Q86 132 78 142 Q70 132 60 144 Q50 132 42 142 Q34 132 26 140Z' fill='#2a2440'/>
       <path d='M80 74 Q96 78 104 70' fill='none' stroke='#2a2440' stroke-width='11'/>
@@ -3071,7 +3071,7 @@ const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoy�
 const FEU_BONUS = 6; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 48, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
-const INCONNU_SOIN = 2; // PV regagnés par l'Inconnu à chaque téléportation
+const INCONNU_SOIN = 3; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.75; // vitesse (déplacement et recharges) d'un perso ralenti (obus de l'Inconnu, regard de la Chose, traînée du Slime)
 const BALLE_VITESSE = 1000; // vitesse des balles de McCree
 // grenade flash de McCree : aveugle et ralentit énormément l'adversaire touché

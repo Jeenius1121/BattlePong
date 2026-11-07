@@ -1349,7 +1349,7 @@ const CHARS = {
     portraitImage: 2, portraitAutre: { cx: 0.4, cy: 0.1, taille: 0.26 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
-    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute (en feu, il brûle la langue du Smoker). Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (20 % de dégâts en moins), avant de relancer son grappin.",
+    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute (en feu, il brûle la langue du Smoker). Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (30 % de dégâts en moins), avant de relancer son grappin.",
     svg: `<g ${O}>
       <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
       <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
@@ -2771,13 +2771,13 @@ const FINALE_NB = 6, FINALE_ECART = 70, FINALE_MECHE = [0.8, 1.6], FINALE_DEGATS
 // Bouldozer : balancement au bout du grappin, en feu au-delà d'une certaine vitesse, mitraillettes une fois en bas
 const HAMMOND_GRAVITE = 900, HAMMOND_POMPE = 950, HAMMOND_VITESSE_MAX = 1020, HAMMOND_VITESSE_PLAFOND = 1250, HAMMOND_FEU_VITESSE = 700, HAMMOND_REBOND = 0.85, HAMMOND_REBOND_SOL = 0.5, HAMMOND_ATTERRIT = 450;
 const HAMMOND_ESSAIS = 6, HAMMOND_VISEE = 0.6; // endroits essayés pour le grappin ; angle (radians) pour lâcher vers l'adversaire
-const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 9, HAMMOND_CHOC_CD = 0.45;
+const HAMMOND_CABLE_MIN = 120, HAMMOND_ENROULE = 25, HAMMOND_ENROULE_VITE = 700, BALANCE_DUREE = [2.5, 3.5], HAMMOND_CHOC = 8, HAMMOND_CHOC_CD = 0.45;
 // après le grappin : vol libre, puis il s'arrête en hauteur (tremble), puis s'écrase au sol
 const VOL_LIBRE = 1.2, VOL_LIBRE_MIN = 0.5, STASE_DUREE = 0.5, STASE_HAUTEUR = 300, STASE_MONTEE = 800, HAMMOND_CHUTE = 1500;
 // écrasement : dégâts à l'adversaire au sol (pas trop loin), et plus petits s'il était sur la trajectoire
 const ECRASE_SOL = 8, ECRASE_TRAJET = 4, ECRASE_RAYON = 170, ECRASE_HAUTEUR_SOL = 60, ECRASE_PROJETE = 700, ECRASE_PROJETE_DUREE = 0.4;
 const HAMMOND_ENVOLEE = 450; // vitesse vers le haut ajoutée quand il lâche le grappin
-const HAMMOND_BLINDAGE = 0.2; // dégâts en moins quand il est posé en bas (mode tourelle)
+const HAMMOND_BLINDAGE = 0.3; // dégâts en moins quand il est posé en bas (mode tourelle)
 const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.15;
 // mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
 // Repère du perso tourné vers l'avant (x vers l'avant) ; u = demi-hauteur de l'image
@@ -5215,7 +5215,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.68.0", NOTES = "Quatrième passe d’équilibrage.\n• Nécromancienne : son bouclier d’os la protège de toutes les grosses attaques de zone (15 dégâts ou plus : missile, obus, gros cri de Steve, Head Stomp de Bison…), plus seulement des explosions ; ses squelettes durent 20 s.\n• Slime : sa traînée gluante ralentit un peu moins longtemps (0,7 s).\n• Résultat : plus qu’un duel au-delà de 90 % (au lieu de 3), et tous les persos entre 47 et 54 % de victoires.";
+const VERSION = "1.69.0", NOTES = "Cinquième passe d’équilibrage : les PV de tous les persos peuvent maintenant changer (toujours en chiffre rond).\n• Chose Impie : 210 PV ; l’œil ne se referme qu’après un coup de 8 dégâts ou plus.\n• Slime : 170 PV.\n• McCree : rechargement 1,9 s, grenade flash toutes les 20 s.\n• Bison : genoux toutes les 2,5 s, Head Stomp 17. Bouldozer : mitraillettes plus précises, blindage 30 %, choc en feu 8. Marin : plongée plus courte, le poisson croque à 33. Inconnu : 3 PV par téléportation. Bombardier : appareils de retour en 8 s.\n• Résultat : plus aucun duel à 90 % ou plus (le pire est à 89 %), et tous les persos entre 46,6 et 52,2 % de victoires.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

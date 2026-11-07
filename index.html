@@ -5221,7 +5221,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.69.0", NOTES = "Cinquième passe d’équilibrage : les PV de tous les persos peuvent maintenant changer (toujours en chiffre rond).\n• Chose Impie : 210 PV ; l’œil ne se referme qu’après un coup de 8 dégâts ou plus.\n• Slime : 170 PV.\n• McCree : rechargement 1,9 s, grenade flash toutes les 20 s.\n• Bison : genoux toutes les 2,5 s, Head Stomp 17. Bouldozer : mitraillettes plus précises, blindage 30 %, choc en feu 8. Marin : plongée plus courte, le poisson croque à 33. Inconnu : 3 PV par téléportation. Bombardier : appareils de retour en 8 s.\n• Résultat : plus aucun duel à 90 % ou plus (le pire est à 89 %), et tous les persos entre 46,6 et 52,2 % de victoires.";
+const VERSION = "1.70.0", NOTES = "Le Slime retravaillé, et sixième passe d’équilibrage.\n• Slime : quand il touche un mur, il repart le plus souvent vers l’adversaire (ceux qui l’évitent de loin ne sont plus tranquilles) ; en échange, 140 PV (au lieu de 170).\n• Smoker : sa langue part plus vite. Sorcier : bouclier de feu 36.\n• Résultat : plus que 9 duels à 80 % ou plus (au lieu de 14), aucun à 90 %, et tous les persos entre 48 et 51,5 % de victoires.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

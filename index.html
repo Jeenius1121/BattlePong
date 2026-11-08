@@ -3490,7 +3490,7 @@ function maj(dt) {
     g.running = false; g.fin = FIN; arreterBoucles(); couper("_marin-4"); couper("_gigachad-4");
     document.body.classList.add("fin-combat"); // plus de « Recommencer » ni de retour : on attend la carte de fin
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
-    g.texteFin = g.ile ? `${CHARS.marin.nom} est rentré chez lui ! 🐢` : gagnant ? `${CHARS[gagnant.type].nom} gagne !` : g.finaleChacal ? "Égalité !" : "Double KO !";
+    g.texteFin = g.ile ? `${CHARS.marin.nom} est rentré chez lui ! 🐢` : gagnant ? `${CHARS[gagnant.type].nom} gagne\u00a0!` : g.finaleChacal ? "Égalité !" : "Double KO !";
     const wt = document.getElementById("winText"); wt.textContent = g.texteFin; wt.classList.toggle("long", g.texteFin.length > 24);
     for (const f of g.f) if (f.hp <= 0 && !g.ile && !f.mort) exploser(g, f);
     g.gagnant = gagnant;
@@ -5381,7 +5381,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.71.0", NOTES = "L’île de la tortue du Marin retravaillée.\n• Elle sort beaucoup plus tôt (vers 15 secondes) et une seule fois par combat : le Marin s’y rend, regagne 25 PV, s’y repose 3 secondes (toujours touchable), puis repart en mer et l’île replonge.\n• Elle ne le fait plus jamais gagner le combat.\n• En échange, le poisson qu’il mange lui rend un peu moins de PV (3 au lieu de 5).";
+const VERSION = "1.72.0", NOTES = "Nouveau personnage : I Need More Bullets !\n• Il tire sur l’adversaire balle après balle (7 dégâts par balle), quand il l’a devant lui, en visant un peu en avant.\n• Des tas de balles tombent au hasard dans l’arène (au bout de 3 secondes, puis toutes les 6 secondes, 2 au plus par terre) : il ramasse ceux sur lesquels il passe, et chaque tas lui donne un chargeur plus grand (6 balles, puis 8, 10… jusqu’à 16).\n• Chargeur vide : il se claque les fesses (« I need more bullets ») en allant chercher le tas le plus proche, ou en errant au hasard s’il n’y en a aucun.\n• Une pastille à côté de son étiquette montre les balles qui lui restent.\n• Équilibrage : les mitraillettes du Bouldozer tirent un peu moins vite ; la bulle de protection de D.Nouille revient toutes les 5 secondes et ses bulles partent un peu plus souvent.\n• Les noms longs passent sur deux lignes dans la fiche du perso.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

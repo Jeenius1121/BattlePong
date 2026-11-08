@@ -1083,7 +1083,7 @@ const CHARS = {
     nom: "Jeune beau et plein d’avenir", court: "Jeune beau", emoji: "⛵", vitesse: 70, pv: 100, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
     taille: 1.15, images: ["poisson", "île de la tortue"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", son9: "victoire sur l’île (à la place de « Wins »)", sonsLongs: [4, 7, 9],
     imageDe: () => 1,
-    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 7 secondes avant de replonger. Au bout de 50 à 52 secondes (au hasard), l’île de la tortue sort de l’eau : s’il l’atteint, il rentre chez lui et gagne le combat.",
+    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 7 secondes avant de replonger. Au bout de 15 à 17 secondes, l’île de la tortue sort de l’eau, une seule fois par combat : il s’y rend, regagne 25 PV, s’y repose 3 secondes (toujours touchable), puis repart en mer et l’île replonge.",
     svg: `<g ${O}>
       <path d='M8 96 H112 Q104 128 60 130 Q16 128 8 96Z' fill='#6b3d1f'/><path d='M8 96 H112' stroke='#f2b134' stroke-width='5'/>
       <path d='M30 92 V14' stroke='#8a5228' stroke-width='6'/><path d='M34 18 Q58 30 54 86 H34Z' fill='#c4232f'/>
@@ -1109,9 +1109,19 @@ const CHARS = {
         this.eclabousser(g, f.x, merSurface(g, f.x)); jouerEffet("marin-8", 0.6);
       }
       const I = g.mer.ile;
-      if (I && I.monte >= 1) { // il met le cap sur l'île de la tortue
-        f.vx = Math.sign(I.x - f.x || 1) * ILE_VITESSE;
-        if (Math.abs(f.x - I.x) < ILE_LARGEUR * 0.35 && g.running) { g.ile = true; o.hp = 0; f.surIle = true; } // arrivé chez lui : il gagne
+      if (I && !I.fini) {
+        if (f.surIle) { // posé sur l'île : il se repose un moment, puis repart en mer (l'île replonge)
+          f.vx = 0; I.sejour -= dt;
+          if (I.sejour <= 0) { f.surIle = false; I.fini = true; this.eclabousser(g, f.x, merSurface(g, f.x)); }
+        } else if (I.monte >= 1) { // il met le cap sur l'île de la tortue
+          f.vx = Math.sign(I.x - f.x || 1) * ILE_VITESSE;
+          I.attente = (I.attente || 0) + dt;
+          if (Math.abs(f.x - I.x) < ILE_LARGEUR * 0.35 && g.running && !f.capture) { // arrivé : il regagne des PV
+            f.surIle = true; I.sejour = ILE_SEJOUR;
+            const soin = Math.min(ILE_SOIN, f.hpMax - f.hp);
+            if (soin > 0) { f.hp += soin; g.txt.push({ x: f.x, y: f.y - f.hh - 10, t: 1.2, s: "+" + soin, soin: true }); }
+          } else if (I.attente > ILE_ATTENTE) I.fini = true; // il n'a pas pu l'atteindre à temps : elle replonge
+        }
       }
       this.flotter(f, g, dt);
     },
@@ -1133,18 +1143,19 @@ const CHARS = {
     },
     // la mer, la tempête et le poisson vivent tout le temps, même quand le Marin est attrapé
     monde(f, o, g, dt) {
-      // l'île arrive à un nombre rond de secondes tiré au hasard : 18, 19 ou 20
+      // l'île arrive une seule fois, à un nombre rond de secondes tiré au hasard (ILE_DELAI)
       const M = g.mer ??= { ileDelai: ILE_DELAI[0] + Math.floor(Math.random() * (ILE_DELAI[1] - ILE_DELAI[0] + 1)), t: 0, vagues: [], tempete: 0, tempeteCd: 5, vagueT: 0, poisson: null, poissonCd: 3.5, tic: 0 };
       const hasard = (a, b) => a + Math.random() * (b - a);
       M.t += dt;
       if (g.running) M.combat = (M.combat || 0) + dt;
       if (!M.sonMer && g.running) { M.sonMer = true; jouerCle("marin-4", { boucle: true, volume: 0.5 }); } // bruit de la mer en continu
-      if (!M.ile && M.combat >= M.ileDelai && !f.mort) { // l'île sort de l'eau, du côté opposé au Marin
+      if (!M.ile && !M.ileFinie && M.combat >= M.ileDelai && !f.mort) { // l'île sort de l'eau (une seule fois), du côté opposé au Marin
         const droite = f.x < W / 2;
         M.ile = { x: droite ? W - ILE_LARGEUR / 2 - 6 : ILE_LARGEUR / 2 + 6, monte: 0 };
         jouerEffet("marin-7", 1); // pile au moment où l'île sort de l'eau
       }
-      if (M.ile) M.ile.monte = Math.min(1, M.ile.monte + dt / 1.5);
+      if (M.ile && !M.ile.fini) M.ile.monte = Math.min(1, M.ile.monte + dt / 1.5);
+      else if (M.ile) { M.ile.monte -= dt / 1.5; if (M.ile.monte <= 0) { M.ile = null; M.ileFinie = true; } } // elle replonge, pour de bon
       if (f.capture) f.retombe = true; // tiré hors de l'eau par la langue : il retombera en douceur
       if (!g.running && !f.mort) { // combat fini (victoire normale ou sur l'île) : il continue de flotter tranquillement
         f.vy = 0; f.vx = f.surIle ? 0 : (Math.sign(f.vx) || 1) * this.vitesse; this.flotter(f, g);
@@ -2540,7 +2551,7 @@ const CRUSHER_CD = 3.2, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONN
 const MER_NIVEAU = 0.1, MER_TIC = 0.5, MER_DEGATS = 2;
 const TEMPETE_CD = [8, 12], TEMPETE_DUREE = 5, VAGUE_VITESSE = 280;
 const POISSON_CD = [3.5, 5], POISSON_MONTEE = 1.4, POISSON_PAUSE = 1, POISSON_CHUTE = 0.8, POISSON_HAUT = 70, POISSON_RAYON = 42;
-const POISSON_SOIN = 5; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
+const POISSON_SOIN = 3; // PV regagnés quand le poisson jaillit dans son bateau et qu'il le mange
 const CROQUE_DEGATS = 33, POISSON_CONTACT = 16, POISSON_ECART = 150;
 // hauteur de l'eau (depuis le bas) à la position x : niveau de base, petites ondulations et vagues de la tempête
 function merHauteur(g, x) {
@@ -2555,7 +2566,8 @@ function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (
 // l'île de la tortue : au bout d'un moment, le Marin rentre chez lui (c'est une victoire pour lui)
 // plongée du Marin quand une attaque va le toucher : il ne la voit venir qu'une fois sur PLONGEE_VU (sinon il est surpris un instant)
 const PLONGEE_DUREE = 0.9, PLONGEE_CD = 7, PLONGEE_VU = 0.1, PLONGEE_RATE = 1;
-const ILE_DELAI = [50, 52], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
+const ILE_DELAI = [15, 17], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
+const ILE_SOIN = 25, ILE_SEJOUR = 3, ILE_ATTENTE = 10; // l'île de la tortue : PV regagnés, temps posé dessus, temps max pour l'atteindre
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
 const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 17, GENOU_CD = 2.5, GENOU_DEGATS = 4;
@@ -3452,7 +3464,7 @@ function dessinerMer(g) {
     for (let i = 0; i < 45; i++) { const x = Math.random() * W, y = Math.random() * W; ctx.moveTo(x, y); ctx.lineTo(x + 6, y + 18); }
     ctx.stroke();
   }
-  if (!M.ile && g.f.some(f => f.type === "marin" && !f.mort)) { // compte à rebours avant l'île
+  if (!M.ile && !M.ileFinie && g.f.some(f => f.type === "marin" && !f.mort)) { // compte à rebours avant l'île
     ctx.font = "800 15px Rubik, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "rgba(200,235,255,.8)";
     ctx.fillText(`🐢 Île de la tortue dans ${Math.max(0, Math.ceil(M.ileDelai - (M.combat || 0)))} s`, W / 2, 30);
   }
@@ -5221,7 +5233,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.70.0", NOTES = "Le Slime retravaillé, et sixième passe d’équilibrage.\n• Slime : quand il touche un mur, il repart le plus souvent vers l’adversaire (ceux qui l’évitent de loin ne sont plus tranquilles) ; en échange, 140 PV (au lieu de 170).\n• Smoker : sa langue part plus vite. Sorcier : bouclier de feu 36.\n• Résultat : plus que 9 duels à 80 % ou plus (au lieu de 14), aucun à 90 %, et tous les persos entre 48 et 51,5 % de victoires.";
+const VERSION = "1.71.0", NOTES = "L’île de la tortue du Marin retravaillée.\n• Elle sort beaucoup plus tôt (vers 15 secondes) et une seule fois par combat : le Marin s’y rend, regagne 25 PV, s’y repose 3 secondes (toujours touchable), puis repart en mer et l’île replonge.\n• Elle ne le fait plus jamais gagner le combat.\n• En échange, le poisson qu’il mange lui rend un peu moins de PV (3 au lieu de 5).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

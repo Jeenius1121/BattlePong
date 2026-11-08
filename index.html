@@ -111,6 +111,7 @@ body.vue-combat [data-vue="combat"], body.vue-selection [data-vue="selection"]{a
 .ficheTete canvas{flex:none; width:46px; height:46px; border-radius:50%; background:radial-gradient(circle at 50% 40%, color-mix(in srgb,var(--team) 45%,#fff), var(--team)); box-shadow:0 0 0 2px var(--panel), 0 0 0 4px var(--team)}
 .ficheTitre{flex:1; min-width:0}
 .ficheNom{margin:0; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-weight:400; font-size:1.02rem; line-height:1.1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.ficheNom.long{white-space:normal; font-size:.92rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical} /* nom long : sur deux lignes */
 .ficheTitre .chips{justify-content:flex-start; margin-top:4px}
 .ficheTitre .chip{background:rgba(255,255,255,.08)}
 .ficheOnglets{flex:none; display:flex; gap:4px}
@@ -2279,6 +2280,73 @@ const CHARS = {
         ctx.restore();
       }
     }
+  },
+  bullets: {
+    nom: "I Need More Bullets", court: "More Bullets", emoji: "🔫", vitesse: 210, pv: 100, memeEchelle: true, portrait: { cx: 0.53, cy: 0.14, taille: 0.33 }, // portrait centré sur sa tête ; toutes ses images à la même échelle
+    images: ["visée 1", "visée 2", "tir 1", "tir 2", "tir 3", "pistolet baissé 1", "pistolet baissé 2", "claque 1", "claque 2", "claque 3", "claque 4", "claque 5", "claque 6", "claque 7", "claque 8", "claque 9", "claque 10"],
+    ancres: { 2: [0.085, 0.009], 3: [0.136, 0.004], 4: [0.241, 0.004], 5: [0.212, 0.006], 6: [0.123, 0.006], 7: [0.089, 0.02], 8: [-0.053, 0.022], 9: [0.123, 0], 10: [0.06, 0], 11: [-0.006, 0.002], 12: [-0.076, 0], 13: [0.023, 0], 14: [0.038, 0], 15: [0.006, 0], 16: [-0.01, 0.002], 17: [-0.058, -0.002], 18: [0.085, 0.002] }, // le corps reste au même endroit d'une image à l'autre (l'éclair du tir dépasse devant)
+    sonNom: "tir", son2: "« I need more bullets »", son3: "claque sur les fesses",
+    // repos : 1 ; il lève son arme : 2-3 ; coup de feu : 4-5 (éclair) puis 6 ; arme baissée : 7-8 ; il réclame des balles : 9 à 18 (claques sur les images 12 et 17)
+    imageDe: f => {
+      if (f.demande > 0) return 9 + Math.min(9, Math.floor((1 - f.demande / BULLETS_DEMANDE) * 10));
+      if (f.balles === 0) return (f.baisse || 0) < BULLETS_BAISSE / 2 ? 7 : 8;
+      if (!(f.burst > 0)) return 1;
+      if (f.tirT < 0.05) return f.coups % 2 ? 4 : 5;
+      if (f.tirT < 0.11) return 6;
+      return f.vise < BULLETS_VISEE / 2 ? 2 : 3;
+    },
+    desc: "Tire sur l’adversaire balle après balle avec son pistolet (5 dégâts par balle), même quand il est plus haut ou plus bas que lui. Quand son chargeur est vide, il baisse son arme, puis il s’arrête pour réclamer des balles en se claquant les fesses et en criant « I NEED MORE BULLETS! » : 2 secondes sur place, sans défense. Ses balles arrivent alors, et à chaque fois il en a 2 de plus : 6 balles, puis 8, 10… jusqu’à 16. Plus il en redemande, plus il en a !",
+    svg: `<g ${O}>
+      <rect x='43' y='104' width='15' height='32' fill='#56603a'/><rect x='62' y='104' width='15' height='32' fill='#56603a'/>
+      <path d='M41 132h18v12H35v-4z' fill='#1f2026'/><path d='M61 132h18l5 8v4H61z' fill='#1f2026'/>
+      <rect x='30' y='72' width='12' height='28' rx='6' fill='#e0a77e'/>
+      <rect x='38' y='66' width='44' height='42' rx='9' fill='#23262f'/>
+      <rect x='38' y='100' width='44' height='7' fill='#3b3f48'/>
+      <rect x='76' y='74' width='24' height='11' rx='5.5' fill='#e0a77e'/>
+      <path d='M96 68h22v9h-12v10h-8z' fill='#ef7d2e'/><rect x='99' y='68' width='18' height='4' fill='#eef1f6' stroke='none'/>
+      <circle cx='60' cy='46' r='18' fill='#e0a77e'/>
+      <path d='M44 48 Q46 64 60 66 Q74 64 76 48 Q72 58 60 59 Q48 58 44 48Z' fill='#4a3528' stroke='none'/>
+      <circle cx='67' cy='44' r='2.6' fill='#1b2033' stroke='none'/>
+      <path d='M38 38 Q38 16 62 16 Q86 16 84 36 Q72 30 58 34 Q46 38 38 38Z' fill='#262b55'/></g>`,
+    // sa voix est-elle assez courte pour qu'il la dise deux fois pendant qu'il réclame des balles ? (son seulement)
+    voixCourte() { const s = sons["bullets-2"]; return !!s && s.buffer.duration < BULLETS_DEMANDE / 2 + 0.05; },
+    attaque(f, o, g, dt) {
+      f.chargeur ??= BULLETS_CHARGEUR; f.balles ??= f.chargeur; f.tirT = (f.tirT ?? 1) + dt;
+      if (f.demande > 0) { // il réclame des balles en se claquant les fesses : sur place, sans défense
+        const avant = Math.floor((1 - f.demande / BULLETS_DEMANDE) * 10);
+        f.demande -= dt; f.vx = 0; f.vy = 0;
+        const n = Math.floor((1 - Math.max(0, f.demande) / BULLETS_DEMANDE) * 10);
+        if (n !== avant) {
+          if (n === 3 || n === 8) son(f, 3); // les deux claques (images 12 et 17)
+          if (n === 5 && this.voixCourte()) son(f, 2); // il le redit
+        }
+        if (f.demande <= 0) { // ses balles arrivent : chargeur plein, avec des balles en plus par rapport à la fois d'avant
+          f.demande = 0; f.chargeur = Math.min(BULLETS_MAX, f.chargeur + BULLETS_PLUS); f.balles = f.chargeur;
+          g.txt.push({ x: f.x, y: f.y - f.hh - 12, t: 1.1, s: f.chargeur + " balles !" });
+          if (Math.hypot(f.dvx || 0, f.dvy || 0) < 1) { const a = angleAleatoire(); f.dvx = Math.cos(a); f.dvy = Math.sin(a); }
+          f.vx = f.dvx; f.vy = f.dvy; normaliser(f);
+        }
+        return;
+      }
+      if (f.balles === 0) { // chargeur vide : il baisse son arme, puis il réclame des balles
+        f.burst = 0; f.penche = 0; f.vise = 0; f.baisse = (f.baisse || 0) + dt;
+        if (f.baisse >= BULLETS_BAISSE) { f.baisse = 0; f.demande = BULLETS_DEMANDE; f.dvx = f.vx; f.dvy = f.vy; f.vx = 0; f.vy = 0; son(f, 2); }
+        return;
+      }
+      const t = cibleDe(f, o);
+      if (!t || o.mort) { f.burst = 0; f.penche = 0; f.vise = 0; return; } // personne à viser : arme baissée
+      if (Math.abs(t.x - f.x) > 12) f.dir = t.x >= f.x ? 1 : -1;
+      f.face = f.dir; f.burst = f.balles; // tourné vers sa cible
+      f.vise = (f.vise || 0) + dt;
+      const a = Math.atan2(t.y - f.y, t.x - f.x), r = f.dir > 0 ? a : a - Math.PI, haut = Math.atan2(Math.sin(r), Math.cos(r)); // haut : angle de sa cible au-dessus ou au-dessous de lui
+      f.penche = Math.max(-BULLETS_PENCHE, Math.min(BULLETS_PENCHE, haut)); // il penche un peu pour viser plus haut ou plus bas
+      f.cd -= dt;
+      if (f.vise >= BULLETS_VISEE && f.cd <= 0 && Math.abs(haut) <= BULLETS_ANGLE) { // une balle part du bout du pistolet, vers sa cible (seulement devant lui, pas trop haut ni trop bas)
+        const c = canonMonde(f), ang = Math.atan2(t.y - c.y, t.x - c.x) + (Math.random() - 0.5) * BULLETS_DISPERSION;
+        g.proj.push({ kind: "balle", x: c.x, y: c.y, vx: Math.cos(ang) * BULLETS_VITESSE, vy: Math.sin(ang) * BULLETS_VITESSE, r: 4, dmg: BULLETS_DEGATS, owner: f, rot: 0, drone: t.drone });
+        f.cd = BULLETS_CADENCE; f.balles--; f.tirT = 0; f.coups = (f.coups || 0) + 1; son(f);
+      }
+    }
   }
 };
 
@@ -2940,6 +3008,10 @@ const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant 
 const GELEE_TRAINEE_LENT = 0.7; // traînée gluante : ralentit l'adversaire qui marche dedans
 const GELEE_REBOND_VISE = 0.7; // chance qu'un morceau du Slime reparte vers l'adversaire en touchant un mur
 const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.45, GELEE_CONTACT_CD = 0.5, GELEE_TRAINEE = 1, GELEE_TRAINEE_TIC = 0.3;
+// I Need More Bullets : balles tirées une à une vers l'adversaire ; chargeur vide, il baisse son arme puis réclame des balles en se claquant
+// les fesses (sur place, sans défense) et en reçoit chaque fois BULLETS_PLUS de plus que la fois d'avant, jusqu'à BULLETS_MAX
+const BULLETS_CHARGEUR = 6, BULLETS_PLUS = 2, BULLETS_MAX = 16, BULLETS_CADENCE = 0.28, BULLETS_DEGATS = 5, BULLETS_VITESSE = 900;
+const BULLETS_VISEE = 0.25, BULLETS_BAISSE = 0.3, BULLETS_DEMANDE = 2, BULLETS_DISPERSION = 0.08, BULLETS_PENCHE = 0.25, BULLETS_ANGLE = 0.7;
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;
@@ -3128,7 +3200,7 @@ function exploser(g, f) {
 function calmer(f) {
   f.capture = null;
   if (f.langue) { f.langue = null; f.langueCd = LANGUE_CD; }
-  f.charge = 0; f.tir = 0; f.burst = 0; f.muzzle = 0; f.rot = 0; f.vis = 1;
+  f.charge = 0; f.tir = 0; f.burst = 0; f.muzzle = 0; f.rot = 0; f.vis = 1; f.demande = 0; f.penche = 0;
   if (f.etat) { f.etat = null; f.jauge = 0; }
   if (Math.hypot(f.vx, f.vy) < 1) { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); }
   normaliser(f);
@@ -3597,6 +3669,7 @@ const ALLURES = {
   grenouille: { type: "marche", pas: 52, saut: 2, penche: 0.025 },
   tortue: { type: "fixe" },
   sorciere: { type: "fixe" },
+  bullets: { type: "marche", pas: 50, saut: 2.6, penche: 0.04, souple: { amp: 1.3, bas: true } },
 };
 function animerPerso(f, dtv, now) {
   const A = ALLURES[f.type] || { type: "marche", pas: 50, saut: 2.5, penche: 0.04 };
@@ -3743,12 +3816,39 @@ const DECORS = {
     const h = pointHaut(spriteDe(f), 0.3, 0.8), p = versMonde(f, Math.min(0.95, h.u + 0.12), h.v + 0.09);
     for (let i = 0; i < 3; i++) vpart(g, { x: p.x, y: p.y, vx: f.face * (14 + Math.random() * 14), vy: -6 - Math.random() * 6, t: 0.8, v0: 0.22, r: 3, croit: 8, frein: 1.5, c: "rgba(220,225,235," });
   },
+  bullets(f, g) { // une douille éjectée et un peu de fumée au bout du pistolet à chaque balle
+    if (f.vCoups !== undefined && f.coups !== f.vCoups) {
+      const k = f.k, x = f.x + f.face * 70 * k, y = f.y - f.hh * 0.44;
+      vpart(g, { x, y, vx: -f.face * (40 + Math.random() * 50), vy: -110 - Math.random() * 60, g: 520, t: 0.55, v0: 1, r: 2.2, croit: 0, frein: 1, forme: "douille", rot: Math.random() * 6, c: "rgba(230,180,90," });
+      vpart(g, { x: f.x + f.face * 96 * k, y: f.y - f.hh * 0.42, vx: f.face * 30, vy: -12, t: 0.4, v0: 0.35, r: 3.5, croit: 14, c: "rgba(200,200,205," });
+    }
+    f.vCoups = f.coups;
+  },
   titan(f, g, dtv) { // l'araignée de métal soulève un peu de poussière en trottinant
     if (!(f.v && f.v.vit > 20) || Math.random() > dtv * 6) return;
     const p = versMonde(f, Math.random() < 0.5 ? 0.12 : 0.88, 0.97);
     vpart(g, { x: p.x, y: p.y, vx: (Math.random() - 0.5) * 30, vy: -10 - Math.random() * 10, t: 0.5, v0: 0.35, r: 3, croit: 12, frein: 3, c: "rgba(200,205,220," });
   },
 };
+// bulle de bande dessinée au-dessus d'un perso (I Need More Bullets qui réclame des balles) : elle jaillit puis s'efface à la fin
+function bulleParole(f, lignes, age, reste) {
+  ctx.save();
+  ctx.font = '400 14px "Bowlby One", "Arial Black", sans-serif'; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const lh = 16, w = Math.max(...lignes.map(l => ctx.measureText(l).width)) + 20, h = lignes.length * lh + 12;
+  const pop = Math.min(1, age / 0.14), k = 0.5 + 0.5 * pop + 0.12 * Math.sin(pop * Math.PI);
+  let cote = f.face || 1, bx = f.x + cote * (w / 2 + 26);
+  if (bx + w / 2 > W - 6 || bx - w / 2 < 6) { cote = -cote; bx = f.x + cote * (w / 2 + 26); }
+  bx = Math.min(W - 6 - w / 2, Math.max(6 + w / 2, bx));
+  const by = Math.max(6 + h / 2, f.y - f.hh - 8);
+  const tx = f.x + (f.face || 1) * 14 - bx, ty = f.y - f.hh * 0.74 - by; // la pointe va vers sa bouche
+  const dl = Math.hypot(tx, ty) || 1, ux = tx / dl, uy = ty / dl, e = Math.min((w / 2 - 8) / (Math.abs(ux) || 1e-6), (h / 2 - 8) / (Math.abs(uy) || 1e-6)), cx = ux * e, cy = uy * e; // départ de la pointe, au bord de la bulle
+  ctx.globalAlpha = Math.min(1, reste / 0.15); ctx.translate(bx, by); ctx.scale(k, k);
+  const corps = () => { ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, 11); }, pointe = () => { ctx.beginPath(); ctx.moveTo(cx - uy * 9, cy + ux * 9); ctx.lineTo(tx, ty); ctx.lineTo(cx + uy * 9, cy - ux * 9); ctx.closePath(); };
+  ctx.strokeStyle = "#1b2033"; ctx.lineWidth = 5; ctx.lineJoin = "round"; corps(); ctx.stroke(); pointe(); ctx.stroke();
+  ctx.fillStyle = "#ffffff"; corps(); ctx.fill(); pointe(); ctx.fill();
+  lignes.forEach((l, i) => { ctx.fillStyle = i === lignes.length - 1 ? "#e0302a" : "#1b2033"; ctx.fillText(l, 0, (i - (lignes.length - 1) / 2) * lh + 1); });
+  ctx.restore();
+}
 let horlogeRendu = 0;
 // portrait rond d'un perso dessiné dans l'arène (face à face du début)
 function portraitRond(id, x, y, r, flip, coul) {
@@ -4233,8 +4333,15 @@ function dessiner() {
       ctx.fillStyle = "#ffd23f"; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.roundRect(px - 20, y - 13, 40, 24, 8); ctx.fill(); ctx.stroke();
       ctx.fillStyle = "#3a2a00"; ctx.font = "900 16px Rubik, system-ui, sans-serif"; ctx.fillText("+" + f.poses, px, y - 0.5);
     }
+    if (f.chargeur && g.running && !(f.demande > 0)) { // I Need More Bullets : les balles qui lui restent dans son chargeur
+      const px = x + (x > W - 80 ? -46 : 46);
+      ctx.fillStyle = "rgba(22,24,38,.92)"; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.roundRect(px - 22, y - 13, 44, 24, 8); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#e8b04a"; ctx.fillRect(px - 15, y - 4, 5, 10); ctx.fillStyle = "#c4682c"; ctx.beginPath(); ctx.moveTo(px - 15, y - 4); ctx.lineTo(px - 12.5, y - 9); ctx.lineTo(px - 10, y - 4); ctx.fill(); // une balle
+      ctx.fillStyle = f.balles > 0 ? "#fff" : "#ff6a5a"; ctx.font = "900 16px Rubik, system-ui, sans-serif"; ctx.fillText(f.balles, px + 5, y - 0.5);
+    }
     ctx.restore();
   }
+  for (const f of g.f) if (f.demande > 0 && !f.mort) bulleParole(f, ["I NEED MORE", "BULLETS!"], BULLETS_DEMANDE - f.demande, f.demande); // il réclame des balles
   ctx.lineJoin = "round";
   for (const t of g.txt) {
     const vie = t.vie ||= t.t, age = vie - t.t, pop = 1 + 0.55 * Math.max(0, 1 - age / 0.12); // le chiffre jaillit puis se pose
@@ -4458,7 +4565,7 @@ function majFiche() {
   const id = choix[coteFiche], c = CHARS[id], fiche = document.getElementById("fiche");
   if (!fiche || !c) return;
   fiche.style.setProperty("--team", coteFiche ? "var(--droite)" : "var(--gauche)");
-  document.getElementById("ficheNom").textContent = c.emoji + " " + c.nom;
+  const fn = document.getElementById("ficheNom"); fn.textContent = c.emoji + " " + c.nom; fn.classList.toggle("long", c.nom.length > 14);
   document.getElementById("ficheChips").innerHTML = pastilles(id);
   document.getElementById("ficheDesc").textContent = c.desc;
   fiche.querySelectorAll(".ficheOnglets button").forEach(b => { const on = +b.dataset.side === coteFiche; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });

@@ -2351,20 +2351,27 @@ const CHARS = {
         return;
       }
       if (f.balles === 0) { // chargeur vide : il baisse son arme, puis il va chercher des balles (s'il n'y a aucun tas par terre, il en tombe un)
-        f.burst = 0; f.penche = 0; f.vise = 0; f.baisse = (f.baisse || 0) + dt;
+        f.burst = 0; f.penche = 0; f.vise = 0; f.vuCible = null; f.baisse = (f.baisse || 0) + dt;
         if (f.baisse >= BULLETS_BAISSE) { f.baisse = 0; f.claque = 0; f.cherche = true; if (!f.tas.length) this.nouveauTas(f, g); son(f, 2); f.voixT = this.dureeVoix(); }
         return;
       }
       const t = cibleDe(f, o);
-      if (!t || o.mort) { f.burst = 0; f.penche = 0; f.vise = 0; return; } // personne à viser : arme baissée
+      if (!t || o.mort) { f.burst = 0; f.penche = 0; f.vise = 0; f.vuCible = null; return; } // personne à viser : arme baissée
       if (Math.abs(t.x - f.x) > 12) f.dir = t.x >= f.x ? 1 : -1;
       f.face = f.dir; f.burst = f.balles; // tourné vers sa cible
       f.vise = (f.vise || 0) + dt;
+      const vue = t.drone || o; // il suit des yeux comment sa cible bouge (vitesse vue d'ici, lissée ; un saut d'un coup, comme une téléportation, ne compte pas)
+      if (f.vuCible && f.vuCible.c === vue && dt > 0) {
+        const V = f.vuCible, ix = (t.x - V.x) / dt, iy = (t.y - V.y) / dt, a = Math.min(1, dt * 10);
+        if (Math.hypot(ix, iy) < 1200) { V.vx += (ix - V.vx) * a; V.vy += (iy - V.vy) * a; }
+        V.x = t.x; V.y = t.y;
+      } else f.vuCible = { c: vue, x: t.x, y: t.y, vx: 0, vy: 0 };
       const a = Math.atan2(t.y - f.y, t.x - f.x), r = f.dir > 0 ? a : a - Math.PI, haut = Math.atan2(Math.sin(r), Math.cos(r)); // haut : angle de sa cible au-dessus ou au-dessous de lui
       f.penche = Math.max(-BULLETS_PENCHE, Math.min(BULLETS_PENCHE, haut)); // il penche un peu pour viser plus haut ou plus bas
       f.cd -= dt;
       if (f.vise >= BULLETS_VISEE && f.cd <= 0 && Math.abs(haut) <= BULLETS_ANGLE) { // une balle part du bout du pistolet, vers sa cible (seulement devant lui, pas trop haut ni trop bas)
-        const c = canonMonde(f), ang = Math.atan2(t.y - c.y, t.x - c.x) + (Math.random() - 0.5) * BULLETS_DISPERSION;
+        const c = canonMonde(f), V = f.vuCible, k = Math.hypot(t.x - c.x, t.y - c.y) / BULLETS_VITESSE * BULLETS_AVANCE; // il vise un peu en avant, là où il voit aller sa cible
+        const ang = Math.atan2(t.y + (V ? V.vy : 0) * k - c.y, t.x + (V ? V.vx : 0) * k - c.x) + (Math.random() - 0.5) * BULLETS_DISPERSION;
         g.proj.push({ kind: "balle", x: c.x, y: c.y, vx: Math.cos(ang) * BULLETS_VITESSE, vy: Math.sin(ang) * BULLETS_VITESSE, r: 4, dmg: BULLETS_DEGATS, owner: f, rot: 0, drone: t.drone });
         f.cd = BULLETS_CADENCE; f.balles--; f.tirT = 0; f.coups = (f.coups || 0) + 1; son(f);
       }
@@ -3033,10 +3040,11 @@ const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 // I Need More Bullets : balles tirées une à une vers l'adversaire (seulement s'il est devant lui : à BULLETS_ANGLE près) ; chargeur vide, un tas
 // de balles tombe au hasard dans l'arène (il en tombe aussi de temps en temps) et il va le ramasser en se claquant les fesses ; chaque tas ramassé donne
 // un chargeur plein avec BULLETS_PLUS balles de plus, jusqu'à BULLETS_MAX
-const BULLETS_CHARGEUR = 6, BULLETS_PLUS = 2, BULLETS_MAX = 16, BULLETS_CADENCE = 0.32, BULLETS_DEGATS = 7, BULLETS_VITESSE = 900;
+const BULLETS_CHARGEUR = 6, BULLETS_PLUS = 2, BULLETS_MAX = 16, BULLETS_CADENCE = 0.44, BULLETS_DEGATS = 7, BULLETS_VITESSE = 900;
 const BULLETS_VISEE = 0.25, BULLETS_BAISSE = 0.3, BULLETS_DISPERSION = 0.08, BULLETS_PENCHE = 0.25, BULLETS_ANGLE = 0.7;
 const BULLETS_CLAQUE = 1.6, BULLETS_TAS_ECART = 100, BULLETS_RAMASSE = 1; // durée d'un tour de claques ; tas de balles : distance minimale entre lui et un tas qui tombe, vitesse pour aller le chercher (part de sa vitesse)
-const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 6, BULLETS_TAS_MAX = 2; // tas de balles qui tombent même quand il est chargé : le premier, puis toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus)
+const BULLETS_AVANCE = 0.8; // il vise en avant de sa cible : part du chemin qu'elle fera pendant le vol de la balle
+const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 4, BULLETS_TAS_MAX = 2; // tas de balles qui tombent même quand il est chargé : le premier, puis toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus)
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;

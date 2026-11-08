@@ -3072,7 +3072,7 @@ const BULLETS_CHARGEUR = 5, BULLETS_CADENCE = 0.58, BULLETS_DEGATS = 7, BULLETS_
 const BULLETS_VISEE = 0.4, BULLETS_BAISSE = 0.3, BULLETS_DISPERSION = 0.08, BULLETS_PENCHE = 0.32, BULLETS_ANGLE = 0.85;
 const BULLETS_CLAQUE = 0.55, BULLETS_TAS_ECART = 100, BULLETS_RAMASSE = 0.7; // durée d'un tour de claques ; tas de balles : distance minimale entre lui et un tas qui tombe, vitesse pour aller le chercher (part de sa vitesse)
 const BULLETS_AVANCE = 0.8; // il vise en avant de sa cible : part du chemin qu'elle fera pendant le vol de la balle
-const BULLETS_ARME_CHANCE = 0.2; // à chaque tas qui tombe, chance qu'un fusil tombe aussi (un seul par terre, et plus aucun une fois qu'il l'a)
+const BULLETS_ARME_CHANCE = 0.25; // à chaque tas qui tombe, chance qu'un fusil tombe aussi (un seul par terre, et plus aucun une fois qu'il l'a)
 // le fusil : tir continu de petites balles (BULLETS_FUSIL_CADENCE entre deux) tant qu'il a sa cible en vue, avec un plus gros chargeur
 const BULLETS_FUSIL_CHARGEUR = 20, BULLETS_FUSIL_CADENCE = 0.12, BULLETS_FUSIL_DEGATS = 3, BULLETS_FUSIL_DISPERSION = 0.14;
 const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 6, BULLETS_TAS_MAX = 2; // tas de balles : le premier, puis un toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus), qu'il ait des balles ou non
@@ -5427,7 +5427,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.78.0", NOTES = "I Need More Bullets vise plus large.\n• Il peut tirer sur un adversaire nettement plus haut ou plus bas que lui (angle de tir élargi), et il penche un peu plus son arme pour viser.\n• En échange, son pistolet tire un peu moins vite, il marche plus lentement quand il cherche des balles en se claquant les fesses, et le fusil est un peu plus rare.";
+const VERSION = "1.79.0", NOTES = "Le fusil d’assaut d’I Need More Bullets tombe un peu plus souvent : 25 % de chance à chaque tas de balles, au lieu de 20 %.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

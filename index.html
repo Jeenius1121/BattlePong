@@ -2287,16 +2287,16 @@ const CHARS = {
     ancres: { 2: [0.085, 0.009], 3: [0.136, 0.004], 4: [0.241, 0.004], 5: [0.212, 0.006], 6: [0.123, 0.006], 7: [0.089, 0.02], 8: [-0.053, 0.022], 9: [0.123, 0], 10: [0.06, 0], 11: [-0.006, 0.002], 12: [-0.076, 0], 13: [0.023, 0], 14: [0.038, 0], 15: [0.006, 0], 16: [-0.01, 0.002], 17: [-0.058, -0.002], 18: [0.085, 0.002] }, // le corps reste au même endroit d'une image à l'autre (l'éclair du tir dépasse devant)
     sonNom: "tir", son2: "« I need more bullets »", son3: "claque sur les fesses", son4: "balles ramassées",
     // repos : 1 ; il lève son arme : 2-3 ; coup de feu : 4-5 (éclair) puis 6 ; arme baissée : 7-8 ;
-    // plus de balles : « I need more bullets », il se claque les fesses en boucle (9 à 18, claques sur les images 12 et 17) jusqu'à ce qu'il ramasse le tas de balles
+    // plus de balles : « I need more bullets », il se claque les fesses en boucle (9 à 18, claques sur les images 12 et 17) jusqu'à ce qu'il ramasse un tas de balles
     imageDe: f => {
-      if (f.tas) return 9 + Math.floor((f.claque || 0) / BULLETS_CLAQUE * 10) % 10;
+      if (f.cherche) return 9 + Math.floor((f.claque || 0) / BULLETS_CLAQUE * 10) % 10;
       if (f.balles === 0) return (f.baisse || 0) < BULLETS_BAISSE / 2 ? 7 : 8;
       if (!(f.burst > 0)) return 1;
       if (f.tirT < 0.05) return f.coups % 2 ? 4 : 5;
       if (f.tirT < 0.11) return 6;
       return f.vise < BULLETS_VISEE / 2 ? 2 : 3;
     },
-    desc: "Tire sur l’adversaire balle après balle avec son pistolet, quand il l’a devant lui (pas s’il est trop haut ou trop bas). Quand son chargeur est vide, un tas de balles tombe quelque part dans l’arène : il va le ramasser en se claquant les fesses (« I need more bullets »), sans pouvoir tirer. Chaque tas contient 2 balles de plus que le précédent : 6 balles au début, puis 8, 10… jusqu’à 16. Plus il en redemande, plus il en a !",
+    desc: "Tire sur l’adversaire balle après balle avec son pistolet, quand il l’a devant lui (pas s’il est trop haut ou trop bas). Des tas de balles tombent de temps en temps dans l’arène : il ramasse ceux sur lesquels il passe. Quand son chargeur est vide, il va chercher le tas le plus proche en se claquant les fesses (« I need more bullets »), sans pouvoir tirer. Chaque tas ramassé remplit son chargeur, avec 2 balles de plus que le précédent : 6 balles au début, puis 8, 10… jusqu’à 16. Plus il en ramasse, plus il en a !",
     svg: `<g ${O}>
       <rect x='43' y='104' width='15' height='32' fill='#56603a'/><rect x='62' y='104' width='15' height='32' fill='#56603a'/>
       <path d='M41 132h18v12H35v-4z' fill='#1f2026'/><path d='M61 132h18l5 8v4H61z' fill='#1f2026'/>
@@ -2311,37 +2311,48 @@ const CHARS = {
       <path d='M38 38 Q38 16 62 16 Q86 16 84 36 Q72 30 58 34 Q46 38 38 38Z' fill='#262b55'/></g>`,
     // durée de sa voix « I need more bullets » : il la répète en boucle tant qu'il n'a pas ramassé ses balles (son seulement)
     dureeVoix() { const s = sons["bullets-2"]; return s ? s.buffer.duration + 0.25 : 1.6; },
-    // un tas de balles tombe au hasard dans l'arène : assez loin de lui, jamais dans la mer
+    // un tas de balles tombe au hasard dans l'arène : assez loin de lui et des autres tas, jamais dans la mer
     nouveauTas(f, g) {
       const haut = Math.max(70, f.hh * 1.25);
       let x = W / 2, y = W / 2;
       for (let i = 0; i < 30; i++) {
         x = 40 + Math.random() * (W - 80); y = haut + Math.random() * (W - 30 - haut);
-        if (Math.hypot(x - f.x, y - (f.y + f.hh * 0.6)) >= BULLETS_TAS_ECART && !dansLaMer(g, x, y)) break;
+        if (Math.hypot(x - f.x, y - (f.y + f.hh * 0.6)) >= BULLETS_TAS_ECART && !dansLaMer(g, x, y) && f.tas.every(T => Math.hypot(T.x - x, T.y - y) > 90)) break;
       }
-      return { x, y, t: 0 };
+      f.tas.push({ x, y, t: 0 });
     },
+    // a-t-il les pieds sur ce tas de balles ?
+    surTas(f, T) { return Math.abs(T.x - f.x) < Math.max(16, f.hw * 0.7) && T.y > f.y - f.hh * 0.3 && T.y < f.y + f.hh + 8; },
     attaque(f, o, g, dt) {
-      f.chargeur ??= BULLETS_CHARGEUR; f.balles ??= f.chargeur; f.tirT = (f.tirT ?? 1) + dt;
-      if (f.tas) { // plus de balles : il va ramasser le tas de balles tombé par terre, en se claquant les fesses (« I need more bullets »)
-        const T = f.tas, avant = Math.floor(f.claque / BULLETS_CLAQUE * 10);
-        f.claque += dt; T.t += dt;
+      f.chargeur ??= BULLETS_CHARGEUR; f.balles ??= f.chargeur; f.tirT = (f.tirT ?? 1) + dt; f.tas ||= [];
+      // des tas de balles tombent de temps en temps dans l'arène, même quand il a encore des balles (BULLETS_TAS_MAX au plus par terre)
+      f.tasCd = (f.tasCd ?? BULLETS_TAS_PREMIER) - dt;
+      if (f.tasCd <= 0) { f.tasCd = BULLETS_TAS_CD; if (f.tas.length < BULLETS_TAS_MAX) this.nouveauTas(f, g); }
+      for (const T of f.tas) T.t += dt;
+      const pris = f.tas.find(T => this.surTas(f, T));
+      if (pris) { // il passe dessus : il ramasse les balles (chargeur plein, avec des balles en plus)
+        f.tas = f.tas.filter(T => T !== pris); f.chargeur = Math.min(BULLETS_MAX, f.chargeur + BULLETS_PLUS); f.balles = f.chargeur; f.baisse = 0;
+        if (f.cherche) { f.cherche = false; arreterSon(f, 2); normaliser(f); }
+        son(f, 4);
+        for (let i = 0; i < 12; i++) { const a = Math.random() * Math.PI * 2; g.parts.push({ x: pris.x, y: pris.y, vx: Math.cos(a) * 120, vy: Math.sin(a) * 70 - 70, t: 0.45, c: i % 2 ? "#ffd23f" : "#fff3c4" }); }
+      }
+      if (f.cherche) { // plus de balles : il va ramasser le tas le plus proche, en se claquant les fesses (« I need more bullets »)
+        if (!f.tas.length) this.nouveauTas(f, g);
+        const avant = Math.floor(f.claque / BULLETS_CLAQUE * 10) % 10;
+        f.claque += dt;
         const n = Math.floor(f.claque / BULLETS_CLAQUE * 10) % 10;
-        if (n !== avant % 10 && (n === 3 || n === 8)) son(f, 3); // les claques (images 12 et 17)
+        if (n !== avant && (n === 3 || n === 8)) son(f, 3); // les claques (images 12 et 17)
         if ((f.voixT -= dt) <= 0) { son(f, 2); f.voixT = this.dureeVoix(); } // il le répète en boucle
+        let T = f.tas[0];
+        for (const x of f.tas) if (Math.hypot(x.x - f.x, x.y - f.y) < Math.hypot(T.x - f.x, T.y - f.y)) T = x;
         // il marche droit vers le tas, pour passer les pieds dessus
         const cy = Math.min(W - f.hh, Math.max(f.hh, T.y - f.hh * 0.6)), dx = T.x - f.x, dy = cy - f.y, d = Math.hypot(dx, dy) || 1, v = (f.vitesse ?? this.vitesse) * BULLETS_RAMASSE;
         f.vx = dx / d * v; f.vy = dy / d * v;
-        if (Math.abs(T.x - f.x) < Math.max(16, f.hw * 0.7) && T.y > f.y - f.hh * 0.3 && T.y < f.y + f.hh + 8) { // il passe dessus : il ramasse ses balles
-          f.tas = null; f.chargeur = Math.min(BULLETS_MAX, f.chargeur + BULLETS_PLUS); f.balles = f.chargeur;
-          arreterSon(f, 2); son(f, 4);
-          for (let i = 0; i < 12; i++) { const a = Math.random() * Math.PI * 2; g.parts.push({ x: T.x, y: T.y, vx: Math.cos(a) * 120, vy: Math.sin(a) * 70 - 70, t: 0.45, c: i % 2 ? "#ffd23f" : "#fff3c4" }); }
-        }
         return;
       }
-      if (f.balles === 0) { // chargeur vide : il baisse son arme… et un tas de balles tombe quelque part dans l'arène
+      if (f.balles === 0) { // chargeur vide : il baisse son arme, puis il va chercher des balles (s'il n'y a aucun tas par terre, il en tombe un)
         f.burst = 0; f.penche = 0; f.vise = 0; f.baisse = (f.baisse || 0) + dt;
-        if (f.baisse >= BULLETS_BAISSE) { f.baisse = 0; f.claque = 0; f.tas = this.nouveauTas(f, g); son(f, 2); f.voixT = this.dureeVoix(); }
+        if (f.baisse >= BULLETS_BAISSE) { f.baisse = 0; f.claque = 0; f.cherche = true; if (!f.tas.length) this.nouveauTas(f, g); son(f, 2); f.voixT = this.dureeVoix(); }
         return;
       }
       const t = cibleDe(f, o);
@@ -3020,10 +3031,12 @@ const GELEE_TRAINEE_LENT = 0.7; // traînée gluante : ralentit l'adversaire qui
 const GELEE_REBOND_VISE = 0.7; // chance qu'un morceau du Slime reparte vers l'adversaire en touchant un mur
 const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.45, GELEE_CONTACT_CD = 0.5, GELEE_TRAINEE = 1, GELEE_TRAINEE_TIC = 0.3;
 // I Need More Bullets : balles tirées une à une vers l'adversaire (seulement s'il est devant lui : à BULLETS_ANGLE près) ; chargeur vide, un tas
-// de balles tombe au hasard dans l'arène et il va le ramasser en se claquant les fesses ; chaque tas a BULLETS_PLUS balles de plus, jusqu'à BULLETS_MAX
+// de balles tombe au hasard dans l'arène (il en tombe aussi de temps en temps) et il va le ramasser en se claquant les fesses ; chaque tas ramassé donne
+// un chargeur plein avec BULLETS_PLUS balles de plus, jusqu'à BULLETS_MAX
 const BULLETS_CHARGEUR = 6, BULLETS_PLUS = 2, BULLETS_MAX = 16, BULLETS_CADENCE = 0.32, BULLETS_DEGATS = 7, BULLETS_VITESSE = 900;
 const BULLETS_VISEE = 0.25, BULLETS_BAISSE = 0.3, BULLETS_DISPERSION = 0.08, BULLETS_PENCHE = 0.25, BULLETS_ANGLE = 0.7;
-const BULLETS_CLAQUE = 1.6, BULLETS_TAS_ECART = 150, BULLETS_RAMASSE = 1; // tas de balles : durée d'un tour de claques, distance minimale entre lui et le tas, vitesse pour aller le ramasser (part de sa vitesse)
+const BULLETS_CLAQUE = 1.6, BULLETS_TAS_ECART = 100, BULLETS_RAMASSE = 1; // durée d'un tour de claques ; tas de balles : distance minimale entre lui et un tas qui tombe, vitesse pour aller le chercher (part de sa vitesse)
+const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 6, BULLETS_TAS_MAX = 2; // tas de balles qui tombent même quand il est chargé : le premier, puis toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus)
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;
@@ -3212,7 +3225,7 @@ function exploser(g, f) {
 function calmer(f) {
   f.capture = null;
   if (f.langue) { f.langue = null; f.langueCd = LANGUE_CD; }
-  f.charge = 0; f.tir = 0; f.burst = 0; f.muzzle = 0; f.rot = 0; f.vis = 1; f.tas = null; f.penche = 0;
+  f.charge = 0; f.tir = 0; f.burst = 0; f.muzzle = 0; f.rot = 0; f.vis = 1; f.tas = null; f.cherche = false; f.penche = 0;
   if (f.etat) { f.etat = null; f.jauge = 0; }
   if (Math.hypot(f.vx, f.vy) < 1) { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); }
   normaliser(f);
@@ -3977,7 +3990,7 @@ function dessiner() {
     ctx.globalAlpha = 1;
   }
   for (const b of g.os || []) CHARS.sorciere.dessinerTas(ctx, b); // tas d'os des squelettes de la Nécromancienne (restent au sol)
-  for (const f of g.f) if (f.tas && !f.mort) dessinerTasBalles(f.tas, Math.min(BULLETS_MAX, f.chargeur + BULLETS_PLUS)); // tas de balles que I Need More Bullets va ramasser
+  for (const f of g.f) if (f.tas && !f.mort) for (const T of f.tas) dessinerTasBalles(T, Math.min(BULLETS_MAX, f.chargeur + BULLETS_PLUS)); // tas de balles que I Need More Bullets peut ramasser
   for (const tc of g.taches) { // tâches sombres laissées par les explosions
     ctx.globalAlpha = Math.min(0.35, tc.t / 4 * 0.35);
     ctx.fillStyle = "#3a1240"; goutte(ctx, tc.x, tc.y, 55, tc.rot);

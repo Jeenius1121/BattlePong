@@ -2283,12 +2283,14 @@ const CHARS = {
   },
   bullets: {
     nom: "I Need More Bullets", court: "More Bullets", emoji: "🔫", vitesse: 250, pv: 150, memeEchelle: true, portrait: { cx: 0.53, cy: 0.14, taille: 0.33 }, // portrait centré sur sa tête ; toutes ses images à la même échelle
-    images: ["visée 1", "visée 2", "tir 1", "tir 2", "tir 3", "pistolet baissé 1", "pistolet baissé 2", "claque 1", "claque 2", "claque 3", "claque 4", "claque 5", "claque 6", "claque 7", "claque 8", "claque 9", "claque 10", "arme"],
-    ancres: { 2: [0.085, 0.009], 3: [0.136, 0.004], 4: [0.241, 0.004], 5: [0.212, 0.006], 6: [0.123, 0.006], 7: [0.089, 0.02], 8: [-0.053, 0.022], 9: [0.123, 0], 10: [0.06, 0], 11: [-0.006, 0.002], 12: [-0.076, 0], 13: [0.023, 0], 14: [0.038, 0], 15: [0.006, 0], 16: [-0.01, 0.002], 17: [-0.058, -0.002], 18: [0.085, 0.002] }, // le corps reste au même endroit d'une image à l'autre (l'éclair du tir dépasse devant)
-    sonNom: "tir", son2: "« I need more bullets »", son3: "claque sur les fesses", son4: "balles ramassées", son6: "« Better Weapon »",
+    images: ["visée 1", "visée 2", "tir 1", "tir 2", "tir 3", "pistolet baissé 1", "pistolet baissé 2", "claque 1", "claque 2", "claque 3", "claque 4", "claque 5", "claque 6", "claque 7", "claque 8", "claque 9", "claque 10", "arme", "fusil repos", "fusil visée 1", "fusil visée 2", "fusil tir 1", "fusil tir 2", "fusil tir 3", "fusil baissé 1", "fusil baissé 2", "fusil claque 1", "fusil claque 2", "fusil claque 3", "fusil claque 4", "fusil claque 5", "fusil claque 6", "fusil claque 7", "fusil claque 8", "fusil claque 9", "fusil claque 10"],
+    ancres: { 2: [0.085, 0.009], 3: [0.136, 0.004], 4: [0.241, 0.004], 5: [0.212, 0.006], 6: [0.123, 0.006], 7: [0.089, 0.02], 8: [-0.053, 0.022], 9: [0.123, 0], 10: [0.06, 0], 11: [-0.006, 0.002], 12: [-0.076, 0], 13: [0.023, 0], 14: [0.038, 0], 15: [0.006, 0], 16: [-0.01, 0.002], 17: [-0.058, -0.002], 18: [0.085, 0.002], 20: [0.049, 0.0], 21: [0.098, 0.009], 22: [0.168, 0.004], 23: [0.26, 0.004], 24: [0.234, 0.006], 25: [0.155, 0.006], 26: [0.122, 0.02], 27: [0.011, 0.022], 28: [0.067, 0.0], 29: [0.03, 0.0], 30: [-0.025, 0.002], 31: [-0.076, 0.0], 32: [-0.01, 0.0], 33: [0.011, 0.0], 34: [-0.015, 0.0], 35: [-0.029, 0.002], 36: [-0.058, -0.002], 37: [0.036, 0.002] }, // le corps reste au même endroit d'une image à l'autre (l'éclair du tir dépasse devant)
+    sonNom: "tir", son2: "« I need more bullets »", son3: "claque sur les fesses", son4: "balles ramassées", son6: "« Better Weapon »", son7: "tir du fusil (chaque balle de la rafale)",
     // repos : 1 ; il lève son arme : 2-3 ; coup de feu : 4-5 (éclair) puis 6 ; arme baissée : 7-8 ;
     // plus de balles (ou victoire) : « I need more bullets », il se claque les fesses en boucle (9 à 18, claques sur les images 12 et 17)
-    imageDe: f => {
+    // avec le fusil : les mêmes poses, images 20 à 37 (fusil dans les mains, ou dans le dos pendant les claques)
+    imageDe: f => { const n = CHARS.bullets.pose(f); return f.fusil ? n + 19 : n; },
+    pose: f => {
       if (f.cherche || f.fete) return 9 + Math.floor((f.claque || 0) / BULLETS_CLAQUE * 10) % 10;
       if (f.balles === 0) return (f.baisse || 0) < BULLETS_BAISSE / 2 ? 7 : 8;
       if (!(f.burst > 0)) return 1;
@@ -2296,7 +2298,7 @@ const CHARS = {
       if (f.tirT < 0.11) return 6;
       return f.vise < BULLETS_VISEE / 2 ? 2 : 3;
     },
-    desc: "Un dur à cuire (150 PV). Tire sur l’adversaire balle après balle avec son pistolet (7 dégâts par balle), quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Mais son chargeur ne contient que 5 balles ! Un tas de balles tombe au hasard dans l’arène au bout de 3 secondes, puis toutes les 6 secondes (2 au plus par terre) : quand il lui manque des balles, il ramasse ceux sur lesquels il passe, et chaque tas recharge son chargeur. Quand son chargeur est vide, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets ») et en marchant un peu moins vite. Il va droit vers le tas le plus proche, et s’il n’y en a aucun, il erre au hasard en attendant qu’il en tombe un. Rarement, une arme comme la sienne tombe aussi dans l’arène : s’il passe dessus, il la ramasse (« Better Weapon ») et ses balles font 2 dégâts de plus pour le reste du combat. Quand il gagne, il se claque les fesses pour fêter ça.",
+    desc: "Un dur à cuire (150 PV). Tire sur l’adversaire balle après balle avec son pistolet (7 dégâts par balle), quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Mais son chargeur ne contient que 5 balles ! Un tas de balles tombe au hasard dans l’arène au bout de 3 secondes, puis toutes les 6 secondes (2 au plus par terre) : quand il lui manque des balles, il ramasse ceux sur lesquels il passe, et chaque tas recharge son chargeur. Quand son chargeur est vide, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets ») et en marchant un peu moins vite. Il va droit vers le tas le plus proche, et s’il n’y en a aucun, il erre au hasard en attendant qu’il en tombe un. Rarement, un fusil d’assaut tombe aussi dans l’arène : s’il passe dessus, il le ramasse (« Better Weapon ») et le garde jusqu’à la fin du combat. Il tire alors en rafales de 5 petites balles (3 dégâts chacune), avec un chargeur de 20 balles, rechargé par les tas comme avant ; pendant ses claques, le fusil passe dans son dos. Quand il gagne, il se claque les fesses pour fêter ça.",
     svg: `<g ${O}>
       <rect x='43' y='104' width='15' height='32' fill='#56603a'/><rect x='62' y='104' width='15' height='32' fill='#56603a'/>
       <path d='M41 132h18v12H35v-4z' fill='#1f2026'/><path d='M61 132h18l5 8v4H61z' fill='#1f2026'/>
@@ -2341,19 +2343,20 @@ const CHARS = {
       f.tasCd = (f.tasCd ?? BULLETS_TAS_PREMIER) - dt;
       if (f.tasCd <= 0) {
         f.tasCd = BULLETS_TAS_CD; if (f.tas.length < BULLETS_TAS_MAX) this.nouveauTas(f, g);
-        if (!f.armeSol && Math.random() < BULLETS_ARME_CHANCE) f.armeSol = this.endroitLibre(f, g); // rarement, une arme comme la sienne tombe aussi
+        if (!f.armeSol && !f.fusil && Math.random() < BULLETS_ARME_CHANCE) f.armeSol = this.endroitLibre(f, g); // rarement, un fusil tombe aussi
       }
       for (const T of f.tas) T.t += dt;
-      if (f.armeSol) { // il passe sur l'arme : il la ramasse (« Better Weapon ») et ses balles font plus de dégâts pour le reste du combat
+      if (f.armeSol) { // il passe sur le fusil : il le ramasse (« Better Weapon ») et tire en rafale pour le reste du combat, avec un plus gros chargeur
         const A = f.armeSol; A.t += dt;
         if (this.surTas(f, A)) {
-          f.armeSol = null; f.bonusArme = (f.bonusArme || 0) + BULLETS_ARME_BONUS; son(f, 6);
+          f.armeSol = null; f.fusil = true; f.chargeur = BULLETS_FUSIL_CHARGEUR; f.balles = f.chargeur; f.rafaleN = 0; f.baisse = 0; son(f, 6);
+          if (f.cherche) { f.cherche = false; arreterSon(f, 2); normaliser(f); }
           for (let i = 0; i < 18; i++) { const a = Math.random() * Math.PI * 2; g.parts.push({ x: A.x, y: A.y - 6, vx: Math.cos(a) * 160, vy: Math.sin(a) * 100 - 80, t: 0.6, c: i % 3 ? "#9fe8ff" : "#ffffff" }); }
         }
       }
       const pris = f.balles < f.chargeur && f.tas.find(T => this.surTas(f, T));
       if (pris) { // il passe dessus alors qu'il lui manque des balles : il les ramasse (chargeur rechargé)
-        f.tas = f.tas.filter(T => T !== pris); f.balles = f.chargeur; f.baisse = 0;
+        f.tas = f.tas.filter(T => T !== pris); f.balles = f.chargeur; f.baisse = 0; f.rafaleN = 0;
         if (f.cherche) { f.cherche = false; arreterSon(f, 2); normaliser(f); }
         son(f, 4);
         for (let i = 0; i < 12; i++) { const a = Math.random() * Math.PI * 2; g.parts.push({ x: pris.x, y: pris.y, vx: Math.cos(a) * 120, vy: Math.sin(a) * 70 - 70, t: 0.45, c: i % 2 ? "#ffd23f" : "#fff3c4" }); }
@@ -2399,9 +2402,14 @@ const CHARS = {
       f.cd -= dt;
       if (f.vise >= BULLETS_VISEE && f.cd <= 0 && Math.abs(haut) <= BULLETS_ANGLE) { // une balle part du bout du pistolet, vers sa cible (seulement devant lui, pas trop haut ni trop bas)
         const c = canonMonde(f), V = f.vuCible, k = Math.hypot(t.x - c.x, t.y - c.y) / BULLETS_VITESSE * BULLETS_AVANCE; // il vise un peu en avant, là où il voit aller sa cible
-        const ang = Math.atan2(t.y + (V ? V.vy : 0) * k - c.y, t.x + (V ? V.vx : 0) * k - c.x) + (Math.random() - 0.5) * BULLETS_DISPERSION;
-        g.proj.push({ kind: "balle", x: c.x, y: c.y, vx: Math.cos(ang) * BULLETS_VITESSE, vy: Math.sin(ang) * BULLETS_VITESSE, r: 4, dmg: BULLETS_DEGATS + (f.bonusArme || 0), owner: f, rot: 0, drone: t.drone, forte: f.bonusArme > 0 });
-        f.cd = BULLETS_CADENCE; f.balles--; f.tirT = 0; f.coups = (f.coups || 0) + 1; son(f);
+        const ang = Math.atan2(t.y + (V ? V.vy : 0) * k - c.y, t.x + (V ? V.vx : 0) * k - c.x) + (Math.random() - 0.5) * (f.fusil ? BULLETS_FUSIL_DISPERSION : BULLETS_DISPERSION);
+        g.proj.push({ kind: "balle", x: c.x, y: c.y, vx: Math.cos(ang) * BULLETS_VITESSE, vy: Math.sin(ang) * BULLETS_VITESSE, r: f.fusil ? 3 : 4, dmg: f.fusil ? BULLETS_FUSIL_DEGATS : BULLETS_DEGATS, owner: f, rot: 0, drone: t.drone, petite: !!f.fusil });
+        f.balles--; f.tirT = 0; f.coups = (f.coups || 0) + 1;
+        if (f.fusil) { // rafale : quelques balles très vite, puis une petite pause
+          f.rafaleN = (f.rafaleN || 0) + 1;
+          if (f.rafaleN >= BULLETS_FUSIL_RAFALE) { f.rafaleN = 0; f.cd = BULLETS_FUSIL_PAUSE; } else f.cd = BULLETS_FUSIL_CADENCE;
+          son(f, sons["bullets-7"] ? 7 : 1);
+        } else { f.cd = BULLETS_CADENCE; son(f); }
       }
     }
   }
@@ -3072,7 +3080,9 @@ const BULLETS_CHARGEUR = 5, BULLETS_CADENCE = 0.45, BULLETS_DEGATS = 7, BULLETS_
 const BULLETS_VISEE = 0.4, BULLETS_BAISSE = 0.3, BULLETS_DISPERSION = 0.08, BULLETS_PENCHE = 0.25, BULLETS_ANGLE = 0.7;
 const BULLETS_CLAQUE = 1.6, BULLETS_TAS_ECART = 100, BULLETS_RAMASSE = 0.8; // durée d'un tour de claques ; tas de balles : distance minimale entre lui et un tas qui tombe, vitesse pour aller le chercher (part de sa vitesse)
 const BULLETS_AVANCE = 0.8; // il vise en avant de sa cible : part du chemin qu'elle fera pendant le vol de la balle
-const BULLETS_ARME_CHANCE = 0.25, BULLETS_ARME_BONUS = 2; // à chaque tas qui tombe, chance qu'une arme tombe aussi (une seule par terre) ; dégâts en plus par balle pour chaque arme ramassée
+const BULLETS_ARME_CHANCE = 0.25; // à chaque tas qui tombe, chance qu'un fusil tombe aussi (un seul par terre, et plus aucun une fois qu'il l'a)
+// le fusil : rafales de BULLETS_FUSIL_RAFALE petites balles (BULLETS_FUSIL_CADENCE entre deux), une pause entre deux rafales, un plus gros chargeur
+const BULLETS_FUSIL_CHARGEUR = 20, BULLETS_FUSIL_RAFALE = 5, BULLETS_FUSIL_CADENCE = 0.07, BULLETS_FUSIL_PAUSE = 0.4, BULLETS_FUSIL_DEGATS = 3, BULLETS_FUSIL_DISPERSION = 0.14;
 const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 6, BULLETS_TAS_MAX = 2; // tas de balles : le premier, puis un toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus), qu'il ait des balles ou non
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
@@ -3893,7 +3903,7 @@ const DECORS = {
     vpart(g, { x: p.x, y: p.y, vx: (Math.random() - 0.5) * 30, vy: -10 - Math.random() * 10, t: 0.5, v0: 0.35, r: 3, croit: 12, frein: 3, c: "rgba(200,205,220," });
   },
 };
-// arme par terre (une copie de celle d'I Need More Bullets, image « arme ») : elle brille en bleu et flotte un peu au-dessus du sol
+// fusil par terre (image « arme » d'I Need More Bullets) : il brille en bleu et flotte un peu au-dessus du sol
 function dessinerArmeSol(A) {
   const s = CHARS.bullets.spr && CHARS.bullets.spr[19], now = performance.now() / 1000;
   const pop = Math.min(1, A.t / 0.3), k = pop < 1 ? 0.3 + 0.7 * pop + 0.3 * Math.sin(pop * Math.PI) : 1;
@@ -3903,7 +3913,7 @@ function dessinerArmeSol(A) {
   ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.6, 0, 0, 7); ctx.fill();
   ctx.fillStyle = "rgba(5,6,15,.35)"; ctx.beginPath(); ctx.ellipse(0, 6, 22 * k, 6 * k, 0, 0, 7); ctx.fill(); // ombre
   ctx.translate(0, -8 + Math.sin(now * 3) * 2.5); ctx.scale(k, k); ctx.rotate(-0.12 + Math.sin(now * 1.7) * 0.06);
-  if (s) { const L = 48, q = L / s.tw; ctx.drawImage(s.img, -L / 2, -s.th * q / 2, L, s.th * q); }
+  if (s) { const L = 84, q = L / s.tw; ctx.drawImage(s.img, -L / 2, -s.th * q / 2, L, s.th * q); }
   else { // sans image : un pistolet orange et blanc dessiné
     ctx.fillStyle = "#16161c"; ctx.fillRect(-24, -10, 48, 12); ctx.fillRect(-22, 0, 14, 20);
     ctx.fillStyle = "#eef1f6"; ctx.fillRect(-22, -8, 44, 5); ctx.fillStyle = "#e8702a"; ctx.fillRect(-22, -3, 44, 4); ctx.fillRect(-20, 1, 10, 17);
@@ -4315,7 +4325,7 @@ function dessiner() {
     ctx.save(); ctx.translate(p.x, p.y);
     if (p.kind === "balle") { // balle de revolver en laiton/cuivre, avec une petite traînée
       ctx.rotate(Math.atan2(p.vy, p.vx));
-      if (p.forte) { ctx.fillStyle = "rgba(140,225,255,.5)"; ctx.beginPath(); ctx.ellipse(-4, 0, 14, 5.5, 0, 0, 7); ctx.fill(); } // balle de la meilleure arme : elle brille en bleu
+      if (p.petite) ctx.scale(0.75, 0.75); // petites balles du fusil
       const tr = ctx.createLinearGradient(-30, 0, -5, 0);
       tr.addColorStop(0, "rgba(255,214,150,0)"); tr.addColorStop(1, "rgba(255,214,150,.55)");
       ctx.strokeStyle = tr; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-30, 0); ctx.lineTo(-5, 0); ctx.stroke();

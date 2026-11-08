@@ -2296,7 +2296,7 @@ const CHARS = {
       if (f.tirT < 0.11) return 6;
       return f.vise < BULLETS_VISEE / 2 ? 2 : 3;
     },
-    desc: "Tire sur l’adversaire balle après balle avec son pistolet, quand il l’a devant lui (pas s’il est trop haut ou trop bas). Des tas de balles tombent de temps en temps dans l’arène : il ramasse ceux sur lesquels il passe. Quand son chargeur est vide, il va chercher le tas le plus proche en se claquant les fesses (« I need more bullets »), sans pouvoir tirer. Chaque tas ramassé remplit son chargeur, avec 2 balles de plus que le précédent : 6 balles au début, puis 8, 10… jusqu’à 16. Plus il en ramasse, plus il en a !",
+    desc: "Tire sur l’adversaire balle après balle avec son pistolet, quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Toutes les 6 secondes, un tas de balles tombe au hasard dans l’arène (2 au plus par terre) : il ramasse ceux sur lesquels il passe. Quand son chargeur est vide, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets »). Il va droit vers le tas le plus proche, et s’il n’y en a aucun, il erre au hasard en attendant qu’il en tombe un. Chaque tas ramassé remplit son chargeur, avec 2 balles de plus que le précédent : 6 balles au début, puis 8, 10… jusqu’à 16. Plus il en ramasse, plus il en a !",
     svg: `<g ${O}>
       <rect x='43' y='104' width='15' height='32' fill='#56603a'/><rect x='62' y='104' width='15' height='32' fill='#56603a'/>
       <path d='M41 132h18v12H35v-4z' fill='#1f2026'/><path d='M61 132h18l5 8v4H61z' fill='#1f2026'/>
@@ -2336,23 +2336,29 @@ const CHARS = {
         son(f, 4);
         for (let i = 0; i < 12; i++) { const a = Math.random() * Math.PI * 2; g.parts.push({ x: pris.x, y: pris.y, vx: Math.cos(a) * 120, vy: Math.sin(a) * 70 - 70, t: 0.45, c: i % 2 ? "#ffd23f" : "#fff3c4" }); }
       }
-      if (f.cherche) { // plus de balles : il va ramasser le tas le plus proche, en se claquant les fesses (« I need more bullets »)
-        if (!f.tas.length) this.nouveauTas(f, g);
+      if (f.cherche) { // plus de balles : il cherche des balles en se claquant les fesses (« I need more bullets »)
         const avant = Math.floor(f.claque / BULLETS_CLAQUE * 10) % 10;
         f.claque += dt;
         const n = Math.floor(f.claque / BULLETS_CLAQUE * 10) % 10;
         if (n !== avant && (n === 3 || n === 8)) son(f, 3); // les claques (images 12 et 17)
         if ((f.voixT -= dt) <= 0) { son(f, 2); f.voixT = this.dureeVoix(); } // il le répète en boucle
-        let T = f.tas[0];
+        const v = (f.vitesse ?? this.vitesse) * BULLETS_RAMASSE;
+        if (!f.tas.length) { // aucun tas par terre : il erre au hasard, comme s'il en cherchait
+          f.flane = (f.flane ?? 0) - dt;
+          if (f.flane <= 0 || Math.hypot(f.vx, f.vy) < 1) { f.flane = 0.7 + Math.random() * 0.9; const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); }
+          const l = Math.hypot(f.vx, f.vy) || 1; f.vx = f.vx / l * v; f.vy = f.vy / l * v;
+          return;
+        }
+        let T = f.tas[0]; // le tas le plus proche
         for (const x of f.tas) if (Math.hypot(x.x - f.x, x.y - f.y) < Math.hypot(T.x - f.x, T.y - f.y)) T = x;
         // il marche droit vers le tas, pour passer les pieds dessus
-        const cy = Math.min(W - f.hh, Math.max(f.hh, T.y - f.hh * 0.6)), dx = T.x - f.x, dy = cy - f.y, d = Math.hypot(dx, dy) || 1, v = (f.vitesse ?? this.vitesse) * BULLETS_RAMASSE;
+        const cy = Math.min(W - f.hh, Math.max(f.hh, T.y - f.hh * 0.6)), dx = T.x - f.x, dy = cy - f.y, d = Math.hypot(dx, dy) || 1;
         f.vx = dx / d * v; f.vy = dy / d * v;
         return;
       }
-      if (f.balles === 0) { // chargeur vide : il baisse son arme, puis il va chercher des balles (s'il n'y a aucun tas par terre, il en tombe un)
+      if (f.balles === 0) { // chargeur vide : il baisse son arme, puis il va chercher des balles
         f.burst = 0; f.penche = 0; f.vise = 0; f.vuCible = null; f.baisse = (f.baisse || 0) + dt;
-        if (f.baisse >= BULLETS_BAISSE) { f.baisse = 0; f.claque = 0; f.cherche = true; if (!f.tas.length) this.nouveauTas(f, g); son(f, 2); f.voixT = this.dureeVoix(); }
+        if (f.baisse >= BULLETS_BAISSE) { f.baisse = 0; f.claque = 0; f.cherche = true; f.flane = 0; son(f, 2); f.voixT = this.dureeVoix(); }
         return;
       }
       const t = cibleDe(f, o);
@@ -3038,13 +3044,13 @@ const GELEE_TRAINEE_LENT = 0.7; // traînée gluante : ralentit l'adversaire qui
 const GELEE_REBOND_VISE = 0.7; // chance qu'un morceau du Slime reparte vers l'adversaire en touchant un mur
 const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.45, GELEE_CONTACT_CD = 0.5, GELEE_TRAINEE = 1, GELEE_TRAINEE_TIC = 0.3;
 // I Need More Bullets : balles tirées une à une vers l'adversaire (seulement s'il est devant lui : à BULLETS_ANGLE près) ; chargeur vide, un tas
-// de balles tombe au hasard dans l'arène (il en tombe aussi de temps en temps) et il va le ramasser en se claquant les fesses ; chaque tas ramassé donne
-// un chargeur plein avec BULLETS_PLUS balles de plus, jusqu'à BULLETS_MAX
+// des tas de balles tombent au hasard dans l'arène à intervalles réguliers ; chargeur vide, il va chercher le plus proche en se claquant les fesses
+// (sans tas par terre, il erre au hasard) ; chaque tas ramassé donne un chargeur plein avec BULLETS_PLUS balles de plus, jusqu'à BULLETS_MAX
 const BULLETS_CHARGEUR = 6, BULLETS_PLUS = 2, BULLETS_MAX = 16, BULLETS_CADENCE = 0.44, BULLETS_DEGATS = 7, BULLETS_VITESSE = 900;
 const BULLETS_VISEE = 0.25, BULLETS_BAISSE = 0.3, BULLETS_DISPERSION = 0.08, BULLETS_PENCHE = 0.25, BULLETS_ANGLE = 0.7;
 const BULLETS_CLAQUE = 1.6, BULLETS_TAS_ECART = 100, BULLETS_RAMASSE = 1; // durée d'un tour de claques ; tas de balles : distance minimale entre lui et un tas qui tombe, vitesse pour aller le chercher (part de sa vitesse)
 const BULLETS_AVANCE = 0.8; // il vise en avant de sa cible : part du chemin qu'elle fera pendant le vol de la balle
-const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 4, BULLETS_TAS_MAX = 2; // tas de balles qui tombent même quand il est chargé : le premier, puis toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus)
+const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 6, BULLETS_TAS_MAX = 2; // tas de balles : le premier, puis un toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus), qu'il ait des balles ou non
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;

@@ -3068,7 +3068,7 @@ const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 // I Need More Bullets : balles tirées une à une vers l'adversaire (seulement s'il est devant lui : à BULLETS_ANGLE près) ; chargeur vide, un tas
 // des tas de balles tombent au hasard dans l'arène à intervalles réguliers ; chargeur vide, il va chercher le plus proche en se claquant les fesses
 // (sans tas par terre, il erre au hasard) ; un tas ramassé recharge son chargeur (il ne ramasse un tas que s'il lui manque des balles)
-const BULLETS_CHARGEUR = 5, BULLETS_CADENCE = 0.46, BULLETS_DEGATS = 7, BULLETS_VITESSE = 1100;
+const BULLETS_CHARGEUR = 5, BULLETS_CADENCE = 0.45, BULLETS_DEGATS = 7, BULLETS_VITESSE = 1100;
 const BULLETS_VISEE = 0.4, BULLETS_BAISSE = 0.3, BULLETS_DISPERSION = 0.08, BULLETS_PENCHE = 0.25, BULLETS_ANGLE = 0.7;
 const BULLETS_CLAQUE = 1.6, BULLETS_TAS_ECART = 100, BULLETS_RAMASSE = 0.8; // durée d'un tour de claques ; tas de balles : distance minimale entre lui et un tas qui tombe, vitesse pour aller le chercher (part de sa vitesse)
 const BULLETS_AVANCE = 0.8; // il vise en avant de sa cible : part du chemin qu'elle fera pendant le vol de la balle
@@ -5425,7 +5425,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.73.0", NOTES = "I Need More Bullets retravaillé : on le voit beaucoup plus souvent se claquer les fesses !\n• Son chargeur ne contient plus que 5 balles, et il ne grandit plus : chaque tas de balles ramassé recharge simplement son chargeur (il ne ramasse un tas que s’il lui manque des balles).\n• En échange, il est plus costaud (160 PV au lieu de 130) et ses balles vont plus vite.\n• Quand il gagne, il fête ça en se claquant les fesses (« I need more bullets ») pendant toute la fin du combat.";
+const VERSION = "1.74.0", NOTES = "I Need More Bullets : une meilleure arme à trouver !\n• Rarement, une arme comme la sienne tombe dans l’arène (en même temps qu’un tas de balles). S’il passe dessus, il la ramasse (« Better Weapon ») et ses balles font 2 dégâts de plus pour le reste du combat : elles brillent en bleu.\n• Quand il cherche des balles en se claquant les fesses, il marche un peu moins vite : on profite plus longtemps de son « I need more bullets ».\n• Il passe à 150 PV (au lieu de 160), mais il court un peu plus vite.\n• En mode propriétaire : nouveau son « Better Weapon » à ajouter, et l’image de l’arme par terre (« arme ») peut être remplacée.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

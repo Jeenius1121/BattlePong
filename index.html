@@ -2282,7 +2282,7 @@ const CHARS = {
     }
   },
   bullets: {
-    nom: "I Need More Bullets", court: "More Bullets", emoji: "🔫", vitesse: 240, pv: 160, memeEchelle: true, portrait: { cx: 0.53, cy: 0.14, taille: 0.33 }, // portrait centré sur sa tête ; toutes ses images à la même échelle
+    nom: "I Need More Bullets", court: "More Bullets", emoji: "🔫", vitesse: 250, pv: 150, memeEchelle: true, portrait: { cx: 0.53, cy: 0.14, taille: 0.33 }, // portrait centré sur sa tête ; toutes ses images à la même échelle
     images: ["visée 1", "visée 2", "tir 1", "tir 2", "tir 3", "pistolet baissé 1", "pistolet baissé 2", "claque 1", "claque 2", "claque 3", "claque 4", "claque 5", "claque 6", "claque 7", "claque 8", "claque 9", "claque 10", "arme"],
     ancres: { 2: [0.085, 0.009], 3: [0.136, 0.004], 4: [0.241, 0.004], 5: [0.212, 0.006], 6: [0.123, 0.006], 7: [0.089, 0.02], 8: [-0.053, 0.022], 9: [0.123, 0], 10: [0.06, 0], 11: [-0.006, 0.002], 12: [-0.076, 0], 13: [0.023, 0], 14: [0.038, 0], 15: [0.006, 0], 16: [-0.01, 0.002], 17: [-0.058, -0.002], 18: [0.085, 0.002] }, // le corps reste au même endroit d'une image à l'autre (l'éclair du tir dépasse devant)
     sonNom: "tir", son2: "« I need more bullets »", son3: "claque sur les fesses", son4: "balles ramassées", son6: "« Better Weapon »",
@@ -2296,7 +2296,7 @@ const CHARS = {
       if (f.tirT < 0.11) return 6;
       return f.vise < BULLETS_VISEE / 2 ? 2 : 3;
     },
-    desc: "Un dur à cuire (160 PV). Tire sur l’adversaire balle après balle avec son pistolet (7 dégâts par balle), quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Mais son chargeur ne contient que 5 balles ! Un tas de balles tombe au hasard dans l’arène au bout de 3 secondes, puis toutes les 6 secondes (2 au plus par terre) : quand il lui manque des balles, il ramasse ceux sur lesquels il passe, et chaque tas recharge son chargeur. Quand son chargeur est vide, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets ») et en marchant un peu moins vite. Il va droit vers le tas le plus proche, et s’il n’y en a aucun, il erre au hasard en attendant qu’il en tombe un. Rarement, une arme comme la sienne tombe aussi dans l’arène : s’il passe dessus, il la ramasse (« Better Weapon ») et ses balles font 2 dégâts de plus pour le reste du combat. Quand il gagne, il se claque les fesses pour fêter ça.",
+    desc: "Un dur à cuire (150 PV). Tire sur l’adversaire balle après balle avec son pistolet (7 dégâts par balle), quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Mais son chargeur ne contient que 5 balles ! Un tas de balles tombe au hasard dans l’arène au bout de 3 secondes, puis toutes les 6 secondes (2 au plus par terre) : quand il lui manque des balles, il ramasse ceux sur lesquels il passe, et chaque tas recharge son chargeur. Quand son chargeur est vide, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets ») et en marchant un peu moins vite. Il va droit vers le tas le plus proche, et s’il n’y en a aucun, il erre au hasard en attendant qu’il en tombe un. Rarement, une arme comme la sienne tombe aussi dans l’arène : s’il passe dessus, il la ramasse (« Better Weapon ») et ses balles font 2 dégâts de plus pour le reste du combat. Quand il gagne, il se claque les fesses pour fêter ça.",
     svg: `<g ${O}>
       <rect x='43' y='104' width='15' height='32' fill='#56603a'/><rect x='62' y='104' width='15' height='32' fill='#56603a'/>
       <path d='M41 132h18v12H35v-4z' fill='#1f2026'/><path d='M61 132h18l5 8v4H61z' fill='#1f2026'/>
@@ -3072,7 +3072,7 @@ const BULLETS_CHARGEUR = 5, BULLETS_CADENCE = 0.46, BULLETS_DEGATS = 7, BULLETS_
 const BULLETS_VISEE = 0.4, BULLETS_BAISSE = 0.3, BULLETS_DISPERSION = 0.08, BULLETS_PENCHE = 0.25, BULLETS_ANGLE = 0.7;
 const BULLETS_CLAQUE = 1.6, BULLETS_TAS_ECART = 100, BULLETS_RAMASSE = 0.8; // durée d'un tour de claques ; tas de balles : distance minimale entre lui et un tas qui tombe, vitesse pour aller le chercher (part de sa vitesse)
 const BULLETS_AVANCE = 0.8; // il vise en avant de sa cible : part du chemin qu'elle fera pendant le vol de la balle
-const BULLETS_ARME_CHANCE = 0.2, BULLETS_ARME_BONUS = 2; // à chaque tas qui tombe, chance qu'une arme tombe aussi (une seule par terre) ; dégâts en plus par balle pour chaque arme ramassée
+const BULLETS_ARME_CHANCE = 0.25, BULLETS_ARME_BONUS = 2; // à chaque tas qui tombe, chance qu'une arme tombe aussi (une seule par terre) ; dégâts en plus par balle pour chaque arme ramassée
 const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 6, BULLETS_TAS_MAX = 2; // tas de balles : le premier, puis un toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus), qu'il ait des balles ou non
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;

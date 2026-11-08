@@ -2397,7 +2397,7 @@ const CHARS = {
       if (f.vise >= BULLETS_VISEE && f.cd <= 0 && Math.abs(haut) <= BULLETS_ANGLE) { // une balle part du bout du pistolet, vers sa cible (seulement devant lui, pas trop haut ni trop bas)
         const c = canonMonde(f), V = f.vuCible, k = Math.hypot(t.x - c.x, ty - c.y) / BULLETS_VITESSE * BULLETS_AVANCE; // il vise un peu en avant, là où il voit aller sa cible
         const ang = Math.atan2(ty + (V ? V.vy : 0) * k - c.y, t.x + (V ? V.vx : 0) * k - c.x) + (Math.random() - 0.5) * (f.fusil ? BULLETS_FUSIL_DISPERSION : BULLETS_DISPERSION);
-        const dmgFusil = Math.max(1, Math.round(BULLETS_FUSIL_PART * (o.hpMax || PV_BASE))); // fusil : une part des PV de départ de l'adversaire (plus fort contre les gros)
+        const dmgFusil = Math.max(1, Math.floor(BULLETS_FUSIL_PART * (o.hpMax || PV_BASE) + 1e-6)); // fusil : une part des PV de départ de l'adversaire (plus fort contre les gros)
         g.proj.push({ kind: "balle", x: c.x, y: c.y, vx: Math.cos(ang) * BULLETS_VITESSE, vy: Math.sin(ang) * BULLETS_VITESSE, r: f.fusil ? 3 : 4, dmg: f.fusil ? dmgFusil : BULLETS_DEGATS, owner: f, rot: 0, drone: t.drone, petite: !!f.fusil, perceResist: f.fusil ? BULLETS_FUSIL_PERCE : 0 });
         f.balles--; f.tirT = 0; f.coups = (f.coups || 0) + 1;
         if (f.fusil) { // fusil : il tire en continu, tant qu'il a sa cible en vue et des balles
@@ -3068,7 +3068,7 @@ const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 140 }, { taille: 0.78, vit
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
 const GELEE_TRAINEE_LENT = 0.7; // traînée gluante : ralentit l'adversaire qui marche dedans
 const GELEE_REBOND_VISE = 0.7; // chance qu'un morceau du Slime reparte vers l'adversaire en touchant un mur
-const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.45, GELEE_CONTACT_CD = 0.5, GELEE_TRAINEE = 1, GELEE_TRAINEE_TIC = 0.3;
+const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.45, GELEE_CONTACT_CD = 0.55, GELEE_TRAINEE = 1, GELEE_TRAINEE_TIC = 0.3;
 // I Need More Bullets : balles tirées une à une vers l'adversaire (seulement s'il est devant lui : à BULLETS_ANGLE près) ; chargeur vide, un tas
 // des tas de balles tombent au hasard dans l'arène à intervalles réguliers ; chargeur vide, il va chercher le plus proche en se claquant les fesses
 // (sans tas par terre, il erre au hasard) ; un tas ramassé recharge son chargeur (il ne ramasse un tas que s'il lui manque des balles)

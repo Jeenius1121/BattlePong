@@ -2282,7 +2282,7 @@ const CHARS = {
     }
   },
   bullets: {
-    nom: "I Need More Bullets", court: "More Bullets", emoji: "🔫", vitesse: 210, pv: 130, memeEchelle: true, portrait: { cx: 0.53, cy: 0.14, taille: 0.33 }, // portrait centré sur sa tête ; toutes ses images à la même échelle
+    nom: "I Need More Bullets", court: "More Bullets", emoji: "🔫", vitesse: 240, pv: 130, memeEchelle: true, portrait: { cx: 0.53, cy: 0.14, taille: 0.33 }, // portrait centré sur sa tête ; toutes ses images à la même échelle
     images: ["visée 1", "visée 2", "tir 1", "tir 2", "tir 3", "pistolet baissé 1", "pistolet baissé 2", "claque 1", "claque 2", "claque 3", "claque 4", "claque 5", "claque 6", "claque 7", "claque 8", "claque 9", "claque 10"],
     ancres: { 2: [0.085, 0.009], 3: [0.136, 0.004], 4: [0.241, 0.004], 5: [0.212, 0.006], 6: [0.123, 0.006], 7: [0.089, 0.02], 8: [-0.053, 0.022], 9: [0.123, 0], 10: [0.06, 0], 11: [-0.006, 0.002], 12: [-0.076, 0], 13: [0.023, 0], 14: [0.038, 0], 15: [0.006, 0], 16: [-0.01, 0.002], 17: [-0.058, -0.002], 18: [0.085, 0.002] }, // le corps reste au même endroit d'une image à l'autre (l'éclair du tir dépasse devant)
     sonNom: "tir", son2: "« I need more bullets »", son3: "claque sur les fesses", son4: "balles ramassées",
@@ -2296,7 +2296,7 @@ const CHARS = {
       if (f.tirT < 0.11) return 6;
       return f.vise < BULLETS_VISEE / 2 ? 2 : 3;
     },
-    desc: "Tire sur l’adversaire balle après balle avec son pistolet, quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Toutes les 6 secondes, un tas de balles tombe au hasard dans l’arène (2 au plus par terre) : il ramasse ceux sur lesquels il passe. Quand son chargeur est vide, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets »). Il va droit vers le tas le plus proche, et s’il n’y en a aucun, il erre au hasard en attendant qu’il en tombe un. Chaque tas ramassé remplit son chargeur, avec 2 balles de plus que le précédent : 6 balles au début, puis 8, 10… jusqu’à 16. Plus il en ramasse, plus il en a !",
+    desc: "Un dur à cuire (130 PV). Tire sur l’adversaire balle après balle avec son pistolet (7 dégâts par balle), quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Un tas de balles tombe au hasard dans l’arène au bout de 3 secondes, puis toutes les 6 secondes (2 au plus par terre) : il ramasse ceux sur lesquels il passe. Quand son chargeur est vide, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets »). Il va droit vers le tas le plus proche, et s’il n’y en a aucun, il erre au hasard en attendant qu’il en tombe un. Chaque tas ramassé remplit son chargeur, avec 2 balles de plus que le précédent : 6 balles au début, puis 8, 10… jusqu’à 16. Plus il en ramasse, plus il en a !",
     svg: `<g ${O}>
       <rect x='43' y='104' width='15' height='32' fill='#56603a'/><rect x='62' y='104' width='15' height='32' fill='#56603a'/>
       <path d='M41 132h18v12H35v-4z' fill='#1f2026'/><path d='M61 132h18l5 8v4H61z' fill='#1f2026'/>
@@ -2898,7 +2898,7 @@ const VOL_LIBRE = 1.2, VOL_LIBRE_MIN = 0.5, STASE_DUREE = 0.5, STASE_HAUTEUR = 3
 const ECRASE_SOL = 8, ECRASE_TRAJET = 4, ECRASE_RAYON = 170, ECRASE_HAUTEUR_SOL = 60, ECRASE_PROJETE = 700, ECRASE_PROJETE_DUREE = 0.4;
 const HAMMOND_ENVOLEE = 450; // vitesse vers le haut ajoutée quand il lâche le grappin
 const HAMMOND_BLINDAGE = 0.3; // dégâts en moins quand il est posé en bas (mode tourelle)
-const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.11, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.15;
+const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.12, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.15;
 // mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
 // Repère du perso tourné vers l'avant (x vers l'avant) ; u = demi-hauteur de l'image
 const CANON_PIVOT = 5, CANON_ANGLE_MAX = 1.25, CANON_ANGLE_BAS = 0.45; // vitesse de pivot (radians/s), angle max vers le haut et vers le bas
@@ -3018,9 +3018,9 @@ function majBombes(g, dt) {
 // Chose Impie : 6 bras accrochés aux murs ; la main où l'œil est ouvert est ce que les autres frappent
 // MAIN_HAUTEUR : longueur de l'avant-bras + main ; MAIN_MUR : distance du centre au mur (le bout des griffes touche le bord)
 // Grenouille : bulle du canon (charge, taille, vitesse, temps de vol, arrêt avant d'éclater, dégâts selon la taille, attente entre deux bulles)
-const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 150, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 6, BULLE_DEG_MAX = 29, BULLE_CD = 1;
+const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 150, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 6, BULLE_DEG_MAX = 29, BULLE_CD = 0.9;
 const BULLE_MARCHE = 90; // vitesse de la Grenouille pendant qu'elle gonfle sa bulle (elle marche lentement au lieu de sauter)
-const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 6;
+const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 5;
 // pilote éjecté : PV qui lui restent, bonds, et son pistolet à petites bulles ; explosion du mécha à l'éjection
 const PILOTE_ECART = 2.2; // écart au hasard des bonds du pilote autour de la direction de l'adversaire (radians)
 const PILOTE_PV = 30, PILOTE_VITESSE = 330, PILOTE_BOND_DUREE = 0.35, PILOTE_PAUSE = 0.25, PILOTE_TIR_CD = 0.3, PILOTE_BULLE_R = 7, PILOTE_BULLE_VITESSE = 340, PILOTE_BULLE_VOL = 0.8, PILOTE_BULLE_DEG = 2;
@@ -3046,8 +3046,8 @@ const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 // I Need More Bullets : balles tirées une à une vers l'adversaire (seulement s'il est devant lui : à BULLETS_ANGLE près) ; chargeur vide, un tas
 // des tas de balles tombent au hasard dans l'arène à intervalles réguliers ; chargeur vide, il va chercher le plus proche en se claquant les fesses
 // (sans tas par terre, il erre au hasard) ; chaque tas ramassé donne un chargeur plein avec BULLETS_PLUS balles de plus, jusqu'à BULLETS_MAX
-const BULLETS_CHARGEUR = 6, BULLETS_PLUS = 2, BULLETS_MAX = 16, BULLETS_CADENCE = 0.44, BULLETS_DEGATS = 7, BULLETS_VITESSE = 900;
-const BULLETS_VISEE = 0.25, BULLETS_BAISSE = 0.3, BULLETS_DISPERSION = 0.08, BULLETS_PENCHE = 0.25, BULLETS_ANGLE = 0.7;
+const BULLETS_CHARGEUR = 6, BULLETS_PLUS = 2, BULLETS_MAX = 16, BULLETS_CADENCE = 0.48, BULLETS_DEGATS = 7, BULLETS_VITESSE = 900;
+const BULLETS_VISEE = 0.4, BULLETS_BAISSE = 0.3, BULLETS_DISPERSION = 0.08, BULLETS_PENCHE = 0.25, BULLETS_ANGLE = 0.7;
 const BULLETS_CLAQUE = 1.6, BULLETS_TAS_ECART = 100, BULLETS_RAMASSE = 1; // durée d'un tour de claques ; tas de balles : distance minimale entre lui et un tas qui tombe, vitesse pour aller le chercher (part de sa vitesse)
 const BULLETS_AVANCE = 0.8; // il vise en avant de sa cible : part du chemin qu'elle fera pendant le vol de la balle
 const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 6, BULLETS_TAS_MAX = 2; // tas de balles : le premier, puis un toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus), qu'il ait des balles ou non

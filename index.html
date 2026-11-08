@@ -2298,7 +2298,7 @@ const CHARS = {
       if (f.tirT < 0.11) return 6;
       return f.vise < BULLETS_VISEE / 2 ? 2 : 3;
     },
-    desc: "Un dur à cuire (150 PV). Tire sur l’adversaire balle après balle avec son pistolet (7 dégâts par balle), quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Mais son chargeur ne contient que 5 balles ! Un tas de balles tombe au hasard dans l’arène au bout de 3 secondes, puis toutes les 6 secondes (2 au plus par terre) : quand il lui manque des balles, il ramasse ceux sur lesquels il passe, et chaque tas recharge son chargeur. Quand son chargeur est vide, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets ») et en marchant un peu moins vite. Il va droit vers le tas le plus proche, et s’il n’y en a aucun, il erre au hasard en attendant qu’il en tombe un. Rarement, un fusil d’assaut tombe aussi dans l’arène : s’il passe dessus, il le ramasse (« Better Weapon ») et le garde jusqu’à la fin du combat. Il tire alors en continu de petites balles (3 dégâts chacune) tant qu’il a sa cible en vue, avec un chargeur de 20 balles, rechargé par les tas comme avant ; pendant ses claques, le fusil passe dans son dos. Quand il gagne, il se claque les fesses pour fêter ça.",
+    desc: "Un dur à cuire (150 PV). Tire sur l’adversaire balle après balle avec son pistolet (7 dégâts par balle), quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Mais son chargeur ne contient que 5 balles ! Un tas de balles tombe au hasard dans l’arène au bout de 3 secondes, puis toutes les 6 secondes (2 au plus par terre) : quand il lui manque des balles, il ramasse ceux sur lesquels il passe, et chaque tas recharge son chargeur. Quand son chargeur est vide, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets ») et en marchant un peu moins vite. Il va droit vers le tas le plus proche, et s’il n’y en a aucun, il erre au hasard en attendant qu’il en tombe un. Rarement, un fusil d’assaut tombe aussi dans l’arène : s’il passe dessus, il le ramasse (« Better Weapon ») et le garde jusqu’à la fin du combat. Il tire alors en continu de petites balles tant qu’il a sa cible en vue : chacune fait 3 % des PV de départ de l’adversaire (3 dégâts contre un perso à 100 PV, 6 contre 200 PV) et traverse la moitié de ses résistances aux dégâts (blindage, pose, furie…). Son chargeur contient 16 balles, rechargé par les tas comme avant ; pendant ses claques, le fusil passe dans son dos. Quand il gagne, il se claque les fesses pour fêter ça.",
     svg: `<g ${O}>
       <rect x='43' y='104' width='15' height='32' fill='#56603a'/><rect x='62' y='104' width='15' height='32' fill='#56603a'/>
       <path d='M41 132h18v12H35v-4z' fill='#1f2026'/><path d='M61 132h18l5 8v4H61z' fill='#1f2026'/>
@@ -2397,7 +2397,8 @@ const CHARS = {
       if (f.vise >= BULLETS_VISEE && f.cd <= 0 && Math.abs(haut) <= BULLETS_ANGLE) { // une balle part du bout du pistolet, vers sa cible (seulement devant lui, pas trop haut ni trop bas)
         const c = canonMonde(f), V = f.vuCible, k = Math.hypot(t.x - c.x, ty - c.y) / BULLETS_VITESSE * BULLETS_AVANCE; // il vise un peu en avant, là où il voit aller sa cible
         const ang = Math.atan2(ty + (V ? V.vy : 0) * k - c.y, t.x + (V ? V.vx : 0) * k - c.x) + (Math.random() - 0.5) * (f.fusil ? BULLETS_FUSIL_DISPERSION : BULLETS_DISPERSION);
-        g.proj.push({ kind: "balle", x: c.x, y: c.y, vx: Math.cos(ang) * BULLETS_VITESSE, vy: Math.sin(ang) * BULLETS_VITESSE, r: f.fusil ? 3 : 4, dmg: f.fusil ? BULLETS_FUSIL_DEGATS : BULLETS_DEGATS, owner: f, rot: 0, drone: t.drone, petite: !!f.fusil });
+        const dmgFusil = Math.max(1, Math.round(BULLETS_FUSIL_PART * (o.hpMax || PV_BASE))); // fusil : une part des PV de départ de l'adversaire (plus fort contre les gros)
+        g.proj.push({ kind: "balle", x: c.x, y: c.y, vx: Math.cos(ang) * BULLETS_VITESSE, vy: Math.sin(ang) * BULLETS_VITESSE, r: f.fusil ? 3 : 4, dmg: f.fusil ? dmgFusil : BULLETS_DEGATS, owner: f, rot: 0, drone: t.drone, petite: !!f.fusil, perceResist: f.fusil ? BULLETS_FUSIL_PERCE : 0 });
         f.balles--; f.tirT = 0; f.coups = (f.coups || 0) + 1;
         if (f.fusil) { // fusil : il tire en continu, tant qu'il a sa cible en vue et des balles
           f.cd = BULLETS_FUSIL_CADENCE;
@@ -2608,14 +2609,15 @@ function degats(g, cible, n, x, y) {
   if (c.annuleCoup && c.annuleCoup(cible, g)) { n -= 15; if (n <= 0) return; } // annuleCoup : coup entièrement bloqué (bulle de protection de la Grenouille)
   if (c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
   // Myers encaisse moins pendant sa furie (arrondi, 1 dégât minimum)
-  const perce = (attaquant && CHARS[attaquant.type].perceBlindage) || 0; // la puissance psychique de Bison traverse une partie du blindage
+  const perceTir = (coupVenu && coupVenu.perceResist) || 0; // balles du fusil d'I Need More Bullets : elles traversent une partie de toute résistance aux dégâts
+  const perce = Math.max((attaquant && CHARS[attaquant.type].perceBlindage) || 0, perceTir); // la puissance psychique de Bison traverse une partie du blindage
   if (cible.type === "hammond" && cible.etatH === "tourelle") n = Math.max(1, Math.round(n * (1 - HAMMOND_BLINDAGE * (1 - perce)))); // Bouldozer posé en bas : un peu blindé
-  if (cible.esquive > 0) n = Math.max(1, Math.round(n * 0.5)); // juste après une roulade de McCree : 50 % de dégâts en moins
+  if (cible.esquive > 0) n = Math.max(1, Math.round(n * (1 - 0.5 * (1 - perceTir)))); // juste après une roulade de McCree : 50 % de dégâts en moins
   // GigaChad qui prend la pose : 70 % de dégâts en moins (seulement 25 % contre les attaques foudroyantes :
   // couteau de Myers en furie, Psycho Crusher et Head Stomp de Bison) ; les cris de Steve (des ondes sonores) passent à travers
   const foudroyant = attaquant && (attaquant.etat === "furie" || attaquant.crusher || attaquant.stomp);
-  if (c.imperturbable && cible.pose > 0 && !coupDirect) n = Math.max(1, Math.round(n * (1 - (coupFoudroyant ? GIGA_IMPERTURBABLE_CRI : foudroyant ? GIGA_IMPERTURBABLE_FURIE : GIGA_IMPERTURBABLE))));
-  if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction)));
+  if (c.imperturbable && cible.pose > 0 && !coupDirect) n = Math.max(1, Math.round(n * (1 - (coupFoudroyant ? GIGA_IMPERTURBABLE_CRI : foudroyant ? GIGA_IMPERTURBABLE_FURIE : GIGA_IMPERTURBABLE) * (1 - perceTir))));
+  if (c.reduction && cible.etat === "furie") n = Math.max(1, Math.round(n * (1 - c.reduction * (1 - perceTir))));
   // blindage : dégâts toujours réduits de cette part (la main de la Chose Impie, dure comme de la corne)
   if (c.blindage) n = Math.max(1, Math.round(n * (1 - c.blindage * (1 - perce))));
   if (c.lienAme && cible.drones && cible.drones.length) { // lien d'âme : le squelette le plus proche d'elle prend une part du coup
@@ -3076,7 +3078,8 @@ const BULLETS_CLAQUE = 0.55, BULLETS_TAS_ECART = 100, BULLETS_RAMASSE = 0.5; // 
 const BULLETS_AVANCE = 0.8, BULLETS_CORPS = 0.3; // BULLETS_CORPS : jusqu'où il vise vers le haut ou le bas du corps de sa cible (part de sa demi-hauteur) // il vise en avant de sa cible : part du chemin qu'elle fera pendant le vol de la balle
 const BULLETS_ARME_CHANCE = 0.3; // à chaque tas qui tombe, chance qu'un fusil tombe aussi (un seul par terre, et plus aucun une fois qu'il l'a)
 // le fusil : tir continu de petites balles (BULLETS_FUSIL_CADENCE entre deux) tant qu'il a sa cible en vue, avec un plus gros chargeur
-const BULLETS_FUSIL_CHARGEUR = 20, BULLETS_FUSIL_CADENCE = 0.12, BULLETS_FUSIL_DEGATS = 3, BULLETS_FUSIL_DISPERSION = 0.14;
+const BULLETS_FUSIL_CHARGEUR = 16, BULLETS_FUSIL_CADENCE = 0.12, BULLETS_FUSIL_DISPERSION = 0.14;
+const BULLETS_FUSIL_PART = 0.03, BULLETS_FUSIL_PERCE = 0.5; // dégâts d'une balle du fusil : part des PV de départ de la cible ; part de ses résistances aux dégâts qu'elle traverse
 const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 6, BULLETS_TAS_MAX = 2; // tas de balles : le premier, puis un toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus), qu'il ait des balles ou non
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;

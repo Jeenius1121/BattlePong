@@ -5427,7 +5427,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.77.0", NOTES = "I Need More Bullets : le fusil tire en continu.\n• Avec le fusil, il ne tire plus par petites rafales : il tire sans s’arrêter tant qu’il a sa cible en vue, jusqu’à vider son chargeur de 20 balles.\n• Le son du fusil tourne en boucle tant qu’il tire, s’arrête dès qu’il cesse de tirer et repart du début quand il recommence.";
+const VERSION = "1.78.0", NOTES = "I Need More Bullets vise plus large.\n• Il peut tirer sur un adversaire nettement plus haut ou plus bas que lui (angle de tir élargi), et il penche un peu plus son arme pour viser.\n• En échange, son pistolet tire un peu moins vite, il marche plus lentement quand il cherche des balles en se claquant les fesses, et le fusil est un peu plus rare.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

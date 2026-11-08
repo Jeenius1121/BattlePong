@@ -5429,7 +5429,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.79.0", NOTES = "Le fusil d’assaut d’I Need More Bullets tombe un peu plus souvent : 25 % de chance à chaque tas de balles, au lieu de 20 %.";
+const VERSION = "1.80.0", NOTES = "I Need More Bullets retouché.\n• Il vise le corps de son adversaire plutôt que son centre : un gros adversaire un peu plus haut ou plus bas que lui reste à portée.\n• Son pistolet tire un peu plus vite.\n• Le fusil d’assaut tombe plus souvent : 30 % de chance à chaque tas de balles, au lieu de 25 %.\n• En échange, il marche plus lentement quand il cherche des balles en se claquant les fesses : on profite encore plus de son « I need more bullets ».";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

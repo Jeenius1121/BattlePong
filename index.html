@@ -3362,9 +3362,9 @@ function maj(dt) {
       const s = Math.sign(dy) || 1; a.y -= s * oy / 2; b.y += s * oy / 2;
       if ((a.vy - b.vy) * s > 0) {
         const t = a.vy; a.vy = b.vy; b.vy = t;
-        // l'un au-dessus de l'autre : chacun repart aussi sur le côté, à l'opposé de l'autre (gauche / droite) ; sinon deux persos
-        // qui vont dans le même sens se renvoient en boucle chacun de son côté (l'un en haut, l'autre en bas) sans jamais se croiser
-        const sx = Math.sign(dx) || (Math.random() < 0.5 ? 1 : -1); a.vx = -sx * Math.abs(a.vx); b.vx = sx * Math.abs(b.vx);
+        // face à face l'un au-dessus de l'autre en allant tous les deux du même côté (gauche ou droite) : chacun repart aussi sur le côté,
+        // à l'opposé de l'autre ; sinon ils se renvoient en boucle chacun de son côté (l'un en haut, l'autre en bas) sans jamais se croiser
+        if (a.vx * b.vx > 0 && a.vy * b.vy < 0) { const sx = Math.sign(dx) || (Math.random() < 0.5 ? 1 : -1); a.vx = -sx * Math.abs(a.vx); b.vx = sx * Math.abs(b.vx); }
       }
     }
     normaliser(a); normaliser(b); redresser(a); redresser(b);

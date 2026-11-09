@@ -3234,7 +3234,6 @@ function dessinerRayonOeil(f) {
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const FEU_BONUS = 6; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
-const CHOC_DEVIE = 0.5; // quand deux persos se cognent : chacun repart avec sa direction déviée au hasard (jusqu'à ± cet angle, en radians)
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 36, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 3; // PV regagnés par l'Inconnu à chaque téléportation
@@ -3355,16 +3354,19 @@ function maj(dt) {
   // pas de collision pendant le Psycho Crusher de Bison ni pendant que Bouldozer s'écrase au sol (il traverse l'adversaire)
   const traverse = a.crusher || b.crusher || a.etatH === "chute" || b.etatH === "chute" || a.traverse || b.traverse;
   if (ox > 0 && oy > 0 && !a.mort && !b.mort && !traverse && !a.enLair && !b.enLair) {
-    if (ox < oy) {
+    const deCote = ox < oy; // choc de côté (sinon : l'un au-dessus de l'autre)
+    if (deCote) {
       const s = Math.sign(dx) || 1; a.x -= s * ox / 2; b.x += s * ox / 2;
       if ((a.vx - b.vx) * s > 0) { const t = a.vx; a.vx = b.vx; b.vx = t; }
     } else {
       const s = Math.sign(dy) || 1; a.y -= s * oy / 2; b.y += s * oy / 2;
-      if ((a.vy - b.vy) * s > 0) { const t = a.vy; a.vy = b.vy; b.vy = t; }
+      if ((a.vy - b.vy) * s > 0) {
+        const t = a.vy; a.vy = b.vy; b.vy = t;
+        // l'un au-dessus de l'autre : chacun repart aussi sur le côté, à l'opposé de l'autre (gauche / droite) ; sinon deux persos
+        // qui vont dans le même sens se renvoient en boucle chacun de son côté (l'un en haut, l'autre en bas) sans jamais se croiser
+        const sx = Math.sign(dx) || (Math.random() < 0.5 ? 1 : -1); a.vx = -sx * Math.abs(a.vx); b.vx = sx * Math.abs(b.vx);
+      }
     }
-    // rebond un peu au hasard (comme contre un mur) : sinon deux persos qui se cognent restent synchronisés
-    // et se renvoient l'un l'autre chacun de son côté (l'un en haut, l'autre en bas) sans jamais se croiser
-    for (const f of [a, b]) { const sp = Math.hypot(f.vx, f.vy); if (sp > 1) { const ang = Math.atan2(f.vy, f.vx) + (Math.random() - 0.5) * 2 * CHOC_DEVIE; f.vx = Math.cos(ang) * sp; f.vy = Math.sin(ang) * sp; } }
     normaliser(a); normaliser(b); redresser(a); redresser(b);
   }
   // projectiles (déplacés par petits pas pour ne pas traverser les parties fines)

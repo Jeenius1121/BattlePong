@@ -2324,11 +2324,13 @@ const CHARS = {
     nouveauTas(f, g) { f.tas.push(this.endroitLibre(f, g)); },
     // il a gagné : pose de victoire « I need more bullets », il se claque les fesses sur place
     victoire(f) { f.fete = true; f.claque = 0; f.vx = 0; f.vy = 0; f.sonFusil = false; for (const n of [1, 2, 7]) arreterSon(f, n); }, // dès qu'il a gagné, plus aucun tir ni voix
-    // pendant sa pose de victoire (le combat est fini, au ralenti), les claques continuent à vitesse normale
+    // ses claques suivent le temps du combat, pas son propre ralenti : quand il est ralenti ou aveuglé (traînée du Slime, obus de l'Inconnu,
+    // regard de la Chose Impie, grenade flash de McCree), il marche moins vite mais se claque toujours les fesses aussi vite
     monde(f, o, g, dt) {
+      if (f.cherche && g.running && !f.capture) f.claque += dt;
       if (!f.fete) return;
       f.vx = 0; f.vy = 0;
-      f.claque += dt / FIN_RALENTI;
+      f.claque += dt; // pose de victoire : au ralenti, comme tout le reste pendant le zoom de fin
     },
     // a-t-il les pieds sur ce tas de balles ?
     surTas(f, T) { return Math.abs(T.x - f.x) < Math.max(16, f.hw * 0.7) && T.y > f.y - f.hh * 0.3 && T.y < f.y + f.hh + 8; },
@@ -2357,8 +2359,7 @@ const CHARS = {
         son(f, 4);
         for (let i = 0; i < 12; i++) { const a = Math.random() * Math.PI * 2; g.parts.push({ x: pris.x, y: pris.y, vx: Math.cos(a) * 120, vy: Math.sin(a) * 70 - 70, t: 0.45, c: i % 2 ? "#ffd23f" : "#fff3c4" }); }
       }
-      if (f.cherche) { // plus de balles : il cherche des balles en se claquant les fesses (« I need more bullets »)
-        f.claque += dt;
+      if (f.cherche) { // plus de balles : il cherche des balles en se claquant les fesses (« I need more bullets ») ; les claques avancent dans monde()
         const v = (f.vitesse ?? this.vitesse) * BULLETS_RAMASSE;
         const buts = f.armeSol ? [...f.tas, f.armeSol] : f.tas; // le fusil par terre compte comme un tas de balles (le ramasser lui en donne aussi)
         if (!buts.length) { // aucun tas par terre : il erre au hasard, comme s'il en cherchait
@@ -5447,7 +5448,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.83.0", NOTES = "I Need More Bullets : les tas de balles s’ajoutent à ses balles.\n• Chaque tas ramassé lui ajoute 6 balles (12 avec le fusil d’assaut, et le fusil lui-même en apporte 12) au lieu de simplement recharger : s’il en a déjà 12 et ramasse un tas de 12, il en a 24. Plus aucune limite.\n• Il ramasse donc tous les tas sur lesquels il passe, même quand il a encore des balles. Il commence toujours le combat avec 5 balles.\n• Le compteur au-dessus de lui s’élargit pour les grands nombres, et les tas sont plus gros une fois qu’il a le fusil.\n• En échange, les tas tombent toutes les 9,5 secondes (au lieu de 7).\n• Myers remplit sa jauge en 3 secondes (au lieu de 3,2) : avec ses réserves de balles, I Need More Bullets le battait trop souvent.";
+const VERSION = "1.83.1", NOTES = "Correction : les claques d’I Need More Bullets.\n• Quand il est ralenti ou aveuglé (traînée du Slime, obus de l’Inconnu, regard de la Chose Impie, grenade flash de McCree), il se claque maintenant les fesses toujours aussi vite : avant, ses claques ralentissaient avec lui.\n• Quand il gagne, ses claques passent au ralenti pendant le zoom de fin, comme tout le reste.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

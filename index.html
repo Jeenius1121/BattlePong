@@ -2837,7 +2837,7 @@ function crier(g, f, dmg, portee, epais) {
 }
 /* ===== LANGUE DU SMOKER ===== */
 const LANGUE_PENALITE = 1.75; // secondes d'attente en plus quand sa langue a été annulée (coupée, tranchée, glissée…)
-const LANGUE_CD = 2.8, LANGUE_VITESSE = 850, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
+const LANGUE_CD = 2.8, LANGUE_VITESSE = 1000, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
 // langue annulée pile au moment où elle touche (Myers en furie, GigaChad en pose) : une part des dégâts d'un étranglement complet (7 à-coups, 42)
 const LANGUE_ANNULEE_PART = 0.25;
 function langueAnnulee(g, o) {
@@ -3242,7 +3242,7 @@ const BALLE_VITESSE = 1000; // vitesse des balles de McCree
 // grenade flash de McCree : aveugle et ralentit énormément l'adversaire touché
 const FLASH_PREMIERE = 4, FLASH_CD = 20, FLASH_VITESSE = 520, FLASH_RAYON = 90, FLASH_DEGATS = 5, FLASH_DUREE = 1.2, FLASH_RALENTI = 0.3, FLASH_FLOU = 2, FLASH_PRECISION = 0.2;
 // roulade de McCree : esquive rapide quand il va être touché
-const ROULADE_CD = 10, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUIVE = 1, ROULADE_BONUS = 1.5;
+const ROULADE_CD = 12, ROULADE_DUREE = 0.28, ROULADE_VITESSE = 650, ROULADE_ESQUIVE = 1, ROULADE_BONUS = 1.5;
 // les 6 images de roulade de McCree sont-elles toutes là ?
 function rouladeAnimee() { const s = CHARS.cowboy.spr; return !!s && [4, 5, 6, 7, 8, 9].every(n => s[n]); }
 const ENCHAINE_CHANCE = 0.05; // chance par balle qui touche de ne pas recharger (McCree)

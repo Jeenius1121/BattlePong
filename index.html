@@ -1235,6 +1235,8 @@ const CHARS = {
     // ses coups de poing : plus forts, et sa musique baisse un instant pour qu'on les entende bien
     volumes: { 2: 2.2, 3: 2.2, 6: 2.2 }, baisseMusique: { sons: [2, 3, 6], musique: "gigachad-4" },
     imperturbable: true,
+    // il a gagné : il prend une pose au hasard (dès le ralenti de fin) et ne bouge plus
+    victoire(f) { const p = 4 + [7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n]).length; /* autant de poses que d'images de pose */ f.poing = 0; f.pose = 1e9; f.numPose = Math.floor(Math.random() * p); f.fete = true; f.vx = 0; f.vy = 0; son(f); },
     // poses : images 2 à 5, puis 7 à 9 (poses 5 à 7, rangées après le coup de poing) si elles sont fournies ; image 6 : coup de poing
     imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...[7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n])]; return p[(f.numPose || 0) % p.length]; },
     desc: "Se balade tranquillement dans l’arène en se rapprochant peu à peu de l’adversaire, et prend de temps en temps la pose 0,75 seconde (il glisse alors lentement, sans s’arrêter) : chaque pose réussie lui donne +1 en attaque (5 max), puis il repart dans une direction au hasard. Une fois à 5 poses, il se rapproche plus vite de l’adversaire. Imperturbable : pendant qu’il pose, il prend 70 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
@@ -1297,6 +1299,7 @@ const CHARS = {
     // la musique tourne tout le combat ; l'adversaire envoyé au mur s'y écrase
     monde(f, o, g, dt) {
       if (g.running && !enCours["_gigachad-4"]) jouerCle("gigachad-4", { boucle: true, volume: 0.45 });
+      if (f.fete) { f.vx = 0; f.vy = 0; } // pose de victoire : il ne bouge plus
       const P = o.projete;
       if (!P) return;
       if (!(o.recul > 0) || o.mort || o.capture || o.enLair) { o.projete = null; return; }
@@ -5448,7 +5451,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.83.1", NOTES = "Correction : les claques d’I Need More Bullets.\n• Quand il est ralenti ou aveuglé (traînée du Slime, obus de l’Inconnu, regard de la Chose Impie, grenade flash de McCree), il se claque maintenant les fesses toujours aussi vite : avant, ses claques ralentissaient avec lui.\n• Quand il gagne, ses claques passent au ralenti pendant le zoom de fin, comme tout le reste.";
+const VERSION = "1.84.0", NOTES = "GigaChad : pose de victoire.\n• Quand il gagne, dès que le ralenti de fin commence, il s’arrête et prend une de ses poses au hasard (avec son halo doré).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

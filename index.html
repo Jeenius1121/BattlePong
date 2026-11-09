@@ -762,7 +762,7 @@ const CHARS = {
         }
       } else if (f.etat === "stalk") { // immobile, fixe l'adversaire, la jauge monte
         f.vx = 0; f.vy = 0; f.face = o.x >= f.x ? 1 : -1;
-        f.jauge = Math.min(1, f.jauge + dt / 3.5); // jauge pleine en 3,5 s
+        f.jauge = Math.min(1, f.jauge + dt / 3.2); // jauge pleine en 3,2 s
         if (f.jauge >= 1) {
           f.etat = "furie"; arreterSon(f, 2); son(f, 1, true); // son joué en boucle pendant toute la furie
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;

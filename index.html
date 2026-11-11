@@ -702,8 +702,8 @@ const CHARS = {
   },
   robot: {
     creation: true,
-    nom: "Robot", emoji: "🤖", vitesse: 220, pv: 100, images: ["attaque", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "marche 7", "marche 8"], sonNom: "laser", son2: "minuteur", marche: [3, 10],
-    imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : imageMarche(f, 3), // il marche : images 3 à 10 (les jambes se balancent)
+    nom: "Robot", emoji: "🤖", vitesse: 220, pv: 100, images: ["attaque", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "marche 7", "marche 8", "tir marche 1", "tir marche 2", "tir marche 3", "tir marche 4", "tir marche 5", "tir marche 6", "tir marche 7", "tir marche 8"], sonNom: "laser", son2: "minuteur", marche: [3, 10],
+    imageDe: f => f.charge > 0 || f.tir > 0 ? imageMarche(f, 11, 2) : imageMarche(f, 3), // il marche : images 3 à 10 ; en chargeant ou en tirant (ralenti), petits pas lents dans sa pose de tir : images 11 à 18
     desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle ce qu’il touche. Chaque nouveau tir fait plus de dégâts que le précédent : plus le combat dure, plus il est dangereux. Le rayon ricoche sur les autres ennemis (jusqu’à 2), avec des dégâts divisés par deux à chaque ricochet. À 20 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire : c’est une victoire pour lui.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='26' fill='#8b93a6'/><rect x='64' y='112' width='12' height='26' fill='#8b93a6'/>
@@ -2814,9 +2814,9 @@ function cache(o, f) { return !!o.enLair || o.etat === "rode" && !(f && CHARS[f.
 // images en plus : Myers (furie), Cowboy (visée, tir). Image n stockée sous la clé id + "-n".
 // Une image en plus absente est remplacée par la précédente, puis par l'image normale.
 // images de marche (Sorcier, Robot) : choisies d'après ses pas (dessin seulement : sans dessin, c'est toujours l'image normale)
-function imageMarche(f, premiere) {
+function imageMarche(f, premiere, repos = 1) {
   const v = f.v, c = CHARS[f.type];
-  if (!v || !(v.vit > 25) || !c.spr || !c.spr[premiere]) return 1;
+  if (!v || !(v.vit > 25) || !c.spr || !c.spr[premiere]) return repos;
   return premiere + Math.floor(((v.phase + Math.PI / 2) / (2 * Math.PI) * 8) % 8 + 8) % 8;
 }
 // image normale ou une de ses images de marche (même corps, mêmes repères)
@@ -4214,7 +4214,7 @@ const DECORS = {
     if (Math.random() < dtv * 9) vpart(g, { x: p.x + (Math.random() - 0.5) * 10, y: p.y, vx: (Math.random() - 0.5) * 30, vy: -20 - Math.random() * 30, t: 0.6, v0: 0.9, r: 1.8, croit: 0, forme: "etoile", lumiere: true, c: Math.random() < 0.5 ? "rgba(150,220,255," : "rgba(210,170,255," });
   },
   robot(f, g, dtv, now) { // l'antenne clignote ; le canon se charge ; abîmé, il fait des étincelles
-    if (estNormale(f) || spriteDe(f) === (CHARS.robot.spr && CHARS.robot.spr[2])) {
+    if (estNormale(f) || CHARS.robot.imageDe(f) === 2 || CHARS.robot.imageDe(f) >= 11) { // l'antenne clignote aussi dans sa pose de tir
       const h = pointHaut(spriteDe(f), 0, 1), p = versMonde(f, h.u, h.v + 0.025);
       if ((now * 1.1) % 1 < 0.45) { ctx.save(); ctx.globalCompositeOperation = "lighter"; const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 13); gr.addColorStop(0, "rgba(255,200,190,.95)"); gr.addColorStop(0.4, "rgba(255,60,50,.6)"); gr.addColorStop(1, "rgba(255,40,40,0)"); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x, p.y, 13, 0, 7); ctx.fill(); ctx.restore(); }
     }
@@ -6071,7 +6071,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.93.0", NOTES = "Nouvel écran de chargement, et le jeu démarre bien plus vite.\n• Un nouvel écran : logo animé, rayons et lueurs, les portraits des combattants qui s’allument un par un quand ils sont prêts, une barre de progression et des astuces.\n• On peut entrer dès que les images sont prêtes : la musique et les sons arrivent pendant qu’on choisit ses persos.\n• Ce qui n’a pas changé depuis la dernière visite n’est plus retéléchargé ni retraité : le jeu s’ouvre en quelques secondes.";
+const VERSION = "1.94.0", NOTES = "Robot : quand il charge et tire son laser (il est ralenti), il avance à petits pas lents dans sa pose de tir, au lieu de glisser (8 nouvelles images).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

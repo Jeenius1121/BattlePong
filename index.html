@@ -53,23 +53,50 @@ body.vue-combat .entete{display:none}
 .majDispo button{font:inherit; font-weight:800; border:0; border-radius:10px; padding:8px 12px; background:var(--accent); color:#fff; cursor:pointer}
 .majDispo button:disabled{opacity:.6; cursor:default}
 
-/* écran de chargement */
-.chargement{position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; color:#fff; transition:opacity .35s;
-  background:repeating-linear-gradient(115deg, rgba(255,255,255,.06) 0 6px, transparent 6px 26px), radial-gradient(circle at 50% 40%, #3a2a5e, #131726 70%)}
-.chargement .chSur{margin:0; font-weight:800; letter-spacing:.2em; text-transform:uppercase; font-size:.8rem; color:#f2b134}
-.chTitre{margin:0; font-size:clamp(2.2rem,11vw,3.2rem); transform:rotate(-2deg)}
-.chargement #chTexte{margin:0; color:#c9cfe6; font-weight:600}
-.chRond{width:46px; height:46px; border-radius:50%; border:5px solid rgba(255,255,255,.18); border-top-color:#f2b134; animation:tourne .8s linear infinite}
-@keyframes tourne{to{transform:rotate(360deg)}}
-.chBarre{width:min(70vw,260px); height:8px; border-radius:4px; background:rgba(255,255,255,.15); overflow:hidden}
-.chBarre span{display:block; height:100%; width:0; background:linear-gradient(90deg,#33c3cb,#f5a524); transition:width .2s}
-.chEntrer{margin-top:10px; font:inherit; font-weight:800; font-size:1.15rem; color:#1b2033; cursor:pointer; border:0; border-radius:16px; padding:16px 26px;
-  background:linear-gradient(180deg,#ffd76a,#f2b134); box-shadow:0 6px 0 #a66c12, 0 0 30px rgba(242,177,52,.45); animation:appel 1.4s ease-in-out infinite}
-.chEntrer:active{transform:translateY(5px); box-shadow:0 1px 0 #a66c12}
+/* écran de chargement : fond animé, logo, portraits des combattants qui s'allument quand ils sont prêts, barre, astuces */
+.chargement{position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(12px,3.2vh,26px); padding:calc(18px + env(safe-area-inset-top,0px)) 18px calc(34px + env(safe-area-inset-bottom,0px)); color:#fff; overflow:hidden; transition:opacity .45s, transform .45s;
+  background:radial-gradient(120% 80% at 50% 30%, #3b2a6e 0%, #1a1636 50%, #0b0d1c 100%)}
+.chFond{position:absolute; inset:0; pointer-events:none; overflow:hidden}
+.chFond::before{content:""; position:absolute; inset:-50%; background:repeating-linear-gradient(115deg, rgba(255,255,255,.045) 0 8px, transparent 8px 34px); animation:chDefile 14s linear infinite}
+@keyframes chDefile{to{transform:translate(34px,-17px)}}
+.chLueur{position:absolute; width:70vmax; height:70vmax; border-radius:50%; filter:blur(60px); opacity:.35; animation:chPulse 4.5s ease-in-out infinite}
+.chLueur.g{left:-38vmax; top:10%; background:#33c3cb}
+.chLueur.d{right:-38vmax; bottom:5%; background:#f5a524; animation-delay:-2.2s}
+@keyframes chPulse{50%{opacity:.18; transform:scale(.9)}}
+.chRayons{position:absolute; left:50%; top:30%; width:150vmax; height:150vmax; margin:-75vmax 0 0 -75vmax; background:repeating-conic-gradient(rgba(255,214,90,.07) 0 6deg, transparent 6deg 18deg); -webkit-mask:radial-gradient(circle, #000 0, transparent 55%); mask:radial-gradient(circle, #000 0, transparent 55%); animation:tourne 40s linear infinite}
+.chTete{position:relative; text-align:center}
+.chargement .chSur{margin:0; font-weight:800; letter-spacing:.3em; text-transform:uppercase; font-size:.78rem; color:#f2b134; animation:chMonte .6s .1s both}
+.chTitre{margin:2px 0 0; font-size:clamp(2.6rem,13vw,5rem); line-height:1; transform:rotate(-3deg); text-shadow:0 4px 0 #e0302a, 0 9px 0 #7a1410, 0 14px 30px rgba(0,0,0,.6); animation:chLogo .7s cubic-bezier(.2,1.6,.4,1) both, chFlotte 3.6s ease-in-out .7s infinite}
+@keyframes chLogo{from{opacity:0; transform:rotate(-3deg) scale(.3)}}
+@keyframes chFlotte{50%{transform:rotate(-1.5deg) translateY(-6px)}}
+.chSlogan{margin:12px 0 0; font-size:.86rem; font-weight:600; color:#c9cfe6; animation:chMonte .6s .35s both}
+@keyframes chMonte{from{opacity:0; transform:translateY(12px)}}
+.chPersos{position:relative; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:min(92vw,560px)}
+.chPersos canvas{width:clamp(38px,10.5vw,54px); height:clamp(38px,10.5vw,54px); border-radius:50%; background:radial-gradient(circle at 50% 35%, #4a5590, #1c2240 70%); box-shadow:0 0 0 2px rgba(255,255,255,.12); filter:grayscale(1) brightness(.45); opacity:.55; transform:scale(.86); transition:filter .35s, opacity .35s, transform .35s, box-shadow .35s}
+.chPersos canvas.crea{background:radial-gradient(circle at 50% 35%, #8a7434, #2a2416 72%)}
+.chPersos canvas.pret{filter:none; opacity:1; transform:none; box-shadow:0 0 0 2px #ffd23f, 0 0 16px rgba(255,210,63,.45); animation:chPret .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes chPret{0%{transform:scale(.7)} 60%{transform:scale(1.18)}}
+.chargement.ok .chPersos canvas{animation:chVague 1.6s ease-in-out infinite; animation-delay:calc(var(--i) * 70ms)}
+@keyframes chVague{0%,60%,100%{transform:none} 30%{transform:translateY(-7px)}}
+.chBas{position:relative; display:flex; flex-direction:column; align-items:center; gap:10px; width:100%}
+.chBarre{position:relative; width:min(80vw,340px); height:16px; border-radius:9px; background:rgba(0,0,0,.4); box-shadow:inset 0 0 0 2px rgba(255,255,255,.12); overflow:hidden}
+.chBarre span{position:absolute; inset:2px auto 2px 2px; width:0; border-radius:7px; background:repeating-linear-gradient(115deg, rgba(255,255,255,.22) 0 6px, transparent 6px 14px), linear-gradient(90deg,#33c3cb,#ffd23f 60%,#f5a524); background-size:28px 100%, 100% 100%; box-shadow:0 0 14px rgba(255,210,63,.5); transition:width .3s ease-out; animation:chRaies .6s linear infinite}
+@keyframes chRaies{to{background-position:28px 0, 0 0}}
+.chBarre b{position:absolute; inset:0; display:grid; place-items:center; font-size:.66rem; font-weight:800; letter-spacing:.06em; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.chargement #chTexte{margin:0; color:#e4e8f6; font-weight:700; font-size:.92rem}
+.chEntrer{font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-weight:400; font-size:clamp(1.15rem,5vw,1.45rem); letter-spacing:.02em; color:#2a1a00; cursor:pointer; border:0; border-radius:18px; padding:16px 30px;
+  background:linear-gradient(180deg,#fff0a8,#ffd23f 45%,#f2a91f); box-shadow:0 7px 0 #a66c12, 0 0 0 3px rgba(255,255,255,.25), 0 0 40px rgba(255,210,63,.55); animation:chEntre .5s cubic-bezier(.2,1.6,.4,1), appel 1.4s ease-in-out .5s infinite}
+@keyframes chEntre{from{opacity:0; transform:scale(.4)}}
+.chEntrer:active{transform:translateY(6px); box-shadow:0 1px 0 #a66c12}
 .chEntrer[hidden]{display:none}
 @keyframes appel{50%{transform:scale(1.06)}}
-.chVersion{position:absolute; bottom:calc(14px + env(safe-area-inset-bottom,0px)); margin:0; font-size:.75rem; color:#9aa3c0}
-.chargement.fini{opacity:0; pointer-events:none}
+.chAstuce{min-height:2.6em; max-width:min(86vw,420px); margin:0; text-align:center; font-size:.8rem; line-height:1.3; color:#aeb6d6; transition:opacity .35s}
+.chAstuce b{color:#ffd23f}
+.chAstuce.cache{opacity:0}
+.chVersion{position:absolute; bottom:calc(10px + env(safe-area-inset-bottom,0px)); margin:0; font-size:.72rem; color:#8c94b6}
+.chargement.fini{opacity:0; transform:scale(1.06); pointer-events:none}
+@media (max-height:560px){ .chSlogan, .chAstuce{display:none} .chTitre{font-size:clamp(2rem,9vh,3rem)} .chPersos canvas{width:34px; height:34px} }
+@media (prefers-reduced-motion:reduce){ .chFond::before, .chRayons, .chTitre, .chLueur, .chargement.ok .chPersos canvas{animation:none} }
 
 /* deux écrans séparés : la sélection des persos, puis le combat */
 body.vue-selection [data-vue="combat"], body.vue-combat [data-vue="selection"]{display:none !important}
@@ -371,12 +398,19 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibili
 </head>
 <body class="vue-selection">
 <div class="chargement" id="chargement" role="status" aria-live="polite">
-  <p class="chSur">Bienvenue dans</p>
-  <p class="chTitre titreJeu">Battle Pong</p>
-  <div class="chRond" aria-hidden="true"></div>
-  <p id="chTexte">Chargement des persos…</p>
-  <div class="chBarre"><span id="chBarre"></span></div>
-  <button class="chEntrer" id="entrer" type="button" hidden>▶ Entrer dans l’arène</button>
+  <div class="chFond" aria-hidden="true"><i class="chLueur g"></i><i class="chLueur d"></i><i class="chRayons"></i></div>
+  <div class="chTete">
+    <p class="chSur">Bienvenue dans</p>
+    <p class="chTitre titreJeu">Battle Pong</p>
+    <p class="chSlogan">Choisis tes combattants · regarde-les s’affronter</p>
+  </div>
+  <div class="chPersos" id="chPersos" aria-hidden="true"></div>
+  <div class="chBas">
+    <div class="chBarre" id="chBarreBloc"><span id="chBarre"></span><b id="chPourcent">0 %</b></div>
+    <p id="chTexte">Les combattants arrivent…</p>
+    <button class="chEntrer" id="entrer" type="button" hidden>▶ Entrer dans l’arène</button>
+    <p class="chAstuce" id="chAstuce"></p>
+  </div>
   <p class="chVersion" id="chVersion"></p>
 </div>
 <main>
@@ -5136,9 +5170,11 @@ function appliquerSprite(cle, sprite, perso) {
   const n = numImage(cle);
   if (n > 1) { (c.spr ||= {})[n] = sprite; (c.pn ||= {})[n] = perso; }
   else { c.sprite = sprite; c.perso = perso; }
+  if (chargementEnMasse) return; // chargement : tout est rafraîchi d'un coup à la fin
   majVignettes(id);
   if (!jeu || !jeu.running) { document.getElementById("overlay").classList.remove("show"); nouveauJeu(false); dessiner(); }
 }
+let chargementEnMasse = false;
 
 let coteActif = 0;
 // nom du grand panneau : rapetisse jusqu'à tenir en entier sur la largeur (ex. « Bombardier »)
@@ -5696,7 +5732,7 @@ function depot(jeton) {
       // le propriétaire lit directement GitHub (toujours à jour), les autres lisent le site
       const r = h
         ? await fetch(api(chemin) + "?ref=main", { headers: { ...h, Accept: "application/vnd.github.raw+json" }, cache: "no-store" })
-        : await fetch(`perso/${chemin}.json?t=${Date.now()}`, { cache: "no-store" });
+        : await fetch(`perso/${chemin}.json`, { cache: "no-cache" }); // revalidé : rien n'est retéléchargé si le fichier n'a pas changé
       if (r.status === 404) return { exists: false, data: () => undefined };
       if (!r.ok) throw new Error("GitHub " + r.status);
       const d = await r.json();
@@ -5732,12 +5768,47 @@ function majStatutNuage() {
     : "Modifications enregistrées sur cet appareil seulement.";
   document.getElementById("cleBloc").hidden = !!nuage;
 }
+// écran de chargement : un portrait par perso, gris tant que ses images ne sont pas prêtes ; une barre ; des astuces qui tournent
+const ASTUCES = [
+  "Touche un portrait pour le donner au <b>joueur 1</b>, puis un autre pour le <b>joueur 2</b>.",
+  "Pas d’idée ? Le <b>dé 🎲</b> tire deux combattants au hasard.",
+  "Le bouton <b>📖</b> montre les pouvoirs de tous les persos.",
+  "Pendant le combat, <b>⏩</b> accélère tout (×2, ×3).",
+  "Chaque perso a ses forces : certains duels sont bien plus durs que d’autres !",
+  "Enchaîne les <b>revanches</b> : la série J1 – J2 est comptée.",
+  "Un perso <b>ralenti</b> ou <b>aveuglé</b> devient une cible facile.",
+  "Les persos ✨ ont été inventés pour le jeu."
+];
+function preparerEcranChargement() {
+  const L = document.getElementById("chPersos");
+  if (!L || L.childElementCount) return;
+  Object.keys(CHARS).forEach((id, i) => { const c = document.createElement("canvas"); c.width = c.height = 96; c.dataset.id = id; c.style.setProperty("--i", i); if (CHARS[id].creation) c.classList.add("crea"); L.appendChild(c); });
+  const A = document.getElementById("chAstuce");
+  if (A) { let n = Math.floor(Math.random() * ASTUCES.length); A.innerHTML = ASTUCES[n];
+    const tour = setInterval(() => { if (!document.getElementById("chargement")) return clearInterval(tour); A.classList.add("cache"); setTimeout(() => { n = (n + 1) % ASTUCES.length; A.innerHTML = ASTUCES[n]; A.classList.remove("cache"); }, 350); }, 3600); }
+}
+function dessinerPortraitChargement(id) {
+  const cv = document.querySelector(`#chPersos canvas[data-id="${id}"]`), c = CHARS[id];
+  if (!cv || !c.sprite) return;
+  const s = imagePortrait(id), t = cadrePortrait(id), x = cv.getContext("2d"), k = cv.width / t.S;
+  x.clearRect(0, 0, cv.width, cv.height); x.save(); x.beginPath(); x.arc(cv.width / 2, cv.height / 2, cv.width / 2, 0, 7); x.clip();
+  x.drawImage(s.img, -t.x * k, -t.y * k, s.tw * k, s.th * k); x.restore();
+}
+function persoPret(id) { dessinerPortraitChargement(id); const cv = document.querySelector(`#chPersos canvas[data-id="${id}"]`); if (cv) cv.classList.add("pret"); }
+function progresChargement(p) {
+  const b = document.getElementById("chBarre"), n = document.getElementById("chPourcent"), t = document.getElementById("chTexte"), pc = Math.round(Math.min(1, p) * 100);
+  if (b) b.style.width = `calc(${pc}% - 4px)`;
+  if (n) n.textContent = pc + " %";
+  if (t) { const prets = document.querySelectorAll("#chPersos canvas.pret").length, tot = Object.keys(CHARS).length; t.textContent = prets < tot ? `Les combattants arrivent… ${prets}/${tot}` : "Réglage du son…"; }
+}
 // chargement fini : l'écran titre propose d'entrer ; le bouton lance la musique et ouvre la sélection
 function finChargement() {
   const ch = document.getElementById("chargement"), b = document.getElementById("entrer");
   if (!ch || !b.hidden) return;
-  ch.querySelector(".chRond").remove(); ch.querySelector(".chBarre").remove();
-  document.getElementById("chTexte").textContent = "Choisis tes combattants";
+  for (const id of Object.keys(CHARS)) persoPret(id);
+  const barre = document.getElementById("chBarreBloc"); if (barre) barre.remove();
+  ch.classList.add("ok");
+  document.getElementById("chTexte").textContent = "Tous les combattants sont prêts !";
   b.hidden = false; b.focus();
   // les images tournées de la Chose Impie se préparent tout de suite, en arrière-plan (sinon : petit gel la première fois qu'on la choisit)
   setTimeout(() => { try { CHARS.oeil.tourner(); } catch (e) {} }, 50);
@@ -5758,54 +5829,80 @@ async function brancherNuage() {
 async function brancherNuageSuite() {
   const jeton = lireJeton(), db = depot(jeton);
   nuage = jeton ? db : null;
-  // tout est demandé d'un coup (bien plus rapide sur téléphone), puis traité dans l'ordre
-  const chemins = [...Object.keys(CHARS).flatMap(id => [...clesImage(id).map(k => "images/" + k), ...clesSon(id).map(k => "sons/" + k)]),
-    ...Object.keys(SONS_GENERAUX).map(k => "sons/" + k)];
-  const pre = {};
-  let recus = 0;
-  const progres = () => {
-    const b = document.getElementById("chBarre"), t = document.getElementById("chTexte");
-    if (b) b.style.width = Math.round(recus / chemins.length * 100) + "%";
-    if (t) t.textContent = recus < chemins.length ? `Chargement des persos… ${recus}/${chemins.length}` : "Préparation des persos…"; // tout est arrivé : il reste à décoder images et sons
-  };
-  for (const c of chemins) pre[c] = db.doc(c).get().finally(() => { recus++; progres(); });
-  progres();
-  const lire = chemin => pre[chemin] || db.doc(chemin).get();
   const proprio = estProprio();
   let migre = false, echec = false;
   try { migre = localStorage.getItem("duel-migre") === "1"; } catch (e) {}
-  for (const [id, c] of Object.entries(CHARS)) {
-    for (const k of clesImage(id)) try {
-      const deux = k !== id, perso = persoImage(k);
-      const im = await lire("images/" + k);
-      if (im.exists && im.data().url) {
-        appliquerSprite(k, traiter(await chargerImage(im.data().url)), true);
-        try { localStorage.setItem("duel-img:" + k, im.data().url); } catch (e) {}
-      } else if (nuage && perso && !migre) {
-        if (!await nuageEcrire("images/" + k, { url: urlCompacte(spriteImage(k)) })) echec = true;
-      } else if (perso && (nuage || !proprio)) {
-        // l'image a été retirée en ligne : on revient au dessin par défaut
-        try { localStorage.removeItem("duel-img:" + k); } catch (e) {}
-        appliquerSprite(k, deux ? null : traiter(await chargerImage(svgUrl(c.svg))), false);
-      }
-    } catch (e) { echec = true; }
-    for (const k of clesSon(id)) echec = !await sonEnLigne(k) || echec;
+  // 1) les images de tous les persos (demandées d'un coup) et les petits sons de l'annonceur : il faut les avoir pour jouer
+  const ids = Object.keys(CHARS), cles = ids.flatMap(id => clesImage(id)), petits = ["ready", "fight", "wins", "explosion"];
+  const pre = {}, lire = chemin => pre[chemin] || (pre[chemin] = db.doc(chemin).get());
+  const total = cles.length + petits.length;
+  let faits = 0;
+  const avance = () => { faits++; progresChargement(faits / total); };
+  for (const k of cles) lire("images/" + k);
+  for (const k of petits) lire("sons/" + k);
+  chargementEnMasse = true;
+  await Promise.all(ids.map(async id => {
+    const c = CHARS[id];
+    await Promise.all(clesImage(id).map(async k => {
+      try {
+        const deux = k !== id, perso = persoImage(k);
+        const im = await lire("images/" + k);
+        if (im.exists && im.data().url) {
+          const url = im.data().url; let ancien = null;
+          try { ancien = localStorage.getItem("duel-img:" + k); } catch (e) {}
+          if (url !== ancien || !persoImage(k)) { // nouvelle image (ou pas encore sur cet appareil) : on la décode ; sinon elle est déjà là
+            appliquerSprite(k, traiter(await chargerImage(url)), true);
+            try { localStorage.setItem("duel-img:" + k, url); } catch (e) {}
+          }
+        } else if (nuage && perso && !migre) {
+          if (!await nuageEcrire("images/" + k, { url: urlCompacte(spriteImage(k)) })) echec = true;
+        } else if (perso && (nuage || !proprio)) {
+          // l'image a été retirée en ligne : on revient au dessin par défaut
+          try { localStorage.removeItem("duel-img:" + k); } catch (e) {}
+          appliquerSprite(k, deux ? null : traiter(await chargerImage(svgUrl(c.svg))), false);
+        }
+      } catch (e) { echec = true; }
+      avance();
+    }));
+    persoPret(id);
+  }));
+  chargementEnMasse = false;
+  for (const id of ids) majVignettes(id);
+  if (!jeu || !jeu.running) { document.getElementById("overlay").classList.remove("show"); nouveauJeu(false); dessiner(); }
+  for (const k of petits) { echec = !await sonEnLigne(k) || echec; avance(); }
+  finChargement(); // on peut entrer : le reste des sons arrive pendant qu'on choisit ses persos
+  // 2) en arrière-plan : la musique et les noms d'abord (utiles tout de suite à la sélection), puis tous les autres sons
+  const sonsPersos = ids.flatMap(id => clesSon(id)), d_abord = ["musique", ...ids.map(id => id + "-5")];
+  await Promise.all(d_abord.map(k => lire("sons/" + k).catch(() => null)));
+  for (const k of sonsPersos) lire("sons/" + k);
+  for (const k of [...d_abord, ...sonsPersos.filter(k => !d_abord.includes(k))]) {
+    echec = !await sonEnLigne(k) || echec;
+    if (k === "musique" && sons.musique && !document.getElementById("chargement") && document.body.classList.contains("vue-selection")) musiqueSelection(); // déjà entré : la musique démarre dès qu'elle est là
   }
-  for (const k of Object.keys(SONS_GENERAUX)) echec = !await sonEnLigne(k) || echec;
   async function sonEnLigne(k) {
+    let local = null;
+    try { local = await bddGet(k); } catch (e) {}
+    const depuisLocal = async () => { if (!sons[k] && local && local.blob) await chargerSon(k, local.blob, local.nom); };
     try {
       const so = await lire("sons/" + k);
       if (so.exists && so.data().wav) {
-        await chargerSon(k, new Blob([depuisB64(so.data().wav)], { type: "audio/wav" }), so.data().nom || "Son");
-        try { await bddSet(k, { blob: new Blob([sons[k].wav], { type: "audio/wav" }), nom: sons[k].nom }); } catch (e) {}
-      } else if (nuage && sons[k] && !migre) {
-        if (!await nuageEcrire("sons/" + k, { wav: versB64(sons[k].wav), nom: sons[k].nom })) return false;
-      } else if (sons[k] && (nuage || !proprio)) {
-        delete sons[k]; try { await bddSet(k, null); } catch (e) {}
+        const w = so.data().wav, sig = w.length + ":" + w.slice(0, 48) + w.slice(-48);
+        if (local && local.blob && local.sig === sig) await depuisLocal(); // le même son est déjà sur l'appareil : pas besoin de le retraiter ni de le réenregistrer
+        else {
+          await chargerSon(k, new Blob([depuisB64(w)], { type: "audio/wav" }), so.data().nom || "Son");
+          try { await bddSet(k, { blob: new Blob([sons[k].wav], { type: "audio/wav" }), nom: sons[k].nom, sig }); } catch (e) {}
+        }
+      } else {
+        await depuisLocal();
+        if (nuage && sons[k] && !migre) {
+          if (!await nuageEcrire("sons/" + k, { wav: versB64(sons[k].wav), nom: sons[k].nom })) return false;
+        } else if (sons[k] && (nuage || !proprio)) {
+          delete sons[k]; try { await bddSet(k, null); } catch (e) {}
+        }
       }
       majInfoSon(k);
       return true;
-    } catch (e) { return false; }
+    } catch (e) { try { await depuisLocal(); } catch (e2) {} return false; } // hors ligne : on garde ce qu'on avait
   }
   // on ne note la migration comme faite que si tout est bien arrivé en ligne
   if (nuage && !echec) { try { localStorage.setItem("duel-migre", "1"); } catch (e) {} }
@@ -5912,22 +6009,23 @@ document.getElementById("edCancel").addEventListener("click", () => { edEl.hidde
 document.getElementById("edOk").addEventListener("click", () => { enregistrer(ed.id, traiter(edCv)); edEl.hidden = true; });
 
 async function init() {
-  for (const [id, c] of Object.entries(CHARS)) {
+  preparerEcranChargement();
+  // images déjà sur l'appareil (ou dessin par défaut) : décodées toutes en même temps
+  await Promise.all(Object.entries(CHARS).map(async ([id, c]) => {
     let src = null;
     try { src = localStorage.getItem("duel-img:" + id); } catch (e) {}
     try { c.sprite = traiter(await chargerImage(src || svgUrl(c.svg))); c.perso = !!src; }
     catch (e) { c.sprite = traiter(await chargerImage(svgUrl(c.svg))); c.perso = false; }
     c.spr = {}; c.pn = {};
-    for (const k of clesImage(id).slice(1)) {
+    await Promise.all(clesImage(id).slice(1).map(async k => {
       let src2 = null;
       try { src2 = localStorage.getItem("duel-img:" + k); } catch (e) {}
       try { if (src2) { c.spr[numImage(k)] = traiter(await chargerImage(src2)); c.pn[numImage(k)] = true; } } catch (e) {}
-    }
+    }));
     if (c.svgMain && !c.spr[2]) c.spr[2] = traiter(await chargerImage(svgUrl(c.svgMain))); // main à l'œil dessinée par défaut
-  }
-  for (const k of [...Object.keys(CHARS).flatMap(clesSon), ...Object.keys(SONS_GENERAUX)]) {
-    try { const v = await bddGet(k); if (v && v.blob) await chargerSon(k, v.blob, v.nom); } catch (e) {}
-  }
+    dessinerPortraitChargement(id);
+  }));
+  // les sons (déjà sur l'appareil ou en ligne) arrivent pendant le chargement, sans le bloquer
   construireUI();
   nouveauJeu(false);
   redim();
@@ -5973,7 +6071,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.92.0", NOTES = "Burger Furax : frites et sauce retouchées.\n• Ses frites sont 1,5 fois plus grosses et volent un peu moins vite.\n• Une frite ratée s’arrête peu après l’endroit visé : elle se plante bien plus souvent dans le sol, et dans le mur seulement si l’adversaire en était près.\n• Ses éclaboussures de sauce vont un peu plus loin.";
+const VERSION = "1.93.0", NOTES = "Nouvel écran de chargement, et le jeu démarre bien plus vite.\n• Un nouvel écran : logo animé, rayons et lueurs, les portraits des combattants qui s’allument un par un quand ils sont prêts, une barre de progression et des astuces.\n• On peut entrer dès que les images sont prêtes : la musique et les sons arrivent pendant qu’on choisit ses persos.\n• Ce qui n’a pas changé depuis la dernière visite n’est plus retéléchargé ni retraité : le jeu s’ouvre en quelques secondes.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

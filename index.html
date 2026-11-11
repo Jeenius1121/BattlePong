@@ -2393,7 +2393,7 @@ const CHARS = {
   },
   burger: {
     creation: true,
-    nom: "Burger Furax", emoji: "🍔", vitesse: 200, pv: 120, taille: 1.15, memeEchelle: true,
+    nom: "Burger Furax", emoji: "🍔", vitesse: 200, pv: 120, taille: 1.15, memeEchelle: true, portrait: { cx: 0.5, cy: 0.52, taille: 1.0 }, // portrait : tout le burger
     images: ["repos 2", "repos 3", "repos 4", "bond 1", "bond 2", "bond 3", "bond 4", "bond 5", "bond 6", "bond 7", "bond 8",
       "prépare 1", "prépare 2", "prépare 3", "prépare 4", "lance 1", "lance 2", "lance 3", "lance 4", "lance 5"],
     sonNom: "atterrissage", son2: "frites", son3: "frite qui touche",
@@ -2529,6 +2529,7 @@ const CHARS = {
           }
           for (const d of [...(o.drones || [])]) { const q = dronePos(o, d); if (Math.hypot(q.x - fr.x, q.y - fr.y) < 16) { blesserDrone(g, o, d, FRITE_DEGATS); fr.etat = "fini"; break; } }
           if (fr.etat !== "vole") break;
+          if (g.mer && dansLaMer(g, fr.x, fr.y)) { CHARS.marin.eclabousser(g, fr.x, merSurface(g, fr.x)); fr.etat = "fini"; break; } // tombée dans la mer du Marin : elle s'éteint, comme tout projectile
           const mur = fr.x <= 3 || fr.x >= W - 3 || fr.y <= 3 || fr.y >= W - 3;
           if (mur || fr.reste <= 0) { // ratée : plantée dans le mur ou dans le sol, jusqu'à la fin du combat
             fr.x = Math.min(W - 3, Math.max(3, fr.x)); fr.y = Math.min(W - 3, Math.max(3, fr.y));
@@ -5955,7 +5956,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.90.0", NOTES = "Le Sorcier et le Robot marchent pour de vrai.\n• Nouvelles images de marche (8 chacun) : ils ne glissent plus en se déplaçant.\n• Le Robot balance ses jambes articulées depuis les hanches, un pied toujours posé au sol.\n• Le Sorcier avance un pied puis l’autre sous sa robe, qui se balance à chaque pas.";
+const VERSION = "1.91.0", NOTES = "Nouveau perso : Burger Furax 🍔 (120 PV).\n• Il avance par gros bonds lents. En retombant, il écrase l’adversaire s’il atterrit sur lui et fait gicler sauce et jus tout autour : dégâts et ralentissement.\n• S’il ne touche personne, il crache trois frites qui restent en l’air un moment, puis foncent une par une vers l’adversaire (la suivante part quand la précédente a touché).\n• Une frite qui touche fait des dégâts et l’adversaire l’avale : son prochain tir part moins vite, rate plus souvent et fait moins de dégâts.\n• Une frite ratée file un peu plus loin et se plante dans le mur ou dans le sol jusqu’à la fin du combat.\n• Ses frites coupent la langue du Smoker, et ceux qui esquivent (roulade, plongée…) les voient venir.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

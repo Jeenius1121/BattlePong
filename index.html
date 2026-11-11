@@ -2406,7 +2406,7 @@ const CHARS = {
       if (B && B.phase === "pause") { const e = BURGER_PAUSE - B.t; if (e < 0.12) return 10; if (e < 0.24) return 11; if (e < 0.36) return 12; if (B.t < 0.15) return 5; }
       return [1, 2, 1, 4, 1, 2, 3, 4][Math.floor((f.horloge || 0) * 3) % 8];
     },
-    desc: "Un burger très en colère (120 PV). Il avance par gros bonds lents. Quand il retombe, il écrase l’adversaire s’il atterrit sur lui, et fait gicler sauce et jus tout autour : l’adversaire éclaboussé prend des dégâts et il est ralenti un moment. S’il ne touche personne en retombant, il crache trois frites qui restent en l’air un moment, puis foncent une par une vers l’endroit où se trouvait l’adversaire (la suivante ne part que quand la précédente a touché l’adversaire, un mur ou le sol). Une frite qui touche l’adversaire lui fait des dégâts et il l’avale : son prochain tir part moins vite, rate plus souvent et fait moins de dégâts (son prochain coup, s’il ne tire pas). Une frite qui le rate file encore un peu plus loin puis se plante dans le mur ou dans le sol, et y reste jusqu’à la fin du combat.",
+    desc: "Un burger très en colère (120 PV). Il avance par gros bonds lents. Quand il retombe, il écrase l’adversaire s’il atterrit sur lui, et fait gicler sauce et jus tout autour : l’adversaire éclaboussé prend des dégâts et il est ralenti un moment. S’il ne touche personne en retombant, il crache trois frites qui restent en l’air un moment, puis foncent une par une vers l’endroit où se trouvait l’adversaire (la suivante ne part que quand la précédente a touché l’adversaire, un mur ou le sol). Une frite qui touche l’adversaire lui fait des dégâts et il l’avale : son prochain tir part moins vite, rate plus souvent et fait moins de dégâts (son prochain coup, s’il ne tire pas). Une frite qui le rate file encore un peu plus loin puis se plante dans le mur ou dans le sol, et y reste jusqu’à la fin du combat : elle pique un peu l’adversaire qui passe dessus.",
     svg: `<g ${O}>
       <path d='M14 78 Q14 34 60 34 Q106 34 106 78 Z' fill='#d98a26'/><path d='M12 84 h96 l-4 10 h-88z' fill='#5fa83a'/>
       <rect x='14' y='92' width='92' height='12' rx='5' fill='#a8331e'/><path d='M16 104 h88 q0 24 -44 24 q-44 0 -44 -24z' fill='#c97a22'/>
@@ -2421,6 +2421,21 @@ const CHARS = {
       const B = o.bond;
       if (B && B.phase === "saut" && B.t < 0.25 && Math.hypot(f.x - o.x, f.y - o.y) < BURGER_SAUCE_R + Math.max(f.hw, f.hh)) return { x: o.x, y: o.y, zone: true };
       return null;
+    },
+    // frites plantées dans le décor : elles piquent un peu l'adversaire qui passe dessus (chacune au plus une fois par FRITE_PIQUE_CD)
+    monde(f, o, g, dt) {
+      if (!g.running || !g.fritesPlantees || !o || o.mort) return;
+      for (const p of g.fritesPlantees) {
+        if (p.owner !== f) continue;
+        p.cd = Math.max(0, (p.cd || 0) - dt);
+        if (p.cd > 0 || o.enLair || (o.haut || 0) > 20) continue;
+        const px = p.mur ? p.x - Math.cos(p.ang) * 14 : p.x, py = p.mur ? p.y - Math.sin(p.ang) * 14 : p.y - 10; // le bout qui dépasse
+        if (Math.abs(o.x - px) < o.hw * 0.8 + 6 && Math.abs(o.y - py) < o.hh * 0.9 + 6) {
+          p.cd = FRITE_PIQUE_CD; p.pique = 0.25;
+          const att = attaquant; attaquant = null; degats(g, o, FRITE_PIQUE, px, py); attaquant = att; // un piège : il ne rate pas
+          for (let k = 0; k < 5; k++) g.parts.push({ x: px, y: py, vx: (Math.random() - 0.5) * 110, vy: -40 - Math.random() * 60, t: 0.3, g: 400, c: k % 2 ? "#f2b134" : "#ffe08a" });
+        }
+      }
     },
     // ses frites (en l'air ou lancées) coupent la langue du Smoker, comme un tir
     obstacleLangue(f, x, y) { return !!(f.frites && f.frites.some(fr => fr.etat !== "sort" && Math.hypot(fr.x - x, fr.y - y) < 14)); },
@@ -2533,7 +2548,7 @@ const CHARS = {
           const mur = fr.x <= 3 || fr.x >= W - 3 || fr.y <= 3 || fr.y >= W - 3;
           if (mur || fr.reste <= 0) { // ratée : plantée dans le mur ou dans le sol, jusqu'à la fin du combat
             fr.x = Math.min(W - 3, Math.max(3, fr.x)); fr.y = Math.min(W - 3, Math.max(3, fr.y));
-            (g.fritesPlantees ||= []).push({ x: fr.x, y: fr.y, ang: fr.ang, mur, t: 0 });
+            (g.fritesPlantees ||= []).push({ x: fr.x, y: fr.y, ang: fr.ang, mur, t: 0, owner: f });
             fr.etat = "fini"; for (let k = 0; k < 5; k++) g.parts.push({ x: fr.x, y: fr.y, vx: (Math.random() - 0.5) * 90, vy: -30 - Math.random() * 50, t: 0.3, g: 300, c: "#c9b28a" });
           }
         }
@@ -3354,7 +3369,8 @@ const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 const BURGER_PAUSE = 0.7, BURGER_SAUT = 0.75, BURGER_BOND = 190, BURGER_HAUT = 55, BURGER_VISE = 0.65; // pause au sol, durée d'un bond, vitesse, hauteur, chance de bondir vers l'adversaire
 const BURGER_ECRASE = 10, BURGER_SAUCE = 7, BURGER_SAUCE_R = 85, BURGER_LENT = 1.6; // dégâts s'il retombe sur lui ; éclaboussures : dégâts, portée autour de lui, durée du ralenti
 const FRITES_NB = 3, FRITES_PREPARE = 0.5, FRITES_LANCE = 0.45, FRITES_ATTENTE = 1.1; // frites : nombre, temps pour les préparer et les cracher, attente en l'air avant la première
-const FRITE_VITESSE = 560, FRITE_DEGATS = 8, FRITE_DEPASSE = 70, FRITE_AVANCE = 0.7; // vitesse, dégâts, distance parcourue après l'endroit visé (puis plantée)
+const FRITE_VITESSE = 560, FRITE_DEGATS = 8, FRITE_DEPASSE = 70, FRITE_AVANCE = 0.7;
+const FRITE_PIQUE = 2, FRITE_PIQUE_CD = 1.5; // frite plantée : dégâts quand l'adversaire passe dessus, au plus une fois toutes les FRITE_PIQUE_CD secondes (chaque frite) // vitesse, dégâts, distance parcourue après l'endroit visé (puis plantée)
 const AVALE_LENT = 0.75, AVALE_DEGATS = 0.75, AVALE_RATE = 0.2, AVALE_MAX = 3; // frite avalée : son prochain tir va moins vite, fait moins de dégâts, a cette chance de rater ; frites avalées au plus en réserve
 const BULLETS_DEPART = 5, BULLETS_TAS_BALLES = 6; // balles au début du combat ; balles ajoutées par un tas (pistolet)
 const BULLETS_CADENCE = 0.55, BULLETS_DEGATS = 7, BULLETS_VITESSE = 1100;
@@ -4963,6 +4979,7 @@ function dessinerSolBurger(g) {
   }
   if (g.fritesPlantees) for (const p of g.fritesPlantees) {
     ctx.save(); ctx.translate(p.x, p.y);
+    if (p.pique > 0) { p.pique = Math.max(0, p.pique - 1 / 60); ctx.rotate(Math.sin(p.pique * 60) * 0.15); } // elle vibre quand elle pique
     if (p.mur) { // plantée dans le mur : le bout qui dépasse, vers l'intérieur de l'arène
       ctx.rotate(p.ang + Math.PI); ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(0, 0, 4, 7, 0, 0, 7); ctx.fill();
       ctx.translate(10, 0); dessinerFriteSimple(22);
@@ -5956,7 +5973,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.91.0", NOTES = "Nouveau perso : Burger Furax 🍔 (120 PV).\n• Il avance par gros bonds lents. En retombant, il écrase l’adversaire s’il atterrit sur lui et fait gicler sauce et jus tout autour : dégâts et ralentissement.\n• S’il ne touche personne, il crache trois frites qui restent en l’air un moment, puis foncent une par une vers l’adversaire (la suivante part quand la précédente a touché).\n• Une frite qui touche fait des dégâts et l’adversaire l’avale : son prochain tir part moins vite, rate plus souvent et fait moins de dégâts.\n• Une frite ratée file un peu plus loin et se plante dans le mur ou dans le sol jusqu’à la fin du combat.\n• Ses frites coupent la langue du Smoker, et ceux qui esquivent (roulade, plongée…) les voient venir.";
+const VERSION = "1.91.1", NOTES = "Burger Furax : ses frites plantées dans le décor piquent un peu l’adversaire qui passe dessus (2 dégâts, au plus une fois toutes les 1,5 seconde pour chaque frite).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

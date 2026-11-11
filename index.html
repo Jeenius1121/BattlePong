@@ -1084,7 +1084,7 @@ const CHARS = {
     nom: "Jeune beau et plein d’avenir", court: "Jeune beau", emoji: "⛵", vitesse: 70, pv: 100, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
     taille: 1.15, images: ["poisson", "île de la tortue"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", son9: "victoire sur l’île (à la place de « Wins »)", sonsLongs: [4, 7, 9],
     imageDe: () => 1,
-    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 7 secondes avant de replonger. Au bout de 15 à 17 secondes, l’île de la tortue sort de l’eau, une seule fois par combat : il s’y rend et y regagne 10 PV par seconde (toujours touchable). L’île replonge quand il a retrouvé tous ses PV, ou dès qu’il prend un coup après plus d’une seconde dessus ; il repart alors en mer.",
+    desc: "Navigue tranquillement sur la mer qui couvre le bas de l’arène (l’adversaire qui tombe dans l’eau prend un peu de dégâts). De temps en temps, une tempête lève des vagues de toutes tailles qui traversent l’arène de gauche à droite : le Marin reste collé à l’eau et surfe dessus. Et un gros poisson jaillit de la mer, pas loin de l’adversaire : en montant ou en retombant, il croque l’adversaire (gros dégâts) et l’entraîne vers l’eau ; en haut, il le blesse simplement au contact. S’il jaillit dans son bateau ou y retombe, le Marin l’attrape et le mange : il regagne des PV. Tout projectile qui tombe dans la mer s’éteint, tout comme le bouclier et la flaque de feu du Sorcier. Quand une attaque va le toucher (de n’importe quel adversaire), il la voit parfois venir et plonge sous l’eau un instant (intouchable), puis doit attendre 7 secondes avant de replonger. Au bout de 15 à 17 secondes, l’île de la tortue sort de l’eau, une seule fois par combat : il s’y rend et y regagne 15 PV par seconde (toujours touchable). L’île replonge quand il a retrouvé tous ses PV, ou dès qu’il prend un coup après plus d’une seconde dessus ; il repart alors en mer.",
     svg: `<g ${O}>
       <path d='M8 96 H112 Q104 128 60 130 Q16 128 8 96Z' fill='#6b3d1f'/><path d='M8 96 H112' stroke='#f2b134' stroke-width='5'/>
       <path d='M30 92 V14' stroke='#8a5228' stroke-width='6'/><path d='M34 18 Q58 30 54 86 H34Z' fill='#c4232f'/>
@@ -2713,7 +2713,7 @@ function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (
 // plongée du Marin quand une attaque va le toucher : il ne la voit venir qu'une fois sur PLONGEE_VU (sinon il est surpris un instant)
 const PLONGEE_DUREE = 0.9, PLONGEE_CD = 7, PLONGEE_VU = 0.1, PLONGEE_RATE = 1;
 const ILE_DELAI = [15, 17], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
-const ILE_REGEN = 10, ILE_PROTEGE = 1, ILE_ATTENTE = 10; // l'île de la tortue : PV regagnés par seconde dessus, temps dessus avant qu'un coup la fasse replonger, temps max pour l'atteindre
+const ILE_REGEN = 15, ILE_PROTEGE = 1, ILE_ATTENTE = 10; // l'île de la tortue : PV regagnés par seconde dessus, temps dessus avant qu'un coup la fasse replonger, temps max pour l'atteindre
 const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
 const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 17, GENOU_CD = 2.5, GENOU_DEGATS = 4;
@@ -5459,7 +5459,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.85.0", NOTES = "Jeune beau et plein d’avenir : l’île de la tortue soigne peu à peu.\n• Sur l’île, il regagne 10 PV par seconde au lieu de 25 PV d’un coup.\n• L’île replonge quand il a retrouvé tous ses PV, ou dès qu’il prend un coup après plus d’une seconde dessus.";
+const VERSION = "1.85.1", NOTES = "Jeune beau et plein d’avenir : sur l’île de la tortue, il regagne maintenant 15 PV par seconde (au lieu de 10).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

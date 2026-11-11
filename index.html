@@ -2429,7 +2429,7 @@ const CHARS = {
         if (p.owner !== f) continue;
         p.cd = Math.max(0, (p.cd || 0) - dt);
         if (p.cd > 0 || o.enLair || (o.haut || 0) > 20) continue;
-        const px = p.mur ? p.x - Math.cos(p.ang) * 14 : p.x, py = p.mur ? p.y - Math.sin(p.ang) * 14 : p.y - 10; // le bout qui dépasse
+        const px = p.mur ? p.x - Math.cos(p.ang) * 14 * FRITE_TAILLE : p.x, py = p.mur ? p.y - Math.sin(p.ang) * 14 * FRITE_TAILLE : p.y - 10 * FRITE_TAILLE; // le bout qui dépasse
         if (Math.abs(o.x - px) < o.hw * 0.8 + 6 && Math.abs(o.y - py) < o.hh * 0.9 + 6) {
           p.cd = FRITE_PIQUE_CD; p.pique = 0.25;
           const att = attaquant; attaquant = null; degats(g, o, FRITE_PIQUE, px, py); attaquant = att; // un piège : il ne rate pas
@@ -2438,7 +2438,7 @@ const CHARS = {
       }
     },
     // ses frites (en l'air ou lancées) coupent la langue du Smoker, comme un tir
-    obstacleLangue(f, x, y) { return !!(f.frites && f.frites.some(fr => fr.etat !== "sort" && Math.hypot(fr.x - x, fr.y - y) < 14)); },
+    obstacleLangue(f, x, y) { return !!(f.frites && f.frites.some(fr => fr.etat !== "sort" && Math.hypot(fr.x - x, fr.y - y) < 10 + 5 * FRITE_TAILLE)); },
     // la bouche (dans l'image, perso tourné vers la droite) : d'où sortent les frites
     bouche(f) { return { x: f.x + f.face * f.hw * 0.62, y: f.y + f.hh * 0.18 - (f.haut || 0) }; },
     attaque(f, o, g, dt) {
@@ -2483,7 +2483,7 @@ const CHARS = {
       son(f);
       const cy = f.y + f.hh * 0.55;
       for (let i = 0; i < 40; i++) {
-        const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 260;
+        const a = Math.random() * Math.PI * 2, v = 110 + Math.random() * 320;
         g.parts.push({ x: f.x + Math.cos(a) * f.hw * 0.5, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.55 - 120 - Math.random() * 90, t: 0.45 + Math.random() * 0.4, g: 520,
           c: ["#c8321e", "#e8541c", "#f2b134", "#8a2a12", "#d94a2a", "#f6d36a"][i % 6] });
       }
@@ -2536,7 +2536,7 @@ const CHARS = {
         const pas = Math.min(fr.reste, FRITE_VITESSE * dt), n = Math.max(1, Math.ceil(pas / 6));
         for (let i = 0; i < n && fr.etat === "vole"; i++) {
           fr.x += fr.dx * pas / n; fr.y += fr.dy * pas / n; fr.reste -= pas / n;
-          if (!o.mort && touche(o, fr.x, fr.y, 5)) { // touché : il l'avale
+          if (!o.mort && touche(o, fr.x, fr.y, 5 * FRITE_TAILLE)) { // touché : il l'avale
             degats(g, o, FRITE_DEGATS, fr.x, fr.y); fr.etat = "fini"; son(f, 3);
             if (!o.mort) { o.avale = Math.min(AVALE_MAX, (o.avale || 0) + 1); g.txt.push({ x: o.x, y: o.y - o.hh - 26, t: 0.9, s: "Gloups !" }); }
             for (let k = 0; k < 8; k++) g.parts.push({ x: fr.x, y: fr.y, vx: (Math.random() - 0.5) * 160, vy: -40 - Math.random() * 80, t: 0.4, g: 400, c: k % 2 ? "#f2b134" : "#ffe08a" });
@@ -3367,9 +3367,9 @@ const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 // (sans tas par terre, il erre au hasard) ; chaque tas sur lequel il passe lui ajoute des balles, sans limite au nombre de balles qu'il porte
 // Burger Furax : bonds lents, sauce qui gicle quand il retombe, trois frites volantes s'il n'a touché personne
 const BURGER_PAUSE = 0.7, BURGER_SAUT = 0.75, BURGER_BOND = 190, BURGER_HAUT = 55, BURGER_VISE = 0.65; // pause au sol, durée d'un bond, vitesse, hauteur, chance de bondir vers l'adversaire
-const BURGER_ECRASE = 10, BURGER_SAUCE = 7, BURGER_SAUCE_R = 85, BURGER_LENT = 1.6; // dégâts s'il retombe sur lui ; éclaboussures : dégâts, portée autour de lui, durée du ralenti
+const BURGER_ECRASE = 10, BURGER_SAUCE = 7, BURGER_SAUCE_R = 100, BURGER_LENT = 1.6; // dégâts s'il retombe sur lui ; éclaboussures : dégâts, portée autour de lui, durée du ralenti
 const FRITES_NB = 3, FRITES_PREPARE = 0.5, FRITES_LANCE = 0.45, FRITES_ATTENTE = 1.1; // frites : nombre, temps pour les préparer et les cracher, attente en l'air avant la première
-const FRITE_VITESSE = 560, FRITE_DEGATS = 8, FRITE_DEPASSE = 70, FRITE_AVANCE = 0.7;
+const FRITE_VITESSE = 430, FRITE_DEGATS = 8, FRITE_DEPASSE = 25, FRITE_AVANCE = 0.7, FRITE_TAILLE = 1.5; // FRITE_DEPASSE court : une frite ratée finit surtout au sol (au mur seulement si l'adversaire en était près)
 const FRITE_PIQUE = 2, FRITE_PIQUE_CD = 1.5; // frite plantée : dégâts quand l'adversaire passe dessus, au plus une fois toutes les FRITE_PIQUE_CD secondes (chaque frite) // vitesse, dégâts, distance parcourue après l'endroit visé (puis plantée)
 const AVALE_LENT = 0.75, AVALE_DEGATS = 0.75, AVALE_RATE = 0.2, AVALE_MAX = 3; // frite avalée : son prochain tir va moins vite, fait moins de dégâts, a cette chance de rater ; frites avalées au plus en réserve
 const BULLETS_DEPART = 5, BULLETS_TAS_BALLES = 6; // balles au début du combat ; balles ajoutées par un tas (pistolet)
@@ -4958,7 +4958,7 @@ function dessinerIntroVs(g, t, part, now) {
 // ===== Burger Furax : frites et sauce (dessin) =====
 // une frite : bâtonnet doré au contour sombre ; en vol, des traits de vitesse derrière ; en attente, une petite lueur
 function dessinerFrite(x, y, ang, L = 30, etat = "") {
-  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(FRITE_TAILLE, FRITE_TAILLE);
   if (etat === "attend") { const h = ctx.createRadialGradient(0, 0, 2, 0, 0, 26); h.addColorStop(0, "rgba(255,226,120,.45)"); h.addColorStop(1, "rgba(255,226,120,0)"); ctx.fillStyle = h; ctx.beginPath(); ctx.arc(0, 0, 26, 0, 7); ctx.fill(); }
   if (etat === "vole") { ctx.strokeStyle = "rgba(140,70,20,.7)"; ctx.lineWidth = 2; ctx.lineCap = "round"; for (const [dy, l] of [[-4, 14], [0, 20], [4, 12]]) { ctx.beginPath(); ctx.moveTo(-L / 2 - 6, dy); ctx.lineTo(-L / 2 - 6 - l, dy); ctx.stroke(); } }
   ctx.fillStyle = "#4a2606"; ctx.beginPath(); ctx.roundRect(-L / 2 - 2, -5.6, L + 4, 11.2, 5.6); ctx.fill();
@@ -4982,9 +4982,9 @@ function dessinerSolBurger(g) {
     if (p.pique > 0) { p.pique = Math.max(0, p.pique - 1 / 60); ctx.rotate(Math.sin(p.pique * 60) * 0.15); } // elle vibre quand elle pique
     if (p.mur) { // plantée dans le mur : le bout qui dépasse, vers l'intérieur de l'arène
       ctx.rotate(p.ang + Math.PI); ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(0, 0, 4, 7, 0, 0, 7); ctx.fill();
-      ctx.translate(10, 0); dessinerFriteSimple(22);
+      ctx.scale(FRITE_TAILLE, FRITE_TAILLE); ctx.translate(10, 0); dessinerFriteSimple(22);
     } else { // plantée dans le sol, penchée dans le sens où elle volait
-      ctx.fillStyle = "rgba(5,6,15,.35)"; ctx.beginPath(); ctx.ellipse(0, 0, 9, 3.5, 0, 0, 7); ctx.fill();
+      ctx.scale(FRITE_TAILLE, FRITE_TAILLE); ctx.fillStyle = "rgba(5,6,15,.35)"; ctx.beginPath(); ctx.ellipse(0, 0, 9, 3.5, 0, 0, 7); ctx.fill();
       ctx.rotate(-Math.PI / 2 - (Math.cos(p.ang) >= 0 ? 1 : -1) * 0.45); ctx.translate(11, 0); dessinerFriteSimple(22);
     }
     ctx.restore();
@@ -5973,7 +5973,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.91.1", NOTES = "Burger Furax : ses frites plantées dans le décor piquent un peu l’adversaire qui passe dessus (2 dégâts, au plus une fois toutes les 1,5 seconde pour chaque frite).";
+const VERSION = "1.92.0", NOTES = "Burger Furax : frites et sauce retouchées.\n• Ses frites sont 1,5 fois plus grosses et volent un peu moins vite.\n• Une frite ratée s’arrête peu après l’endroit visé : elle se plante bien plus souvent dans le sol, et dans le mur seulement si l’adversaire en était près.\n• Ses éclaboussures de sauce vont un peu plus loin.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

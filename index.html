@@ -234,6 +234,26 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibili
 @media (max-height:700px){ .overlay{padding:8px} .finCarte{padding:12px 12px 10px; gap:4px} #finPortrait{width:56px; height:56px} }
 @keyframes fondu{from{opacity:0}}
 @keyframes pop{from{opacity:0; transform:translateY(18px) scale(.85)}}
+/* carte de fin, version 2 : tête avec rayons et grand portrait, ruban, stats du combat, série de revanches */
+.finCarte{width:min(100%,330px); gap:0; padding:0 0 14px; overflow:hidden auto}
+.finTete{position:relative; flex:none; width:100%; height:116px; display:grid; place-items:center; overflow:hidden; background:radial-gradient(circle at 50% 70%, color-mix(in srgb,var(--team) 60%,transparent), transparent 72%)}
+.finRayons{position:absolute; left:50%; top:62%; width:440px; height:440px; margin:-220px 0 0 -220px; border-radius:50%; background:repeating-conic-gradient(rgba(255,226,140,.34) 0 8deg, transparent 8deg 22.5deg); -webkit-mask:radial-gradient(circle, #000 18%, transparent 62%); mask:radial-gradient(circle, #000 18%, transparent 62%); animation:tourne 16s linear infinite}
+#finPortrait{position:relative; width:92px; height:92px; margin-top:10px; animation:pop .5s .05s both cubic-bezier(.2,1.5,.4,1)}
+.finSur{position:relative; z-index:1; margin:-12px 0 6px; padding:4px 14px 3px; border-radius:999px; background:var(--team); color:#0b0e1d; font-size:.7rem; letter-spacing:.22em; box-shadow:0 3px 0 color-mix(in srgb,var(--team) 50%,#000); animation:pop .4s .15s both}
+#winText{padding:0 12px; animation:pop .4s .22s both}
+.finScore{margin:4px 0 0; padding:0 12px; color:#ffd23f; font-weight:800; animation:pop .4s .28s both}
+.finScore:empty{display:none}
+.finStats{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; width:100%; box-sizing:border-box; padding:0 12px; margin-top:10px; animation:pop .4s .34s both}
+.finStats .st{min-width:0; padding:7px 4px 6px; border-radius:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09)}
+.finStats .st b{display:block; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-weight:400; font-size:1.02rem; line-height:1.1; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.finStats .st small{display:block; margin-top:2px; font-size:.58rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--muted)}
+.finStats .jauge{height:4px; margin:4px 8px 0; border-radius:2px; background:rgba(255,255,255,.12); overflow:hidden}
+.finStats .jauge i{display:block; height:100%; border-radius:2px; background:var(--team)}
+.finSerie{margin:9px 0 0; font-size:.74rem; font-weight:800; color:var(--muted); animation:pop .4s .4s both}
+.finSerie:empty{display:none}
+.finSerie .j1{color:var(--gauche)} .finSerie .j2{color:var(--droite)} .finSerie b{color:#fff; font-size:.9rem; margin:0 3px}
+.finCarte .finBoutons{box-sizing:border-box; padding:0 12px; margin-top:12px; animation:pop .4s .46s both}
+@media (max-height:700px){ .finTete{height:92px} #finPortrait{width:70px; height:70px; margin-top:6px} .finStats{margin-top:6px} .finCarte .finBoutons{margin-top:8px} }
 
 /* mode propriétaire : modifier les images et les sons */
 .custom{margin-top:24px; border-top:2px solid var(--line); padding-top:18px}
@@ -361,10 +381,15 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibili
     <div class="overlay" id="overlay">
       <div class="confettis" id="confettis" aria-hidden="true"></div>
       <div class="finCarte" id="finCarte">
-        <canvas id="finPortrait" width="208" height="208" aria-hidden="true"></canvas>
+        <div class="finTete">
+          <div class="finRayons" aria-hidden="true"></div>
+          <canvas id="finPortrait" width="208" height="208" aria-hidden="true"></canvas>
+        </div>
         <p class="finSur" id="finSur">Fin du combat</p>
         <p id="winText"></p>
         <p class="finScore" id="finScore"></p>
+        <div class="finStats" id="finStats"></div>
+        <p class="finSerie" id="finSerie"></p>
         <div class="finBoutons">
           <button class="btn revanche" id="rematch" type="button">↻ Revanche</button>
           <button class="btn ghost" id="changer" type="button">Changer de persos</button>
@@ -1081,6 +1106,7 @@ const CHARS = {
     }
   },
   marin: {
+    finLibre: true, // fin du combat : il garde son mouvement (pas de freinage ni de sauts)
     nom: "Jeune beau et plein d’avenir", court: "Jeune beau", emoji: "⛵", vitesse: 70, pv: 100, portrait: { cx: 0.55, cy: 0.4, taille: 0.62 }, // portrait centré sur sa tête
     taille: 1.15, images: ["poisson", "île de la tortue"], sonNom: "tempête", son2: "poisson", son3: "croque", son4: "mer (en boucle)", son6: "vague", son7: "île de la tortue", son8: "plongeon du poisson", son9: "victoire sur l’île (à la place de « Wins »)", sonsLongs: [4, 7, 9],
     imageDe: () => 1,
@@ -1525,6 +1551,7 @@ const CHARS = {
   },
   oeil: {
     creation: true,
+    finLibre: true, // fin du combat : rien à freiner
     nom: "Chose Impie", emoji: "👁️", vitesse: 0, ancree: true, pv: 210, images: ["main à l’œil", "main à l’œil fermé"], reductionZone: 0, // dégâts de zone : comme les coups directs (réglable : part de dégâts en moins)
     // l'avant-bras à l'œil (ce que les autres frappent) a une taille fixe ; images 4 et suivantes : le même, déjà tourné
     // d'un seizième de tour à chaque fois, pour que sa zone de touche suive son orientation
@@ -1752,6 +1779,7 @@ const CHARS = {
   },
   gelee: {
     creation: true,
+    finLibre: true, // fin du combat : il garde son mouvement (pas de freinage ni de sauts)
     nom: "Slime", emoji: "💧", vitesse: 80, pv: 140, taille: 2, portrait: { cx: 0.62, cy: 0.52, taille: 1.08 }, // portrait centré sur ses deux yeux et sa bouche
     sonNom: "fonce", son2: "se sépare", son3: "un morceau disparaît",
     desc: "Un énorme slime (140 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction qu’en touchant un mur : il repart alors le plus souvent vers l’adversaire. Il laisse derrière lui une traînée bleue et gluante qui blesse un peu et ralentit l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’il traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant lui, il fonce (il accélère sans tourner), et il ne le blesse au contact que pendant qu’il fonce. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petits slimes : plus ils sont petits, plus ils sont rapides, mais plus ils sont fragiles et moins ils font mal ; les plus petits disparaissent quand ils n’ont plus de PV. Les adversaires frappent le morceau le plus proche d’eux, leurs tirs touchent n’importe quel morceau sur leur chemin, et leurs attaques de zone touchent tous les morceaux pris dedans, en partageant leurs dégâts entre eux (6 morceaux touchés : chacun prend un sixième) ; un coup ne retouche jamais les petits nés du morceau qu’il vient de couper. Il faut détruire tous les morceaux pour gagner.",
@@ -2645,7 +2673,7 @@ function degats(g, cible, n, x, y) {
   }
   // plafond : le plus de dégâts qu'un seul coup peut lui faire (la Chose Impie : ce qui reste au bras à l'œil)
   if (c.plafond) n = Math.max(1, Math.min(n, c.plafond(cible)));
-  cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15;
+  cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15; cible.subi = (cible.subi || 0) + n; cible.plusGros = Math.max(cible.plusGros || 0, n); // pour la carte de fin
   const reaction = CHARS[cible.type].quandTouche;
   if (reaction && !cible.capture) reaction(cible, g); // attrapé par le Smoker : aucune réaction (Myers ne file pas dans un coin)
   g.txt.push({ x, y, t: 0.8, s: "-" + n, n });
@@ -3263,8 +3291,13 @@ const ENCHAINE_CHANCE = 0.05; // chance par balle qui touche de ne pas recharger
 const RECHARGE = 1.9; // rechargement du Cowboy après chaque rafale (secondes)
 const BALLE_DEGATS = 8; // dégâts de chaque balle de McCree (toutes pareilles)
 /* ===== FIN DU COMBAT =====
-   Le perdant explose, puis la caméra zoome au ralenti sur le gagnant qui continue de bouger. */
-const FIN = 3.2, ANNONCE_DELAI = 1, FIN_RALENTI = 0.3; // durée de la séquence de fin, attente avant d'annoncer le gagnant (secondes réelles), ralenti de fin
+   Coup fatal : l'image se fige un instant (flash blanc, « K.O. »), le perdant explose ; puis, au ralenti, des bandes noires
+   arrivent, la caméra zoome sur le gagnant qui s'arrête et fête sa victoire, éclairé par des rayons dorés au milieu de l'arène
+   assombrie, et le bandeau « Victoire » glisse en bas. Enfin la carte de fin (stats du combat, série de revanches). */
+const FIN = 4, ANNONCE_DELAI = 1, FIN_RALENTI = 0.3, FIN_ARRET = 0.22; // durée de la séquence de fin, attente avant d'annoncer le gagnant (secondes réelles), ralenti de fin, image figée du coup fatal
+let serie = { cle: "", v: [0, 0] }; // victoires de J1 et J2 sur les revanches d'un même duel
+function enFin(g) { return g.fin > 0 || g.finVoix > 0; }
+function finAvance(g, debut, duree) { const p = Math.min(1, Math.max(0, ((g.finT || 0) - debut) / duree)); return p * p * (3 - 2 * p); } // 0 → 1 en douceur, en secondes réelles depuis le coup fatal
 function exploser(g, f) {
   f.mort = true; f.copies = [];
   arreterSons(f); if (f.type !== "oeil") jouerGeneral("explosion");
@@ -3328,6 +3361,7 @@ function maj(dt) {
     // ralenti par l'Inconnu : il se déplace et recharge ses attaques à 65 % de sa vitesse
     attaquant = f; // ses coups peuvent rater s'il est aveuglé
     if (CHARS[f.type].monde) CHARS[f.type].monde(f, o, g, dt); // la mer du Marin
+    if (!g.running && f === g.gagnant && !CHARS[f.type].finLibre) { const k = Math.exp(-dt * 14); f.vx *= k; f.vy *= k; } // combat gagné : il freine jusqu'à s'arrêter
     // ralenti par l'Inconnu (mortier) ou, beaucoup plus fort, aveuglé par la grenade flash de McCree
     const lenteur = f.aveugle > 0 ? FLASH_RALENTI : f.lent > 0 ? RALENTI : 1;
     if (g.running && !f.capture) CHARS[f.type].attaque(f, o, g, dt * lenteur);
@@ -3544,13 +3578,15 @@ function maj(dt) {
   }
   const finaleEnCours = g.bombes.some(x => x.sorte === "finale");
   if (g.running && !finaleEnCours && (a.hp <= 0 || b.hp <= 0)) {
-    g.running = false; g.fin = FIN; arreterBoucles(); couper("_marin-4"); couper("_gigachad-4");
+    g.running = false; g.fin = FIN; g.finT = 0; g.ko = !g.ile; g.arret = g.ko ? FIN_ARRET : 0; arreterBoucles(); couper("_marin-4"); couper("_gigachad-4");
     document.body.classList.add("fin-combat"); // plus de « Recommencer » ni de retour : on attend la carte de fin
     const gagnant = a.hp > 0 ? a : b.hp > 0 ? b : null;
     g.texteFin = g.ile ? `${CHARS.marin.nom} est rentré chez lui ! 🐢` : gagnant ? `${CHARS[gagnant.type].nom} gagne\u00a0!` : g.finaleChacal ? "Égalité !" : "Double KO !";
     const wt = document.getElementById("winText"); wt.textContent = g.texteFin; wt.classList.toggle("long", g.texteFin.length > 24);
     for (const f of g.f) if (f.hp <= 0 && !g.ile && !f.mort) exploser(g, f);
     g.gagnant = gagnant;
+    const cle = choix[0] + "|" + choix[1]; if (serie.cle !== cle) serie = { cle, v: [0, 0] };
+    if (gagnant) serie.v[gagnant.side ? 1 : 0]++;
     if (gagnant) {
       // zoomSur : le point à suivre si ce n'est pas le perso lui-même (la Chose Impie : son corps, pas la main à l'œil)
       g.zoom = CHARS[gagnant.type].zoomSur ? CHARS[gagnant.type].zoomSur(gagnant) : gagnant; calmer(gagnant);
@@ -4003,7 +4039,7 @@ function dessiner() {
   ctx.save();
   if (g.secousse > 0) ctx.translate((Math.random() - 0.5) * 14 * g.secousse * 4, (Math.random() - 0.5) * 14 * g.secousse * 4);
   if (g.zoom && (g.fin > 0 || g.finVoix > 0)) { // zoom progressif sur le gagnant, qui reste suivi
-    const p = Math.min(1, (1 - g.fin / FIN) / 0.55), e = p * p * (3 - 2 * p), sc = 1 + 0.85 * e, demi = W / 2 / sc;
+    const e = finAvance(g, 0.25, 1.9), sc = 1 + 0.9 * e, demi = W / 2 / sc;
     const cx = Math.min(W - demi, Math.max(demi, W / 2 + (g.zoom.x - W / 2) * e));
     const cy = Math.min(W - demi, Math.max(demi, W / 2 + (g.zoom.y - W / 2) * e));
     ctx.translate(W / 2, W / 2); ctx.scale(sc, sc); ctx.translate(-cx, -cy);
@@ -4016,6 +4052,7 @@ function dessiner() {
   if (g.mer && g.mer.ile) dessinerIle(g, g.mer.ile); // derrière les persos : le bateau peut s'y poser
   if (g.mer && g.mer.tempete > 0) { ctx.fillStyle = `rgba(8,10,25,${0.35 * Math.min(1, g.mer.tempete, TEMPETE_DUREE - g.mer.tempete + 0.3)})`; ctx.fillRect(0, 0, W, W); }
 
+  if (g.gagnant && enFin(g)) dessinerRayonsVictoire(g, now); // rayons dorés derrière le gagnant
   for (const n of g.grenades) { // grenade flash qui vole en tournant
     ctx.save(); ctx.translate(n.x, n.y); ctx.rotate(n.rot);
     ctx.fillStyle = "#3e4a3a"; ctx.strokeStyle = "#1b2033"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, 9, 6, 0, 0, 7); ctx.fill(); ctx.stroke();
@@ -4131,6 +4168,10 @@ function dessiner() {
       }
     }
     ctx.save(); ctx.translate(f.x, f.y);
+    if (f === g.gagnant && enFin(g) && !f.fete && !CHARS[f.type].finLibre) { // il a gagné : petits sauts de joie une fois arrêté
+      const t = (g.finT || 0) - 1.1;
+      if (t > 0) ctx.translate(0, -16 * Math.min(1, t / 0.4) * Math.abs(Math.sin(t / 0.6 * Math.PI)));
+    }
     if (f.etatH === "stase") ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6); // Bouldozer qui tremble avant de s'écraser
     if (f.capture) { // il se débat, plus fort quand la langue serre
       const L = f.capture.langue, k = L && L.serre > 0 ? 3 : 1;
@@ -4461,6 +4502,7 @@ function dessiner() {
     }
     ctx.restore();
   }
+  if (enFin(g)) dessinerProjecteur(g);
   ctx.lineJoin = "round";
   for (const t of g.txt) {
     const vie = t.vie ||= t.t, age = vie - t.t, pop = 1 + 0.55 * Math.max(0, 1 - age / 0.12); // le chiffre jaillit puis se pose
@@ -4500,15 +4542,82 @@ function dessiner() {
     ctx.fillStyle = fight ? "#ff8a2a" : "#ffd23f"; ctx.fillText(txt, 0, 0);
     ctx.restore();
   }
-  if (g.texteFin && (g.fin > 0 || g.finVoix > 0)) { // « Untel gagne ! » pendant le zoom
-    const p = Math.min(1, Math.max(0, (FIN - g.fin - 0.35) / 0.4));
-    ctx.save(); ctx.globalAlpha = p;
-    ctx.font = `400 ${Math.round(46 + 8 * p)}px "Bowlby One", "Arial Black", sans-serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.lineJoin = "round"; ctx.lineWidth = 8; ctx.strokeStyle = couleurs.arena; ctx.fillStyle = couleurs.ink;
-    ctx.strokeText(g.texteFin, W / 2, 70, W - 40); ctx.fillText(g.texteFin, W / 2, 70, W - 40);
+  if (enFin(g)) dessinerFinEcran(g, now); // flash, « K.O. », bandes noires et bandeau de victoire
+}
+
+// ===== séquence de victoire (dessin) =====
+// rayons dorés qui tournent lentement derrière le gagnant, avec un halo de la couleur de son joueur
+function dessinerRayonsVictoire(g, now) {
+  const w = g.gagnant, f = g.zoom || w, e = finAvance(g, 0.5, 1.2);
+  if (!w || w.mort || e <= 0) return;
+  ctx.save(); ctx.translate(f.x, f.y);
+  const h = ctx.createRadialGradient(0, 0, 0, 0, 0, 190); h.addColorStop(0, w.side ? couleurs.droite : couleurs.gauche); h.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.globalAlpha = 0.45 * e; ctx.fillStyle = h; ctx.beginPath(); ctx.arc(0, 0, 190, 0, 7); ctx.fill(); // halo de la couleur de son joueur
+  ctx.rotate(now * 0.3);
+  const R = 430, n = 16, gr = ctx.createRadialGradient(0, 0, 10, 0, 0, R);
+  gr.addColorStop(0, "rgba(255,230,140,.5)"); gr.addColorStop(0.4, "rgba(255,214,90,.14)"); gr.addColorStop(1, "rgba(255,214,90,0)");
+  ctx.globalAlpha = e; ctx.fillStyle = gr;
+  for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, R, a, a + Math.PI / n); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  if (Math.random() < 0.18 * e) { // étincelles qui montent autour de lui
+    const a = Math.random() * Math.PI * 2, r = Math.max(w.hw || 40, w.hh || 40) * (0.6 + Math.random() * 0.8);
+    g.parts.push({ x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r * 0.8, vx: (Math.random() - 0.5) * 30, vy: -60 - Math.random() * 60, t: 1.1, c: Math.random() < 0.5 ? "#fff3b0" : "#ffd23f" });
+  }
+}
+// projecteur : tout s'assombrit sauf autour du gagnant
+function dessinerProjecteur(g) {
+  const w = g.gagnant, e = finAvance(g, 0.3, 1.2);
+  if (e <= 0) return;
+  if (!w || w.mort) { ctx.fillStyle = `rgba(4,5,14,${0.45 * e})`; ctx.fillRect(-40, -40, W + 80, W + 80); return; }
+  const f = g.zoom || w, r0 = Math.max(w.hw || 40, w.hh || 40) * 1.35;
+  const gr = ctx.createRadialGradient(f.x, f.y, r0, f.x, f.y, r0 + W * 0.42);
+  gr.addColorStop(0, "rgba(4,5,14,0)"); gr.addColorStop(1, `rgba(4,5,14,${0.8 * e})`);
+  ctx.fillStyle = gr; ctx.fillRect(-40, -40, W + 80, W + 80);
+}
+// à l'écran (sans le zoom) : flash blanc et « K.O. », bandes noires de cinéma, bandeau « Victoire » qui glisse en bas
+function dessinerFinEcran(g, now) {
+  const t = g.finT || 0, w = g.gagnant;
+  ctx.save(); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+  // bandes noires
+  const lb = finAvance(g, 0.2, 0.7) * 44;
+  if (lb > 0) { ctx.fillStyle = "rgba(3,4,10,.94)"; ctx.fillRect(0, 0, W, lb); ctx.fillRect(0, W - lb, W, lb); }
+  // flash blanc du coup fatal
+  if (g.ko && t < 0.4) { ctx.fillStyle = `rgba(255,255,255,${0.8 * (1 - t / 0.4) ** 2})`; ctx.fillRect(0, 0, W, W); }
+  // « K.O. » tamponné au milieu, puis il s'efface quand le bandeau arrive
+  if (g.ko && t < 1.6) {
+    const entree = Math.min(1, t / 0.16), sc = entree < 1 ? 2.6 - 1.6 * (1 - (1 - entree) ** 3) : 1 + 0.03 * Math.sin(t * 9);
+    const al = t > 1.2 ? Math.max(0, 1 - (t - 1.2) / 0.4) : Math.min(1, t / 0.06);
+    const txt = w ? "K.O. !" : "DOUBLE K.O. !";
+    ctx.save(); ctx.globalAlpha = al; ctx.translate(W / 2, W / 2 - 10); ctx.rotate(-0.09); ctx.scale(sc, sc);
+    ctx.font = `400 ${w ? 112 : 70}px "Bowlby One", "Arial Black", sans-serif`;
+    const gr = ctx.createLinearGradient(0, -50, 0, 50); gr.addColorStop(0, "#fff3b0"); gr.addColorStop(0.45, "#ffd23f"); gr.addColorStop(1, "#ff5a2a");
+    ctx.lineWidth = 18; ctx.strokeStyle = "#140a12"; ctx.strokeText(txt, 0, 0, W - 30);
+    ctx.fillStyle = gr; ctx.fillText(txt, 0, 0, W - 30);
     ctx.restore();
   }
+  // bandeau du gagnant
+  const b = finAvance(g, 1.3, 0.5);
+  if (b > 0) {
+    const coul = w ? (w.side ? couleurs.droite : couleurs.gauche) : "#5c6584", y = W - 44 - 58, x0 = (1 - b) * -W;
+    ctx.save(); ctx.translate(x0, 0);
+    ctx.fillStyle = "rgba(3,4,10,.55)"; ctx.beginPath(); ctx.moveTo(18, y - 40); ctx.lineTo(W - 4, y - 40); ctx.lineTo(W - 24, y + 44); ctx.lineTo(-2, y + 44); ctx.closePath(); ctx.fill(); // ombre
+    const gb = ctx.createLinearGradient(0, 0, W, 0); gb.addColorStop(0, coul); gb.addColorStop(1, "rgba(20,24,44,.92)");
+    ctx.fillStyle = gb; ctx.beginPath(); ctx.moveTo(24, y - 44); ctx.lineTo(W - 8, y - 44); ctx.lineTo(W - 28, y + 38); ctx.lineTo(4, y + 38); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#ffd23f"; ctx.fillRect(14, y + 34, W - 40, 4); // liseré doré
+    const sur = w && g.ile ? "RETOUR À LA MAISON" : w ? "VICTOIRE" : "FIN DU COMBAT";
+    const nom = w ? (CHARS[w.type].court || CHARS[w.type].nom) : g.finaleChacal ? "Égalité !" : "Double K.O. !";
+    const px = w ? 78 : 30;
+    if (w) portraitRond(w.type, 64, y - 3, 34, !!w.side, coul);
+    ctx.textAlign = "left";
+    ctx.font = '800 16px Rubik, system-ui, sans-serif'; ctx.fillStyle = "#ffd23f";
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "4px";
+    ctx.fillText(sur, px + 30, y - 24);
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+    ctx.font = '400 40px "Bowlby One", "Arial Black", sans-serif'; ctx.lineWidth = 7; ctx.strokeStyle = "#0b0d1c";
+    ctx.strokeText(nom, px + 30, y + 10, W - px - 80); ctx.fillStyle = "#fff"; ctx.fillText(nom, px + 30, y + 10, W - px - 80);
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 function boucle(t) {
@@ -4523,7 +4632,8 @@ function boucle(t) {
     for (let i = 0; i < vitesseJeu; i++) maj(dt);
   } else if (jeu.fin > 0 || jeu.finVoix > 0) {
     // ralenti de fin ; la carte de fin attend aussi que le présentateur ait fini de parler
-    maj(dt * FIN_RALENTI);
+    jeu.finT = (jeu.finT || 0) + dt;
+    if (jeu.arret > 0) jeu.arret -= dt; else maj(dt * FIN_RALENTI); // coup fatal : l'image reste figée un instant
     jeu.fin -= dt; jeu.finVoix = (jeu.finVoix || 0) - dt;
     if (jeu.fin <= 0 && jeu.finVoix <= 0) { montrerFin(); verrouiller(false); }
   }
@@ -4553,7 +4663,15 @@ function montrerFin() {
   const g = jeu, w = g.gagnant, carte = document.getElementById("finCarte"), cv = document.getElementById("finPortrait"), x = cv.getContext("2d");
   carte.style.setProperty("--team", w ? (w.side ? "var(--droite)" : "var(--gauche)") : "var(--muted)");
   document.getElementById("finSur").textContent = w && g.ile ? "Retour à la maison" : w ? "Victoire" : "Fin du combat";
-  document.getElementById("finScore").textContent = w && g.ile ? "Arrivé sur l’île de la tortue" : w && g.autodestruction ? "Autodestruction réussie !" : w ? `Il lui reste ${Math.ceil(w.hp)} PV` : g.finaleChacal ? "Emporté par les grenades de Chacal" : "Les deux sont tombés en même temps";
+  document.getElementById("finScore").textContent = w && g.ile ? "Arrivé sur l’île de la tortue 🐢" : w && g.autodestruction ? "Autodestruction réussie !" : w && w.hp >= w.hpMax ? "Victoire parfaite : pas une égratignure !" : w && w.hp <= w.hpMax * 0.15 ? "Victoire sur le fil !" : w ? "" : g.finaleChacal ? "Emporté par les grenades de Chacal" : "Les deux sont tombés en même temps";
+  // stats du combat
+  const duree = Math.round(g.temps || 0), temps = `${Math.floor(duree / 60)}:${String(duree % 60).padStart(2, "0")}`;
+  const tuile = (val, nom, part) => `<div class="st"><b>${val}</b>${part === undefined ? "" : `<div class="jauge"><i style="width:${Math.round(100 * Math.max(0, Math.min(1, part)))}%"></i></div>`}<small>${nom}</small></div>`;
+  const autre = w && g.f.find(x => x !== w);
+  document.getElementById("finStats").innerHTML = w
+    ? tuile(Math.ceil(w.hp), "PV restants", w.hp / w.hpMax) + tuile(temps, "Durée") + tuile(autre && autre.plusGros ? Math.round(autre.plusGros) : "—", "Plus gros coup")
+    : tuile(temps, "Durée") + tuile(Math.round(g.f[1].subi || 0), "Dégâts J1") + tuile(Math.round(g.f[0].subi || 0), "Dégâts J2");
+  const v = serie.v; document.getElementById("finSerie").innerHTML = v[0] + v[1] > 1 ? `Série <span class="j1">J1</span><b>${v[0]} – ${v[1]}</b><span class="j2">J2</span>` : "";
   x.clearRect(0, 0, cv.width, cv.height);
   const persos = w ? [w] : g.f, part = cv.width / persos.length;
   persos.forEach((f, i) => {
@@ -5459,7 +5577,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.85.2", NOTES = "Jeune beau et plein d’avenir : l’île de la tortue sort toujours de l’eau au bout de 15 secondes pile (au lieu de 15 à 17 secondes).";
+const VERSION = "1.86.0", NOTES = "Nouvelle fin de combat.\n• Coup fatal : l’image se fige un instant avec un flash blanc et un gros « K.O. ! », puis le perdant explose.\n• Au ralenti, des bandes noires de cinéma arrivent, l’arène s’assombrit et la caméra zoome sur le gagnant, éclairé par des rayons dorés qui tournent et des étincelles.\n• Le gagnant s’arrête et saute de joie (GigaChad prend la pose, I Need More Bullets se claque les fesses) ; un bandeau « Victoire » avec son portrait glisse en bas de l’écran.\n• Nouvelle carte de fin : grand portrait sur des rayons, PV restants, durée du combat, plus gros coup, et le score de la série quand on enchaîne les revanches.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

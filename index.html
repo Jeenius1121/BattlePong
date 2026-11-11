@@ -180,6 +180,66 @@ body.vue-combat [data-vue="combat"], body.vue-selection [data-vue="selection"]{a
 #lienStats{display:block; text-align:center; text-decoration:none; margin:16px auto 0; max-width:420px}
 #lienStats[hidden]{display:none}
 
+/* ===== écran de sélection plein écran, sans défiler (façon jeu de combat) ===== */
+body.vue-selection main{max-width:1180px; height:100vh; height:100svh; display:flex; flex-direction:column; padding-top:calc(8px + env(safe-area-inset-top,0px)); padding-bottom:calc(10px + env(safe-area-inset-bottom,0px)); overflow:hidden}
+body.vue-selection.proprio main{height:auto; min-height:100svh; overflow:visible}
+body.vue-selection .entete{flex:none; margin:0 0 6px; gap:8px}
+body.vue-selection h1{font-size:clamp(1.45rem,6.4vw,2.1rem)}
+body.vue-selection .entete .rond{width:38px; height:38px; font-size:1rem}
+.ecranSel{flex:1; min-height:0; display:grid; gap:7px; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); grid-template-rows:auto minmax(0,1fr) auto auto auto;
+  grid-template-areas:"news news news" "p1 mid p2" "fiche fiche fiche" "roster roster roster" "go go go"}
+body.proprio .ecranSel{flex:none; height:calc(100svh - 70px)}
+.annexes:empty{display:none}
+.ecranSel .duel{display:contents}
+.ecranSel .nouveautes{grid-area:news; margin:0; padding:6px 10px 6px 6px}
+.ecranSel .panneau[data-side="0"]{grid-area:p1} .ecranSel .panneau[data-side="1"]{grid-area:p2}
+.ecranSel .panneau{aspect-ratio:auto; height:100%; min-height:0; border-radius:16px; clip-path:polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)}
+.ecranSel .panneau[data-side="1"]{clip-path:polygon(0 0, 100% 0, 100% 100%, 8% 100%, 0 92%)}
+.ecranSel .panneau .grand{height:70%; bottom:22%}
+.ecranSel .panneau .nomGrand{font-size:clamp(.95rem,4.6vw,1.6rem)}
+.ecranSel .panneau.actif .joueur{background:var(--team); color:#0b0e1d; animation:appel 1s ease-in-out infinite}
+.ecranSel .panneau.actif::after{content:"▼ À toi de choisir"; position:absolute; left:50%; top:34px; transform:translateX(-50%); white-space:nowrap; padding:2px 8px; border-radius:999px; font-size:.6rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; background:rgba(0,0,0,.45); color:#fff}
+.ecranSel .milieu{grid-area:mid; justify-content:center; gap:14px}
+.ecranSel .duel .vs{font-size:clamp(1.4rem,6.5vw,2.4rem)}
+.ecranSel .aide{display:none}
+.ecranSel .fiche{grid-area:fiche; margin:0; padding:7px 10px 8px}
+.ecranSel .ficheTete canvas{width:38px; height:38px}
+.ecranSel .ficheDesc{margin-top:5px; font-size:.78rem; line-height:1.35; -webkit-line-clamp:2}
+.ecranSel .ficheSuite{margin-top:3px; font-size:.74rem}
+.ecranSel .roster{grid-area:roster; margin:0; min-height:0; display:grid; grid-template-columns:repeat(var(--cols,7),minmax(0,1fr)); gap:6px; align-content:center}
+.ecranSel .rgroupe, .ecranSel .grille{display:contents}
+.ecranSel .groupe-titre{display:none}
+.ecranSel .tuile{border-radius:10px}
+.ecranSel .tuile:hover{transform:translateY(-2px) scale(1.04); z-index:1}
+.ecranSel .tnom{display:none}
+.ecranSel .badge{top:2px; font-size:.5rem; padding:1px 4px}
+.ecranSel .badge.bg{left:2px} .ecranSel .badge.bd{right:2px}
+.ecranSel .etoile{top:1px; right:3px; font-size:.6rem}
+.ecranSel .barreGo{grid-area:go; position:static; margin:0; padding:0; background:none}
+.ecranSel .btn.go{padding:11px; font-size:1.2rem}
+@media (max-height:620px){ .ecranSel .ficheDesc{-webkit-line-clamp:1} .ecranSel .panneau.actif::after{display:none} }
+/* écran large (ordinateur, téléphone tourné) : les deux joueurs sur les côtés, la grille au milieu */
+@media (min-aspect-ratio:5/4){
+  .ecranSel{grid-template-columns:minmax(0,1fr) minmax(0,1.55fr) minmax(0,1fr); grid-template-rows:auto auto auto minmax(0,1fr) auto;
+    grid-template-areas:"news news news" "p1 mid p2" "p1 fiche p2" "p1 roster p2" "p1 go p2"}
+  .ecranSel .milieu{flex-direction:row}
+  .ecranSel .duel .vs{font-size:clamp(1.3rem,3.2vw,2.4rem)}
+  .ecranSel .panneau .nomGrand{font-size:clamp(.9rem,2.2vw,1.7rem)}
+}
+@media (min-aspect-ratio:5/4) and (max-height:500px){
+  body.vue-selection .entete{margin-bottom:4px} body.vue-selection h1{font-size:1.3rem}
+  .ecranSel{gap:5px} .ecranSel .nouveautes{padding:3px 8px 3px 4px; font-size:.72rem}
+  .ecranSel .ficheDesc{display:none} .ecranSel .ficheSuite{margin:0 0 0 auto} .ecranSel .ficheTete{flex-wrap:wrap}
+  .ecranSel .btn.go{padding:8px; font-size:1.05rem}
+  .ecranSel .duel .vs{font-size:1.2rem} .ecranSel .rond.de{width:32px; height:32px}
+}
+/* fenêtre d'infos (pouvoirs, guide) */
+.feuille .infoCorps .chips{justify-content:flex-start; margin:0 0 8px}
+.feuille .infoCorps .chip{background:rgba(255,255,255,.08)}
+.feuille .infoCorps .desc{font-size:clamp(.76rem,2.15vh,.92rem); line-height:1.4; color:#d4d9ee; margin:8px 0 0}
+#feuilleInfo .contenu{max-height:94vh; max-height:94svh; padding-top:16px}
+@media (max-height:700px){ #feuilleInfo h2{font-size:1.05rem} #feuilleInfo .sous{margin-bottom:6px} }
+
 /* combat : HUD (portraits + barres de vie), arène aussi grande que l'écran le permet, commandes */
 body.vue-combat main{max-width:780px; min-height:100vh; min-height:100svh; display:flex; flex-direction:column}
 body.vue-combat [data-vue="combat"]{flex:1; display:flex; flex-direction:column}
@@ -217,7 +277,7 @@ body.vue-combat .commandes{margin-top:auto; padding-top:14px}
 body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibility:hidden}
 
 /* écran de fin : carte du gagnant par-dessus l'arène */
-.overlay{position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:14px; border-radius:14px; overflow:hidden; background:rgba(8,10,22,.5); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px)}
+.overlay{position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; padding:14px; border-radius:14px; overflow:hidden; background:rgba(8,10,22,.5); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px)}
 .overlay.show{display:flex; animation:fondu .3s ease-out}
 .finCarte{--team:var(--ink); position:relative; width:min(100%,310px); max-height:100%; overflow:auto; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; padding:18px 16px 14px; border-radius:22px; background:linear-gradient(180deg, color-mix(in srgb,var(--team) 22%,var(--panel)), var(--panel) 55%); border:3px solid var(--team); box-shadow:0 18px 50px rgba(0,0,0,.55), 0 0 40px color-mix(in srgb,var(--team) 35%,transparent); animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
 #finPortrait{flex:none; width:78px; height:78px; border-radius:50%; background:radial-gradient(circle at 50% 40%, color-mix(in srgb,var(--team) 35%,#fff), var(--team)); box-shadow:0 0 0 4px var(--panel), 0 0 0 7px var(--team), 0 0 24px var(--team)}
@@ -230,7 +290,7 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibili
 .finCarte .btn.ghost{padding:8px 12px; font-size:.88rem}
 .confettis{position:absolute; inset:0; pointer-events:none; overflow:hidden}
 .confettis i{position:absolute; top:-12px; width:8px; height:13px; border-radius:2px; opacity:0; animation:tombe 1.9s ease-in forwards}
-@keyframes tombe{0%{opacity:1; transform:translateY(0) rotate(0)} 100%{opacity:0; transform:translateY(340px) rotate(540deg)}}
+@keyframes tombe{0%{opacity:1; transform:translateY(0) rotate(0)} 100%{opacity:0; transform:translateY(80vh) rotate(540deg)}}
 @media (max-height:700px){ .overlay{padding:8px} .finCarte{padding:12px 12px 10px; gap:4px} #finPortrait{width:56px; height:56px} }
 @keyframes fondu{from{opacity:0}}
 @keyframes pop{from{opacity:0; transform:translateY(18px) scale(.85)}}
@@ -322,11 +382,12 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibili
 <main>
   <header class="entete">
     <h1 id="titre" class="titreJeu">Battle Pong</h1>
+    <button class="rond" id="guideBtn" type="button" aria-label="Tous les persos et leurs pouvoirs" aria-haspopup="dialog">📖</button>
     <button class="rond" id="sonsSel" type="button" aria-label="Couper les sons" aria-pressed="false">🔊</button>
   </header>
   <div class="majDispo" id="majDispo" role="status" hidden><span id="majTexte"></span><button type="button" id="majOk">Mettre à jour</button></div>
 
-  <div data-vue="selection">
+  <div data-vue="selection" class="ecranSel">
   <button class="nouveautes" id="nouveautes" type="button" aria-haspopup="dialog"><span class="pastille">NOUVEAU</span><span class="txt" id="version"></span><span class="fleche" aria-hidden="true">›</span></button>
   <div class="duel">
     <button class="panneau" data-side="0" type="button" aria-label="Choisir le perso du joueur 1"><span class="joueur">Joueur 1</span><span class="sol" aria-hidden="true"></span><img class="grand" alt=""><span class="bas"><span class="nomGrand"></span><span class="chips"></span></span></button>
@@ -341,11 +402,13 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibili
       <div class="ficheOnglets" role="tablist" aria-label="Fiche du joueur"><button type="button" data-side="0" role="tab" style="--c:var(--gauche)">J1</button><button type="button" data-side="1" role="tab" style="--c:var(--droite)">J2</button></div>
     </div>
     <p class="ficheDesc" id="ficheDesc"></p>
-    <button class="ficheSuite" id="ficheSuite" type="button" aria-expanded="false">Lire tous ses pouvoirs ▾</button>
+    <button class="ficheSuite" id="ficheSuite" type="button" aria-haspopup="dialog">ⓘ Tous ses pouvoirs</button>
   </section>
   <div class="roster" id="roster"></div>
   <div class="barreGo"><button class="btn revanche go" id="go" type="button">▶ COMBAT !</button></div>
-  <details class="guide"><summary>📖 Tous les persos et leurs pouvoirs</summary><div id="descs"></div></details>
+  </div>
+  <div data-vue="selection" class="annexes">
+  <div id="descs" hidden></div>
   <!-- mode propriétaire : bouton vers les statistiques des combats, au-dessus de la partie pour modifier les images et les sons -->
   <a class="btn" id="lienStats" href="stats.html" hidden>📊 Statistiques des combats</a>
   <section class="custom charge" id="custom" hidden>
@@ -406,6 +469,14 @@ body.fin-combat #start, body.fin-combat #speed, body.fin-combat #retour{visibili
   </div>
   </div>
 </main>
+<div class="feuille" id="feuilleInfo" role="dialog" aria-modal="true" aria-labelledby="infoTitre" hidden>
+  <div class="contenu">
+    <button class="rond fermer" id="infoFermer" type="button" aria-label="Fermer">✕</button>
+    <p class="sous" id="infoSous"></p>
+    <h2 id="infoTitre"></h2>
+    <div class="infoCorps" id="infoCorps"></div>
+  </div>
+</div>
 <div class="feuille" id="feuilleNotes" role="dialog" aria-modal="true" aria-labelledby="notesTitre" hidden>
   <div class="contenu">
     <button class="rond fermer" id="notesFermer" type="button" aria-label="Fermer">✕</button>
@@ -4701,6 +4772,7 @@ function afficherVue(v) {
   document.body.classList.toggle("vue-combat", v === "combat");
   window.scrollTo(0, 0);
   if (v === "combat") redim();
+  if (v === "selection") requestAnimationFrame(ajusterRoster);
 }
 function retourSelection() {
   document.getElementById("overlay").classList.remove("show"); document.body.classList.remove("fin-combat");
@@ -4862,14 +4934,33 @@ function majFiche() {
     if (coteFiche) { x.translate(cv.width, 0); x.scale(-1, 1); }
     x.drawImage(s.img, -t.x * k, -t.y * k, s.tw * k, s.th * k); x.restore();
   }
-  const suite = document.getElementById("ficheSuite"), d = document.getElementById("ficheDesc");
-  fiche.classList.remove("ouverte"); suite.setAttribute("aria-expanded", "false"); suite.textContent = "Lire tous ses pouvoirs ▾";
-  suite.hidden = d.scrollHeight <= d.clientHeight + 2; // description courte : pas besoin du bouton
 }
+// fenêtre d'infos (pouvoirs d'un perso, ou le guide de tous les persos), par-dessus l'écran
+const feuilleInfo = document.getElementById("feuilleInfo");
+function ouvrirInfo(sous, titre, html) {
+  document.getElementById("infoSous").textContent = sous; document.getElementById("infoTitre").textContent = titre;
+  const corps = document.getElementById("infoCorps"); corps.innerHTML = html; corps.scrollTop = 0;
+  feuilleInfo.hidden = false; document.getElementById("infoFermer").focus();
+}
+document.getElementById("infoFermer").addEventListener("click", () => { feuilleInfo.hidden = true; });
+feuilleInfo.addEventListener("click", e => { if (e.target === feuilleInfo) feuilleInfo.hidden = true; });
+addEventListener("keydown", e => { if (e.key === "Escape" && !feuilleInfo.hidden) feuilleInfo.hidden = true; });
+document.getElementById("guideBtn").addEventListener("click", () => ouvrirInfo("Guide", "Tous les persos et leurs pouvoirs", document.getElementById("descs").innerHTML));
+// grille de portraits : autant de colonnes qu'il faut pour qu'elle tienne dans sa place, sans défiler
+function ajusterRoster() {
+  const r = document.getElementById("roster"), ecran = document.querySelector(".ecranSel"), n = r ? r.querySelectorAll(".tuile").length : 0;
+  if (!n || !r.clientWidth || !document.body.classList.contains("vue-selection")) return;
+  const paysage = matchMedia("(min-aspect-ratio: 5/4)").matches, gap = 6;
+  const L = r.clientWidth, H = paysage ? r.clientHeight : ecran.clientHeight * 0.36;
+  let cols = paysage ? 4 : 5;
+  for (; cols < n; cols++) { const c = (L - gap * (cols - 1)) / cols, rangs = Math.ceil(n / cols); if (rangs * c + gap * (rangs - 1) <= H) break; }
+  r.style.setProperty("--cols", cols);
+}
+addEventListener("resize", ajusterRoster);
 document.querySelectorAll(".ficheOnglets button").forEach(b => b.addEventListener("click", () => { coteFiche = +b.dataset.side; majFiche(); }));
-document.getElementById("ficheSuite").addEventListener("click", e => {
-  const ouverte = document.getElementById("fiche").classList.toggle("ouverte");
-  e.currentTarget.setAttribute("aria-expanded", ouverte); e.currentTarget.textContent = ouverte ? "Réduire ▴" : "Lire tous ses pouvoirs ▾";
+document.getElementById("ficheSuite").addEventListener("click", () => {
+  const c = CHARS[choix[coteFiche]];
+  ouvrirInfo(coteFiche ? "Joueur 2" : "Joueur 1", `${c.emoji} ${c.nom}`, `<div class="chips">${pastilles(choix[coteFiche])}</div><p class="desc">${c.desc}</p>`);
 });
 // portrait automatique : on cadre le haut du perso (sa tête) à partir de la partie visible de l'image ;
 // portrait « entier » : tout le perso, centré (pour ceux qui n'ont pas de tête, comme le Titan)
@@ -4930,7 +5021,7 @@ function construireUI() {
     e.currentTarget.classList.remove("roule"); void e.currentTarget.offsetWidth; e.currentTarget.classList.add("roule");
     annoncerNom(a); musiqueSelection(); nouveauJeu(false); majSelection(0); majSelection(1);
   });
-  majSelection();
+  majSelection(); requestAnimationFrame(ajusterRoster);
   const desc = c => `<p class="desc">${c.emoji} <strong>${c.nom}</strong> (${c.pv || PV_BASE} PV) : ${c.desc}</p>`;
   document.getElementById("descs").innerHTML =
     `<h3 class="desc-titre crea">✨ Personnage non licence</h3>` + Object.values(CHARS).filter(c => c.creation).map(desc).join("") +
@@ -5590,7 +5681,7 @@ async function init() {
    Touche le titre 5 fois de suite puis tape le code : la partie pour modifier
    les images et les sons apparaît, et cet appareil s'en souvient. */
 const CODE_HASH = "abd3f2ed90f684b305ed7632ee24e58ed439de9158399ce9a5952281ef804b43";
-function afficherPerso() { document.getElementById("custom").hidden = false; document.getElementById("lienStats").hidden = false; }
+function afficherPerso() { document.getElementById("custom").hidden = false; document.getElementById("lienStats").hidden = false; document.body.classList.add("proprio"); } // propriétaire : on peut défiler jusqu'à ses outils
 try { if (localStorage.getItem("duel-proprio") === "1") afficherPerso(); } catch (e) {}
 let tapsTitre = 0, minuteurTitre = 0;
 document.getElementById("titre").addEventListener("click", async () => {
@@ -5626,7 +5717,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.87.0", NOTES = "Nouvelle intro avant le combat.\n• Pendant « Ready », chaque joueur arrive de son côté sur un panneau à sa couleur, avec son perso en grand, son nom et ses PV.\n• Une diagonale lumineuse sépare les deux camps et un gros « VS » s’écrase au milieu, puis « READY » et « FIGHT ! ».";
+const VERSION = "1.88.0", NOTES = "Nouveau menu de sélection, façon jeu de combat, qui tient dans l’écran sans défiler.\n• Les deux joueurs en grand face à face (sur les côtés sur ordinateur et téléphone tourné), avec « À toi de choisir » sur celui qui choisit.\n• Tous les persos dans une seule grille de portraits qui s’adapte à la taille de l’écran, et le bouton Combat toujours visible.\n• Les pouvoirs d’un perso et le guide de tous les persos (bouton 📖) s’ouvrent dans une fenêtre.\n• La carte de victoire s’affiche en plein écran : plus besoin de défiler non plus.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

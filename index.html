@@ -3869,9 +3869,9 @@ const ALLURES = {
   hammond: { type: "boule" },
   oeil: { type: "aucun" },
   gelee: { type: "gelee" },
-  grenouille: { type: "marche", pas: 52, saut: 2, penche: 0.025 },
-  tortue: { type: "fixe" },
-  sorciere: { type: "fixe" },
+  grenouille: { type: "bond", pas: 64, saut: 13, penche: 0.09, poussiere: { y: 0.92, n: 5 } },
+  tortue: { type: "lourd", pas: 40, saut: 1.8, penche: 0.075, poussiere: { y: 0.86, n: 3, deux: true } },
+  sorciere: { type: "spectre", saut: 4, penche: 0.09, souple: { amp: 2.6, bas: true } },
   bullets: { type: "marche", pas: 50, saut: 2.6, penche: 0.04, souple: { amp: 1.3, bas: true } },
 };
 function animerPerso(f, dtv, now) {
@@ -3897,9 +3897,25 @@ function animerPerso(f, dtv, now) {
     case "glisse": dy = Math.sin(now * 2.3 + v.ph0) * A.saut * base; rot = sp * A.penche * m; break;
     case "flotte": rot = Math.sin(now * 1.6 + v.ph0) * 0.035 * (special ? 0 : 1); dy = Math.sin(now * 2.1 + v.ph0) * 1.8 * (special ? 0 : 1); break;
     case "boule": if (f.etatH !== "tourelle" && spriteDe(f) === CHARS[f.type].sprite) { v.roule += d / Math.max(10, f.hw) * (f.vx >= 0 ? 1 : -1) * (f.face || 1); centre = true; } break;
-    case "gelee": { const w = Math.sin(now * 7 + v.ph0) * 0.05 * (0.5 + 0.5 * bouge); sx = 1 + w; sy = 1 - w; break; }
+    case "gelee": { // il tremblote, s'étire dans le sens de sa course et rebondit un peu à chaque « pas »
+      const w = Math.sin(now * 7 + v.ph0) * 0.05 * (0.5 + 0.5 * bouge), w2 = Math.sin(now * 11.3 + v.ph0 * 2) * 0.018;
+      sx = 1 + w + 0.05 * bouge * base - ap * 0.03 * m; sy = 1 - w - 0.04 * bouge * base + ap * 0.05 * m + w2; dy = -ap * 3 * m; break; }
+    case "bond": { // D.Nouille avance par petits bonds : il s'étire en l'air et s'écrase en retombant
+      const h = Math.pow(ap, 0.8), sol = Math.pow(1 - ap, 6);
+      dy = -h * A.saut * m; sy = 1 + 0.07 * h * m - 0.1 * sol * m; sx = 1 - 0.05 * h * m + 0.08 * sol * m;
+      rot = Math.cos(p) * A.penche * m * (f.face || 1); break; }
+    case "lourd": // la Grosse Tortue se balance d'une patte sur l'autre, lourdement
+      dy = -ap * A.saut * m; dx = sp * 1.4 * m; rot = sp * A.penche * m; sy = 1 - 0.035 * m * (1 - ap); sx = 1 + 0.02 * m * (1 - ap); break;
+    case "spectre": { // la Nécromancienne flotte au-dessus du sol, penchée vers où elle file
+      v.penche = (v.penche || 0) + (bouge * (f.face || 1) - (v.penche || 0)) * Math.min(1, dtv * 4);
+      dy = (Math.sin(now * 2.2 + v.ph0) * A.saut - 5) * base; rot = v.penche * A.penche * base + Math.sin(now * 1.3 + v.ph0) * 0.02 * base; break; }
   }
-  if (A.type !== "aucun" && A.type !== "fixe" && A.type !== "boule" && A.type !== "gelee") { // respiration à l'arrêt
+  if (A.poussiere && m > 0.5 && Math.floor(p / Math.PI) !== v.pas0 && jeu) { // chaque pas (ou chaque bond) qui retombe soulève un peu de poussière
+    const P = A.poussiere, y = f.y + f.hh * P.y;
+    if (P.deux) poussiere(jeu, f.x + (sp >= 0 ? 1 : -1) * f.hw * 0.4, y, P.n); else poussiere(jeu, f.x, y, P.n);
+  }
+  v.pas0 = Math.floor(p / Math.PI);
+  if (A.type !== "aucun" && A.type !== "fixe" && A.type !== "boule" && A.type !== "gelee" && A.type !== "spectre") { // respiration à l'arrêt
     const r = (1 - bouge) * base * Math.sin(now * 2.4 + v.ph0);
     sy *= 1 + 0.014 * r; sx *= 1 - 0.007 * r;
   }
@@ -4026,6 +4042,16 @@ const DECORS = {
       vpart(g, { x: f.x + f.face * 96 * k, y: f.y - f.hh * 0.42, vx: f.face * 30, vy: -12, t: 0.4, v0: 0.35, r: 3.5, croit: 14, c: "rgba(200,200,205," });
     }
     f.vCoups = f.coups;
+  },
+  sorciere(f, g, dtv) { // elle flotte : une brume violette traîne sous sa robe, et des petites âmes montent d'elle
+    if ((f.vis ?? 1) < 0.5) return;
+    if (Math.random() < dtv * 14) { const p = versMonde(f, 0.3 + Math.random() * 0.4, 0.97); vpart(g, { x: p.x, y: p.y, vx: (Math.random() - 0.5) * 24 - f.vx * 0.15, vy: -6 - Math.random() * 10, t: 0.7, v0: 0.32, r: 5, croit: 14, frein: 2, c: "rgba(150,90,220," }); }
+    if (Math.random() < dtv * 1.6) { const p = versMonde(f, 0.2 + Math.random() * 0.6, 0.3 + Math.random() * 0.5); vpart(g, { x: p.x, y: p.y, vx: (Math.random() - 0.5) * 12, vy: -35 - Math.random() * 20, t: 0.9, v0: 0.8, r: 2.2, croit: 0, forme: "etoile", lumiere: true, c: "rgba(190,255,220," }); }
+  },
+  gelee(f, g, dtv) { // le Slime laisse tomber des gouttes en avançant
+    if (!(f.v && f.v.vit > 30) || Math.random() > dtv * 3) return;
+    const p = versMonde(f, 0.25 + Math.random() * 0.5, 0.85);
+    vpart(g, { x: p.x, y: p.y, vx: (Math.random() - 0.5) * 30, vy: -40 - Math.random() * 30, g: 420, t: 0.45, v0: 0.85, r: 3, croit: 0, frein: 1, c: "rgba(90,170,255," });
   },
   titan(f, g, dtv) { // l'araignée de métal soulève un peu de poussière en trottinant
     if (!(f.v && f.v.vit > 20) || Math.random() > dtv * 6) return;
@@ -5717,7 +5743,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.88.0", NOTES = "Nouveau menu de sélection, façon jeu de combat, qui tient dans l’écran sans défiler.\n• Les deux joueurs en grand face à face (sur les côtés sur ordinateur et téléphone tourné), avec « À toi de choisir » sur celui qui choisit.\n• Tous les persos dans une seule grille de portraits qui s’adapte à la taille de l’écran, et le bouton Combat toujours visible.\n• Les pouvoirs d’un perso et le guide de tous les persos (bouton 📖) s’ouvrent dans une fenêtre.\n• La carte de victoire s’affiche en plein écran : plus besoin de défiler non plus.";
+const VERSION = "1.89.0", NOTES = "De nouvelles animations pour les persos non licence.\n• D.Nouille avance par petits bonds : il s’étire en l’air, s’écrase en retombant et soulève de la poussière.\n• La Grosse Tortue se balance lourdement d’une patte sur l’autre, avec un nuage de poussière à chaque pas.\n• La Nécromancienne flotte au-dessus du sol, penchée vers où elle file, sa robe ondule, une brume violette traîne sous elle et des petites âmes montent.\n• Le Slime tremblote davantage, s’étire dans le sens de sa course, rebondit un peu et perd des gouttes en avançant.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

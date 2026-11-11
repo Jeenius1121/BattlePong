@@ -587,9 +587,9 @@ const CHARS = {
   },
   sorcier: {
     creation: true, // perso inventé par le créateur du jeu (rangé dans « Personnage non licence »)
-    nom: "Sorcier", emoji: "🧙", vitesse: 200, pv: 100, voitInvisible: true, images: ["attaque", "bouclier"], son2: "bouclier",
+    nom: "Sorcier", emoji: "🧙", vitesse: 200, pv: 100, voitInvisible: true, images: ["attaque", "bouclier", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "marche 7", "marche 8"], son2: "bouclier", marche: [4, 11],
     tailles: { 3: 1.4 }, // l'image du bouclier (cercle de feu) est affichée plus grande
-    imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : 1,
+    imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : imageMarche(f, 4), // il marche : images 4 à 11 (un pas de chaque pied)
     desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 6 dégâts de plus.",
     svg: `<g ${O}>
       <rect x='92' y='34' width='6' height='112' rx='3' fill='#8a5228'/><circle cx='95' cy='30' r='10' fill='#4fc3f7'/>
@@ -668,8 +668,8 @@ const CHARS = {
   },
   robot: {
     creation: true,
-    nom: "Robot", emoji: "🤖", vitesse: 220, pv: 100, images: ["attaque"], sonNom: "laser", son2: "minuteur",
-    imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : 1,
+    nom: "Robot", emoji: "🤖", vitesse: 220, pv: 100, images: ["attaque", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "marche 7", "marche 8"], sonNom: "laser", son2: "minuteur", marche: [3, 10],
+    imageDe: f => f.charge > 0 || f.tir > 0 ? 2 : imageMarche(f, 3), // il marche : images 3 à 10 (les jambes se balancent)
     desc: "Vise, charge, puis tire un gros laser qui reste allumé un peu plus d’une seconde en suivant le robot et brûle ce qu’il touche. Chaque nouveau tir fait plus de dégâts que le précédent : plus le combat dure, plus il est dangereux. Le rayon ricoche sur les autres ennemis (jusqu’à 2), avec des dégâts divisés par deux à chaque ricochet. À 20 PV ou moins, un compte à rebours de 5 secondes démarre : s’il tient jusqu’au bout, il s’autodétruit et emporte l’adversaire : c’est une victoire pour lui.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='26' fill='#8b93a6'/><rect x='64' y='112' width='12' height='26' fill='#8b93a6'/>
@@ -2614,6 +2614,17 @@ function redresser(f) {
 function cache(o, f) { return !!o.enLair || o.etat === "rode" && !(f && CHARS[f.type].voitInvisible && (CHARS[f.type].voitInvisible === true || CHARS[f.type].voitInvisible.includes(o.type))); }
 // images en plus : Myers (furie), Cowboy (visée, tir). Image n stockée sous la clé id + "-n".
 // Une image en plus absente est remplacée par la précédente, puis par l'image normale.
+// images de marche (Sorcier, Robot) : choisies d'après ses pas (dessin seulement : sans dessin, c'est toujours l'image normale)
+function imageMarche(f, premiere) {
+  const v = f.v, c = CHARS[f.type];
+  if (!v || !(v.vit > 25) || !c.spr || !c.spr[premiere]) return 1;
+  return premiere + Math.floor(((v.phase + Math.PI / 2) / (2 * Math.PI) * 8) % 8 + 8) % 8;
+}
+// image normale ou une de ses images de marche (même corps, mêmes repères)
+function estNormale(f) {
+  const c = CHARS[f.type], n = c.imageDe ? c.imageDe(f) : 1;
+  return n === 1 || !!(c.marche && n >= c.marche[0] && n <= c.marche[1]);
+}
 function spriteDe(f) {
   const c = CHARS[f.type];
   for (let n = c.imageDe ? c.imageDe(f) : 1; n > 1; n--) if (c.spr && c.spr[n]) return c.spr[n];
@@ -3855,8 +3866,8 @@ function fondArene() {
 // allure de chaque perso : marche qui rebondit, dandinement, titubement, pas de robot… (dessin seulement)
 const ALLURES = {
   cowboy: { type: "marche", pas: 44, saut: 3.2, penche: 0.045, souple: { amp: 1.6, bas: true } },
-  sorcier: { type: "glisse", pas: 70, saut: 2.4, penche: 0.035, souple: { amp: 2.6, bas: true } },
-  robot: { type: "robot", pas: 34, saut: 2.8, penche: 0.035 },
+  sorcier: { type: "marche", pas: 70, saut: 1.6, penche: 0.02, souple: { amp: 2.6, bas: true } },
+  robot: { type: "robot", pas: 55, saut: 2, penche: 0.025 },
   inconnu: { type: "titube", pas: 66, saut: 2.4, penche: 0.085, souple: { amp: 3 } },
   rodeur: { type: "marche", pas: 54, saut: 2.2, penche: 0.03, souple: { amp: 1.2 } },
   smoker: { type: "titube", pas: 52, saut: 2.6, penche: 0.06, souple: { amp: 2.4 } },
@@ -3883,7 +3894,7 @@ function animerPerso(f, dtv, now) {
   const bouge = Math.min(1, v.vit / 90);
   // dans une pose spéciale (attaque, roulade, en l'air, attrapé…), presque aucun mouvement en plus
   const special = f.capture || f.roulade > 0 || f.crusher || f.haut > 0 || f.etatH === "stase" || f.etatH === "chute" || f.plongee > 0;
-  const base = special ? 0 : spriteDe(f) === CHARS[f.type].sprite ? 1 : 0.3;
+  const base = special ? 0 : estNormale(f) ? 1 : 0.3;
   let dx = 0, dy = 0, rot = 0, sx = 1, sy = 1, centre = false;
   const p = (v.phase += d / (A.pas || 50) * Math.PI), sp = Math.sin(p), ap = Math.abs(sp), m = bouge * base;
   switch (A.type) {
@@ -3984,7 +3995,7 @@ const DECORS = {
     f.vBurst = f.burst;
   },
   sorcier(f, g, dtv, now) { // le bout de son bâton brille, et lâche des étincelles magiques
-    if (f.bouclier > 0 || spriteDe(f) !== CHARS.sorcier.sprite) return;
+    if (f.bouclier > 0 || !estNormale(f)) return;
     const h = pointHaut(CHARS.sorcier.sprite, 0.62, 1), p = versMonde(f, h.u, h.v + 0.035), k = 0.75 + 0.25 * Math.sin(now * 5);
     ctx.save(); ctx.globalCompositeOperation = "lighter";
     const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 16 * k);
@@ -3993,7 +4004,7 @@ const DECORS = {
     if (Math.random() < dtv * 9) vpart(g, { x: p.x + (Math.random() - 0.5) * 10, y: p.y, vx: (Math.random() - 0.5) * 30, vy: -20 - Math.random() * 30, t: 0.6, v0: 0.9, r: 1.8, croit: 0, forme: "etoile", lumiere: true, c: Math.random() < 0.5 ? "rgba(150,220,255," : "rgba(210,170,255," });
   },
   robot(f, g, dtv, now) { // l'antenne clignote ; le canon se charge ; abîmé, il fait des étincelles
-    if (spriteDe(f) === CHARS.robot.sprite || spriteDe(f) === (CHARS.robot.spr && CHARS.robot.spr[2])) {
+    if (estNormale(f) || spriteDe(f) === (CHARS.robot.spr && CHARS.robot.spr[2])) {
       const h = pointHaut(spriteDe(f), 0, 1), p = versMonde(f, h.u, h.v + 0.025);
       if ((now * 1.1) % 1 < 0.45) { ctx.save(); ctx.globalCompositeOperation = "lighter"; const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 13); gr.addColorStop(0, "rgba(255,200,190,.95)"); gr.addColorStop(0.4, "rgba(255,60,50,.6)"); gr.addColorStop(1, "rgba(255,40,40,0)"); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x, p.y, 13, 0, 7); ctx.fill(); ctx.restore(); }
     }
@@ -5743,7 +5754,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.89.0", NOTES = "De nouvelles animations pour les persos non licence.\n• D.Nouille avance par petits bonds : il s’étire en l’air, s’écrase en retombant et soulève de la poussière.\n• La Grosse Tortue se balance lourdement d’une patte sur l’autre, avec un nuage de poussière à chaque pas.\n• La Nécromancienne flotte au-dessus du sol, penchée vers où elle file, sa robe ondule, une brume violette traîne sous elle et des petites âmes montent.\n• Le Slime tremblote davantage, s’étire dans le sens de sa course, rebondit un peu et perd des gouttes en avançant.";
+const VERSION = "1.90.0", NOTES = "Le Sorcier et le Robot marchent pour de vrai.\n• Nouvelles images de marche (8 chacun) : ils ne glissent plus en se déplaçant.\n• Le Robot balance ses jambes articulées depuis les hanches, un pied toujours posé au sol.\n• Le Sorcier avance un pied puis l’autre sous sa robe, qui se balance à chaque pas.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

@@ -675,10 +675,13 @@ const CHARS = {
       if (!(f.bouclier > 0)) return n;
       f.bouclier -= n; f.flash = 0.1;
       // comme un cactus : l'attaquant reprend 20 % des dégâts qu'il voulait faire
-      const o = g.f.find(x => x !== f), renvoi = Math.round(n * BOUCLIER_RENVOI);
+      // (les fractions s'accumulent : une pluie de petits coups renvoie bien 20 %, pas un point entier par coup)
+      const o = g.f.find(x => x !== f); f.renvoiAcc = (f.renvoiAcc || 0) + n * BOUCLIER_RENVOI;
+      const renvoi = Math.floor(f.renvoiAcc + 1e-9); f.renvoiAcc -= renvoi;
       if (o && renvoi > 0) degats(g, o, renvoi, o.x, o.y - o.hh * 0.3);
       // le Sorcier en subit lui aussi la moitié (10 % du coup), malgré le bouclier
-      const subi = Math.round(n * BOUCLIER_RENVOI / 2);
+      f.subiAcc = (f.subiAcc || 0) + n * BOUCLIER_RENVOI / 2;
+      const subi = Math.floor(f.subiAcc + 1e-9); f.subiAcc -= subi;
       if (subi > 0) { f.hp = Math.max(0, f.hp - subi); g.txt.push({ x: f.x, y: f.y - f.hh * 0.3, t: 0.8, s: "-" + subi }); }
       if (f.bouclier <= 0) this.casser(f, g);
       return 0;
@@ -972,7 +975,7 @@ const CHARS = {
         L.x += dx / d * pas; L.y += dy / d * pas;
         const atteint = d < Math.max(o.hw, o.hh) * 0.5 || touche(o, L.x, L.y, 6);
         // langue annulée au moment où elle touche : l'adversaire prend quand même la moitié des dégâts d'un étranglement complet
-        if (atteint && (o.etat === "furie" || o.enFeu)) { langueAnnulee(g, o); couperLangue(f, o, g, L.x, L.y); return; } // Myers en furie tranche la langue
+        if (atteint && (o.etat === "furie" || o.enFeu || (CHARS[o.type].trancheLangue && CHARS[o.type].trancheLangue(o)))) { langueAnnulee(g, o); couperLangue(f, o, g, L.x, L.y); return; } // Myers en furie tranche la langue
         if (atteint && ((CHARS[o.type].imperturbable && o.pose > 0) || (CHARS[o.type].immunise && CHARS[o.type].immunise(o)))) { // GigaChad en pose, Tortue en boule : la langue glisse // GigaChad en pleine pose : la langue glisse sur lui
           langueAnnulee(g, o); L.annulee = true;
           L.etat = "rentre"; g.txt.push({ x: o.x, y: o.y - o.hh - 30, t: 0.9, s: o.pose > 0 ? "Imperturbable !" : "Ça glisse !" }); return;
@@ -2608,13 +2611,15 @@ const CHARS = {
       if (E === "souffle") return 35;
       return imageMarche(f, 9, 1 + Math.floor(h * 8) % 8);
     },
-    desc: "Le garde du corps d’Arasaka, armé de ses lames mantes. Au corps à corps, il enchaîne des combos de coups très rapides et variés (taille, revers, croix, tourbillon, traversée, frappe plongeante) : chaque coup fait peu de dégâts, mais plus le combo est long, plus ils font mal, et chaque coup fait saigner l’adversaire, qui perd des PV un moment. De loin, il bondit lames en avant sur l’adversaire (s’il le rate, il reste planté un instant). De temps en temps, il active son Sandevistan : pendant 2 secondes, l’adversaire et ses tirs sont au ralenti, et lui va encore plus vite. Ses lames parent parfois un tir. Quand il passe sous la moitié de ses PV, puis sous un cinquième, il disparaît, invisible, et file se cacher dans un coin de l’arène pour se soigner petit à petit : l’adversaire ne le voit que s’il passe tout près de lui, et un coup interrompt le soin.",
+    desc: "Le garde du corps d’Arasaka, armé de ses lames mantes. Au corps à corps, il enchaîne des combos de coups très rapides et variés (taille, revers, croix, tourbillon, traversée, frappe plongeante) : chaque coup fait peu de dégâts, mais plus le combo est long, plus ils font mal, et chaque coup fait saigner l’adversaire, qui perd des PV un moment. De loin, il bondit lames en avant sur l’adversaire (s’il le rate, il reste planté un instant). De temps en temps, il active son Sandevistan : pendant un peu plus de 2 secondes, l’adversaire et ses tirs sont au ralenti, et lui va encore plus vite. Ses lames parent parfois un tir, et tranchent la langue du Smoker qui l’attrape en plein coup ou en plein bond (sinon, seulement s’il réussit sa parade). Sur le point d’être touché par une attaque ou par un gros tir (10 dégâts ou plus), il fait un pas éclair sur le côté, intouchable le temps du pas (au plus toutes les 4 secondes, bien plus souvent pendant son Sandevistan). Quand il passe sous la moitié de ses PV, puis sous un cinquième, il disparaît, invisible, et file se cacher dans un coin de l’arène pour se soigner petit à petit : l’adversaire ne le voit que s’il passe tout près de lui, et un coup interrompt le soin.",
     svg: `<g ${O}>
       <rect x='46' y='112' width='11' height='28' fill='#1d1d24'/><rect x='63' y='112' width='11' height='28' fill='#1d1d24'/>
       <path d='M38 60 Q60 52 82 60 L86 116 H34Z' fill='#26262e'/>
       <circle cx='60' cy='38' r='18' fill='#d4232b'/><path d='M50 36 h20 M54 46 h12' stroke='#5a0a10' stroke-width='3'/>
       <path d='M34 70 L12 128' stroke='#ff4040' stroke-width='5'/><path d='M86 70 L108 128' stroke='#ff4040' stroke-width='5'/></g>`,
-    victoire(f) { f.camoufle = false; f.vis = 1; f.etatO = "garde"; f.coupO = null; },
+    victoire(f) { f.camoufle = false; f.vis = 1; f.etatO = "garde"; f.coupO = null; f.esqT = 0; f.enLair = false; },
+    // ses lames tranchent la langue qui l'atteint en plein coup ou en plein bond, sinon seulement s'il réussit sa parade (pas quand il est caché pour se soigner)
+    trancheLangue(f) { return f.etatO === "coup" || f.etatO === "bond" || ((f.etatO === "garde" || f.etatO === "souffle") && Math.random() < ODA_PARADE); },
     // ce qui va toucher f : un coup de lame tout proche, ou le bond qui retombe sur lui (pour esquiver : roulade, plongée…)
     menacePour(o, f) {
       if (o.etatO === "coup" && ecart(o, f) < ODA_PORTEE + 10) return { x: o.x, y: o.y, zone: true };
@@ -2649,6 +2654,30 @@ const CHARS = {
         let best = null; // la cachette : loin de l'adversaire
         for (let i = 0; i < 14; i++) { const x = f.hw + 10 + Math.random() * (W - 2 * f.hw - 20), y = f.hh + 10 + Math.random() * (W - 2 * f.hh - 20), d = Math.hypot(x - o.x, y - o.y); if (!best || d > best.d) best = { x, y, d }; }
         f.cachette = best;
+      }
+      // pas éclair : sur le point d'être touché, il fait un pas de côté fulgurant (intouchable le temps du pas)
+      f.esqCd = Math.max(0, (f.esqCd ?? 1.5) - dt);
+      if (f.esqT > 0) {
+        f.esqT -= dt; f.vx = f.esqDx * ODA_ESQUIVE_VITESSE; f.vy = f.esqDy * ODA_ESQUIVE_VITESSE;
+        if (f.esqT <= 0) { f.enLair = false; f.vitesse = this.vitesse; normaliser(f); }
+        return;
+      }
+      if (f.esqCd <= 0 && (f.etatO === "garde" || f.etatO === "coup" || f.etatO === "souffle") && !o.mort) {
+        let m = null; // un gros tir qui arrive sur lui (les petits, il les laisse à ses lames), ou une attaque de l'adversaire sur le point de le toucher
+        for (const p of g.proj) if (p.owner === o && (p.dmg || 0) >= ODA_ESQUIVE_GROS) {
+          const dx = f.x - p.x, dy = f.y - p.y, d = Math.hypot(dx, dy) || 1, v = Math.hypot(p.vx, p.vy) || 1;
+          if (d < 150 && (p.vx * dx + p.vy * dy) / (v * d) > 0.85) { m = { dx: p.vx / v, dy: p.vy / v }; break; }
+        }
+        if (!m && CHARS[o.type].menacePour) m = CHARS[o.type].menacePour(o, f, g);
+        if (m) {
+          let dx, dy;
+          if (m.zone) { dx = f.x - m.x; dy = f.y - m.y; } // s'éloigne de la source
+          else { dx = -m.dy; dy = m.dx; if ((f.x + dx * 80 - W / 2) ** 2 + (f.y + dy * 80 - W / 2) ** 2 > (f.x - dx * 80 - W / 2) ** 2 + (f.y - dy * 80 - W / 2) ** 2) { dx = -dx; dy = -dy; } } // sur le côté, vers le centre
+          const d = Math.hypot(dx, dy) || 1;
+          f.esqDx = dx / d; f.esqDy = dy / d; f.esqT = ODA_ESQUIVE_DUREE; f.esqCd = ODA_ESQUIVE_CD * (f.sandevT > 0 ? 0.3 : 1); f.enLair = true;
+          f.etatO = "garde"; f.coupO = null; f.fanT = 0;
+          return;
+        }
       }
       const E = f.etatO;
       if (E === "disparait" || E === "fuite") { // il s'efface en courant, puis file invisible vers sa cachette
@@ -2727,8 +2756,8 @@ const CHARS = {
     // un coup qui touche : petits dégâts qui grossissent avec le combo, et saignement
     toucher(f, o, g, C) {
       const t = cibleDe(f, o) || o;
-      f.combo = (f.combo || 0) + 1; f.chaine = (f.chaine || 0) + 1; f.dernierCoup = f.horloge; f.comboPop = 0.18;
-      const n = Math.max(1, Math.round((ODA_COUP + ODA_COUP_PAR * Math.min(f.combo - 1, ODA_COMBO_MAX)) * (C.mult || 1)));
+      if (t === o) { f.combo = (f.combo || 0) + 1; f.chaine = (f.chaine || 0) + 1; f.dernierCoup = f.horloge; f.comboPop = 0.18; } // le combo ne monte qu'en touchant l'adversaire lui-même
+      const n = Math.max(1, Math.round((ODA_COUP + ODA_COUP_PAR * Math.min(Math.max(0, (f.combo || 1) - 1), ODA_COMBO_MAX)) * (C.mult || 1)));
       const x = (f.x + t.x) / 2, y = (f.y + t.y) / 2 - 10;
       frapper(g, o, t, n, x, y);
       if (t === o) saigner(o, C.slam ? 2 : 1);
@@ -3572,11 +3601,12 @@ const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 // des tas de balles tombent au hasard dans l'arène à intervalles réguliers ; plus de balles, il va chercher le plus proche en se claquant les fesses
 // (sans tas par terre, il erre au hasard) ; chaque tas sur lequel il passe lui ajoute des balles, sans limite au nombre de balles qu'il porte
 // Oda : lames mantes (combos qui saignent), bond tranchant, Sandevistan, parade, repli invisible qui soigne
-const ODA_PORTEE = 34, ODA_COUP = 2, ODA_COUP_PAR = 0.35, ODA_COMBO_MAX = 12, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts d'un coup, en plus par coup du combo (jusqu'à ODA_COMBO_MAX) ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
-const ODA_SAIGNE = 0.5, ODA_SAIGNE_DUREE = 3, ODA_SAIGNE_MAX = 6; // saignement : PV perdus par seconde et par cran, durée (relancée à chaque coup), crans au plus
+const ODA_PORTEE = 34, ODA_COUP = 2, ODA_COUP_PAR = 0.16, ODA_COMBO_MAX = 12, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts d'un coup, en plus par coup du combo (jusqu'à ODA_COMBO_MAX) ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
+const ODA_SAIGNE = 0.25, ODA_SAIGNE_DUREE = 3, ODA_SAIGNE_MAX = 6; // saignement : PV perdus par seconde et par cran, durée (relancée à chaque coup), crans au plus
 const ODA_BOND_MIN = 120, ODA_BOND_MAX = 330, ODA_BOND_PREP = 0.22, ODA_BOND_DUREE = 0.42, ODA_BOND_HAUT = 46, ODA_BOND_DEGATS = 9, ODA_BOND_RATE = 0.6, ODA_BOND_CD = 3.4;
 const ODA_SANDEV_PREMIER = 6, ODA_SANDEV_CD = 11, ODA_SANDEV_DUREE = 2.2, SANDEV_LENT = 0.3, ODA_SANDEV_TEMPO = 0.65; // Sandevistan : l'adversaire et ses tirs à SANDEV_LENT de leur vitesse ; ses coups durent ODA_SANDEV_TEMPO fois moins
-const ODA_PARADE = 0.18, ODA_PALIERS = [0.5, 0.2], ODA_DISPARAIT = 0.55, ODA_FUITE = 330, ODA_REVELE = 140, ODA_SOIN = 4, ODA_SOIN_DUREE = 6, ODA_SOIN_MAX = 25;
+const ODA_ESQUIVE_CD = 4, ODA_ESQUIVE_DUREE = 0.2, ODA_ESQUIVE_VITESSE = 720, ODA_ESQUIVE_GROS = 10; // pas éclair : intouchable le temps du pas ; il ne s'en sert pas pour les petits tirs
+const ODA_PARADE = 0.18, ODA_PALIERS = [0.5, 0.2], ODA_DISPARAIT = 0.55, ODA_FUITE = 330, ODA_REVELE = 140, ODA_SOIN = 4, ODA_SOIN_DUREE = 6, ODA_SOIN_MAX = 15;
 // les coups du combo : durée, moment(s) où la lame touche, images, pas en avant, multiplicateur de dégâts, et le mouvement des lames
 // (angle de la lame : 0 = droit devant, positif = vers le bas ; de → a pendant le coup ; cote 0 = bras avant, 1 = bras arrière)
 const ODA_COUPS = [
@@ -4480,7 +4510,7 @@ const DECORS = {
   },
   oda(f, g, dtv, now) { // lames mantes (longues, sortant de l'avant-bras), traînées des coups, fantômes du Sandevistan, compteur de combo
     const c = CHARS.oda, n = c.imageDe(f), s = spriteDe(f), H1 = c.sprite.th * f.k;
-    if (f.sandevT > 0) { // images fantômes vertes
+    if (f.sandevT > 0 || f.esqT > 0) { // images fantômes vertes (Sandevistan, pas éclair)
       f.fanT = (f.fanT || 0) - dtv;
       if (f.fanT <= 0) { f.fanT = 0.045; (f.fantomes ||= []).push({ x: f.x + ((f.v && f.v.dx) || 0), y: f.y + ((f.v && f.v.dy) || 0) - (f.haut || 0), s, w: f.hw * 2, h: f.hh * 2, face: f.face, rot: f.rot || 0, ox: f.ox || 0, oy: f.oy || 0, t: 0.32 }); }
     }
@@ -4759,6 +4789,7 @@ function dessiner() {
       const L = f.capture.langue, k = L && L.serre > 0 ? 3 : 1;
       ctx.translate((Math.random() - 0.5) * 4 * k, (Math.random() - 0.5) * 3 * k);
     }
+    ctx.globalAlpha = Math.min(1, f.vis ?? 1); // halos d'état aussi transparents que le perso (rien ne trahit un invisible)
     if (f.aveugle > 0) { // aveuglé par la grenade flash : halo blanc et étoiles qui tournent
       ctx.fillStyle = `rgba(255,255,240,${0.18 + 0.12 * Math.sin(performance.now() / 60)})`; ctx.beginPath(); ctx.ellipse(0, 0, f.hw + 10, f.hh + 10, 0, 0, 7); ctx.fill();
       ctx.fillStyle = "#fff6b0";
@@ -5093,9 +5124,10 @@ function dessiner() {
     const gros = t.n ? Math.min(1, Math.max(0, (t.n - 6) / 18)) : 0, taille = t.annonce ? 50 : t.sandev ? 30 : t.n ? 20 + 14 * gros : 19;
     ctx.globalAlpha = Math.min(1, t.t * 2.5);
     ctx.font = `400 ${Math.round(taille * pop)}px "Bowlby One", "Arial Black", sans-serif`;
-    ctx.lineWidth = 5; ctx.strokeStyle = "rgba(10,12,28,.85)"; ctx.strokeText(t.s, t.x, t.y);
+    const lw = ctx.measureText(t.s).width, tx = Math.max(lw / 2 + 4, Math.min(W - lw / 2 - 4, t.x)); // jamais coupé par le bord de l'arène
+    ctx.lineWidth = 5; ctx.strokeStyle = "rgba(10,12,28,.85)"; ctx.strokeText(t.s, tx, t.y);
     ctx.fillStyle = t.sandev ? "#6dffbf" : t.saigne ? "#d8222e" : t.annonce ? "#ff4d3a" : t.soin ? "#5ef08a" : t.n ? (gros > 0.55 ? "#ff6a3d" : gros > 0.2 ? "#ffc23d" : "#ffffff") : "#eef1f8"; // soin en vert
-    ctx.fillText(t.s, t.x, t.y);
+    ctx.fillText(t.s, tx, t.y);
   }
   ctx.globalAlpha = 1;
   ctx.restore();

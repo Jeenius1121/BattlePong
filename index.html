@@ -538,7 +538,7 @@ const CHARS = {
       const s = sons.cowboy, lat = latenceSon(f);
       if (s && s.coups.length >= 6) return s.coups.slice(0, 6).map(t => lat + t);
       if (s && s.buffer.duration > 0.6) return [0, 1, 2, 3, 4, 5].map(i => lat + i * s.buffer.duration / 6);
-      return [0, 1, 2, 3, 4, 5].map(i => lat + i * 0.09);
+      return [0, 1, 2, 3, 4, 5].map(i => lat + i * 0.8 / 6); // son pas encore chargé : même cadence qu'avec le bruitage d'origine (0,8 s pour 6 balles)
     },
     svg: `<g ${O}>
       <rect x='42' y='106' width='15' height='32' fill='#3b5aa8'/><rect x='62' y='106' width='15' height='32' fill='#3b5aa8'/>
@@ -3606,7 +3606,7 @@ const ODA_SAIGNE = 0.25, ODA_SAIGNE_DUREE = 3, ODA_SAIGNE_MAX = 6; // saignement
 const ODA_BOND_MIN = 120, ODA_BOND_MAX = 330, ODA_BOND_PREP = 0.22, ODA_BOND_DUREE = 0.42, ODA_BOND_HAUT = 46, ODA_BOND_DEGATS = 9, ODA_BOND_RATE = 0.6, ODA_BOND_CD = 3.4;
 const ODA_SANDEV_PREMIER = 6, ODA_SANDEV_CD = 11, ODA_SANDEV_DUREE = 2.2, SANDEV_LENT = 0.3, ODA_SANDEV_TEMPO = 0.65; // Sandevistan : l'adversaire et ses tirs à SANDEV_LENT de leur vitesse ; ses coups durent ODA_SANDEV_TEMPO fois moins
 const ODA_ESQUIVE_CD = 4, ODA_ESQUIVE_DUREE = 0.2, ODA_ESQUIVE_VITESSE = 720, ODA_ESQUIVE_GROS = 10; // pas éclair : intouchable le temps du pas ; il ne s'en sert pas pour les petits tirs
-const ODA_PARADE = 0.18, ODA_PALIERS = [0.5, 0.2], ODA_DISPARAIT = 0.55, ODA_FUITE = 330, ODA_REVELE = 140, ODA_SOIN = 4, ODA_SOIN_DUREE = 6, ODA_SOIN_MAX = 15;
+const ODA_PARADE = 0.1, ODA_PALIERS = [0.5, 0.2], ODA_DISPARAIT = 0.55, ODA_FUITE = 330, ODA_REVELE = 140, ODA_SOIN = 4, ODA_SOIN_DUREE = 6, ODA_SOIN_MAX = 15;
 // les coups du combo : durée, moment(s) où la lame touche, images, pas en avant, multiplicateur de dégâts, et le mouvement des lames
 // (angle de la lame : 0 = droit devant, positif = vers le bas ; de → a pendant le coup ; cote 0 = bras avant, 1 = bras arrière)
 const ODA_COUPS = [
@@ -6398,7 +6398,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.94.0", NOTES = "Robot : quand il charge et tire son laser (il est ralenti), il avance à petits pas lents dans sa pose de tir, au lieu de glisser (8 nouvelles images).";
+const VERSION = "1.95.0", NOTES = "Nouveau perso : Oda, le garde du corps d’Arasaka (Cyberpunk 2077), avec ses lames mantes qui sortent de l’avant-bras. Combos de coups rapides et variés (plus le combo est long, plus ça fait mal) qui font saigner, bond tranchant, Sandevistan qui ralentit l’adversaire, pas éclair pour esquiver, parade des tirs, et repli invisible pour se soigner caché dans l’arène (on ne le voit qu’en passant tout près). Corrigé : depuis la 1.93, McCree tirait ses rafales beaucoup trop vite tant que les sons n’étaient pas encore chargés (il gagnait presque tout au début). Aussi : le bouclier du Sorcier renvoie bien 20 % des petits coups, les halos d’état ne trahissent plus un perso invisible, et les textes ne sont plus coupés au bord de l’arène.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

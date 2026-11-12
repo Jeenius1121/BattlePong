@@ -1,0 +1,22 @@
+{
+ "name": "Battle Pong",
+ "short_name": "Battle Pong",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#0d1020",
+ "theme_color": "#0d1020",
+ "lang": "fr",
+ "icons": [
+  {
+   "src": "icone-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icone-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  }
+ ]
+}

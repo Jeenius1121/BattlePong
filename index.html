@@ -4540,7 +4540,7 @@ const DECORS = {
       const [ax, ay] = dirImg(L.a, arriere), [bx, by] = dirImg(L.a, avant), [rx, ry] = dirImg(L.a, arriere + 0.05 * H1);
       const S = versMonde(f, L.P[0] - ax, L.P[1] - ay), E = versMonde(f, L.P[0] + bx, L.P[1] + by), R = versMonde(f, L.P[0] - rx, L.P[1] - ry);
       if (L.balaie) { const T = (f.trainees ||= [[], []])[L.cote]; T.push({ S: { x: S.x + (E.x - S.x) * 0.45, y: S.y + (E.y - S.y) * 0.45 }, E, t: 0.13 }); } // traînée : la moitié de la lame côté pointe
-      dessinerLameOda(R, S, E);
+      dessinerLameOda(R, S, E, f.x, f.y - (f.haut || 0));
     }
     if (f.trainees) for (const T of f.trainees) { // traînées des coups : un croissant lumineux qui s'efface
       for (const q of T) q.t -= dtv;
@@ -5328,14 +5328,37 @@ function dessinerFriteSimple(L) {
 }
 
 // ===== Oda : lames et Sandevistan (dessin) =====
-// une lame mante : la tige sombre qui sort de l'avant-bras, puis la lame rouge lumineuse au cœur blanc, un peu courbée
-function dessinerLameOda(R, S, E) {
-  const dx = E.x - S.x, dy = E.y - S.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, cx = (S.x + E.x) / 2 + nx * L * 0.06, cy = (S.y + E.y) / 2 + ny * L * 0.06;
-  ctx.save(); ctx.lineCap = "round";
-  ctx.strokeStyle = "#2c2f38"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(R.x, R.y); ctx.lineTo(S.x, S.y); ctx.stroke();
-  ctx.globalCompositeOperation = "lighter";
-  const trait = (w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(S.x, S.y); ctx.quadraticCurveTo(cx, cy, E.x, E.y); ctx.stroke(); };
-  trait(11, "rgba(255,30,30,.22)"); trait(6, "rgba(255,50,40,.55)"); trait(3, "rgba(255,90,80,.95)"); trait(1.4, "rgba(255,245,240,1)");
+// une lame mante : un bras mécanique sombre (articulé à l'avant-bras) qui porte une lame fine et plate,
+// légèrement cambrée, qui s'affine en pointe acérée ; dos plus sombre, fil chauffé à blanc, halo rouge
+function dessinerLameOda(R, S, E, cx, cy) {
+  const dx = E.x - S.x, dy = E.y - S.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+  let nx = -uy, ny = ux; // n : côté du dos (à l'opposé du corps, sinon vers le haut)
+  if (nx * (S.x - cx) + ny * (S.y - cy) - ny * 12 < 0) { nx = -nx; ny = -ny; }
+  const W = Math.max(3, Math.min(8, L * 0.11)), K = L * 0.07; // largeur de la lame, cambrure
+  const pt = (t, off) => { const c = K * t * t; return { x: S.x + ux * L * t + nx * (c + off), y: S.y + uy * L * t + ny * (c + off) }; };
+  const dos = t => W * (t < 0.8 ? 0.36 : 0.36 * (1 - t) / 0.2), fil = t => W * (t < 0.3 ? 0.42 + 0.8 * t : 0.66 * (1 - t) / 0.7);
+  const N = 12, haut = [], bas = [];
+  for (let i = 0; i <= N; i++) { const t = i / N; haut.push(pt(t, dos(t))); bas.push(pt(t, -fil(t))); }
+  const lame = () => { ctx.beginPath(); ctx.moveTo(haut[0].x, haut[0].y); for (const p of haut) ctx.lineTo(p.x, p.y); for (let i = N; i >= 0; i--) ctx.lineTo(bas[i].x, bas[i].y); ctx.closePath(); };
+  const trace = (t0, t1, off, n) => { ctx.beginPath(); for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n, p = pt(t, off(t)); if (i) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); } };
+  ctx.save(); ctx.lineJoin = "miter"; ctx.lineCap = "butt";
+  // bras mécanique : de l'avant-bras jusqu'à la lame
+  ctx.strokeStyle = "#17181f"; ctx.lineWidth = 3.4; ctx.beginPath(); ctx.moveTo(R.x, R.y); ctx.lineTo(S.x, S.y); ctx.stroke();
+  ctx.strokeStyle = "#646a78"; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(R.x + nx * 1.1, R.y + ny * 1.1); ctx.lineTo(S.x + nx * 1.1, S.y + ny * 1.1); ctx.stroke();
+  // la lame : halo, puis rouge vif côté fil et plus sombre au dos
+  ctx.shadowColor = "rgba(255,45,25,.95)"; ctx.shadowBlur = 10; ctx.fillStyle = "#d81c1c"; lame(); ctx.fill(); ctx.shadowBlur = 0;
+  const g = ctx.createLinearGradient(S.x + nx * W * 0.5, S.y + ny * W * 0.5, S.x - nx * W * 0.7, S.y - ny * W * 0.7);
+  g.addColorStop(0, "#8c0c14"); g.addColorStop(0.45, "#ff3424"); g.addColorStop(1, "#ff9a6a");
+  ctx.fillStyle = g; lame(); ctx.fill();
+  // fil chauffé à blanc, le long du tranchant
+  ctx.globalCompositeOperation = "lighter"; ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(255,236,220,.95)"; ctx.lineWidth = Math.max(0.9, W * 0.24); trace(0.05, 0.93, t => -fil(t) * 0.38, 10); ctx.stroke();
+  ctx.globalCompositeOperation = "source-over"; ctx.lineCap = "butt";
+  // l'armature sombre le long du dos, à la base de la lame, et les charnières
+  ctx.strokeStyle = "#17181f"; ctx.lineWidth = Math.max(1.5, W * 0.38); trace(0, 0.5, t => dos(t) + 0.3, 6); ctx.stroke();
+  ctx.strokeStyle = "#7d8391"; ctx.lineWidth = 0.7; trace(0.02, 0.47, t => dos(t) + 0.95, 6); ctx.stroke();
+  ctx.fillStyle = "#17181f"; for (let i = 0; i < 4; i++) { const t = 0.08 + i * 0.08, p = pt(t, -fil(t)), q = pt(t + 0.03, -fil(t + 0.03) - W * 0.28); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.lineTo(pt(t + 0.06, -fil(t + 0.06)).x, pt(t + 0.06, -fil(t + 0.06)).y); ctx.fill(); } // dents de scie à la base
+  for (const [P, r] of [[R, 2.4], [S, 1.8]]) { ctx.fillStyle = "#17181f"; ctx.beginPath(); ctx.arc(P.x, P.y, r, 0, 7); ctx.fill(); ctx.fillStyle = "#9aa0ad"; ctx.beginPath(); ctx.arc(P.x, P.y, r * 0.42, 0, 7); ctx.fill(); }
   ctx.restore();
 }
 // silhouette verte d'une image (fantômes du Sandevistan), préparée une fois
@@ -6398,7 +6421,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.95.2", NOTES = "Oda : images refaites à partir de la planche sur fond blanc : perso net et complet, sans trous ni taches, bords propres. Ses images sont aussi 2 fois plus légères (chargement plus rapide).";
+const VERSION = "1.95.3", NOTES = "Oda : nouvelles lames mantes, comme dans Cyberpunk : une lame fine et plate qui s’affine en pointe acérée, légèrement cambrée, avec son armature sombre le long du dos, des dents de scie à la base, un fil chauffé à blanc et un halo rouge, portée par un bras mécanique articulé qui sort de l’avant-bras.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

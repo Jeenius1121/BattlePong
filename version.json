@@ -1,1 +1,1 @@
-{"version": "1.97.5", "notes": "Oda : son bond tranchant fait moins mal (6 dégâts au lieu de 9). Sa parade au corps à corps (dès 15 coups de combo) ne remet plus le combo à zéro : il perd autant de coups de combo que les dégâts bloqués (un coup de 7 dégâts lui retire 7 coups)."}
+{"version": "1.97.6", "notes": "Oda : sa parade au corps à corps (dès 15 coups de combo) ne bloque plus que les gros coups, de 8 dégâts ou plus ; les petits coups passent normalement, sans toucher à son combo. Son bond tranchant fait 7 dégâts."}

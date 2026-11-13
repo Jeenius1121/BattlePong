@@ -1,1 +1,1 @@
-{"version": "1.96.5", "notes": "Menu de sélection : les deux grands cadres des joueurs gardent toujours la même taille, quel que soit le perso choisi (la fiche du perso en dessous a maintenant une hauteur fixe)."}
+{"version": "1.96.6", "notes": "Menu de sélection : « À toi de choisir » ne passe plus par-dessus le perso : c’est l’étiquette du joueur, en haut du cadre, qui affiche « ▼ À toi, J1 » ou « ▼ À toi, J2 ». Le perso commence sous cette étiquette, qui reste toujours devant."}

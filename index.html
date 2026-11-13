@@ -132,7 +132,7 @@ body.vue-combat [data-vue="combat"], body.vue-selection [data-vue="selection"]{a
 .panneau .grand.entre{animation:entree .38s cubic-bezier(.2,1.3,.4,1), respire 2.8s ease-in-out .38s infinite}
 @keyframes entree{from{opacity:0; translate:0 18px; scale:.85}}
 @keyframes respire{50%{scale:1.012 1.025}}
-.joueur{position:absolute; top:8px; left:10px; font-weight:800; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; background:rgba(0,0,0,.38); padding:3px 8px; border-radius:999px}
+.joueur{position:absolute; z-index:3; top:8px; left:10px; font-weight:800; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; background:rgba(0,0,0,.38); padding:3px 8px; border-radius:999px}
 .panneau[data-side="1"] .joueur{left:auto; right:10px}
 .panneau .bas{position:absolute; left:0; right:0; bottom:0; padding:22px 6px 8px; text-align:center; background:linear-gradient(transparent, rgba(0,0,0,.66))}
 .nomGrand{display:block; white-space:nowrap; overflow:hidden; font-family:"Bowlby One","Arial Black",Impact,sans-serif; font-size:clamp(1rem,5.4vw,1.5rem); line-height:1.05; text-shadow:0 2px 0 rgba(0,0,0,.5)}
@@ -237,10 +237,14 @@ body.proprio .ecranSel{flex:none; height:calc(100svh - 70px)}
 .ecranSel .panneau[data-side="0"]{grid-area:p1} .ecranSel .panneau[data-side="1"]{grid-area:p2}
 .ecranSel .panneau{aspect-ratio:auto; height:100%; min-height:0; border-radius:16px; clip-path:polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)}
 .ecranSel .panneau[data-side="1"]{clip-path:polygon(0 0, 100% 0, 100% 100%, 8% 100%, 0 92%)}
-.ecranSel .panneau .grand{height:70%; bottom:22%}
+.ecranSel .panneau .grand{height:63%; bottom:22%; max-height:calc(78% - 34px)} /* commence sous l’étiquette du joueur */
 .ecranSel .panneau .nomGrand{font-size:clamp(.95rem,4.6vw,1.6rem)}
 .ecranSel .panneau.actif .joueur{background:var(--team); color:#0b0e1d; animation:appel 1s ease-in-out infinite}
-.ecranSel .panneau.actif::after{content:"▼ À toi de choisir"; position:absolute; left:50%; top:34px; transform:translateX(-50%); white-space:nowrap; padding:2px 8px; border-radius:999px; font-size:.6rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; background:rgba(0,0,0,.45); color:#fff}
+/* « à toi de choisir » : dans l'étiquette du joueur en haut du cadre (plus rien par-dessus le perso) */
+.ecranSel .panneau.actif .joueur{font-size:0; letter-spacing:0}
+.ecranSel .panneau.actif .joueur::after{font-size:.68rem; letter-spacing:.06em}
+.ecranSel .panneau[data-side="0"].actif .joueur::after{content:"▼ À toi, J1"}
+.ecranSel .panneau[data-side="1"].actif .joueur::after{content:"▼ À toi, J2"}
 .ecranSel .milieu{grid-area:mid; justify-content:center; gap:14px}
 .ecranSel .duel .vs{font-size:clamp(1.4rem,6.5vw,2.4rem)}
 .ecranSel .aide{display:none}
@@ -264,7 +268,7 @@ body.proprio .ecranSel{flex:none; height:calc(100svh - 70px)}
 .ecranSel .etoile{top:1px; right:3px; font-size:.6rem}
 .ecranSel .barreGo{grid-area:go; position:static; margin:0; padding:0; background:none}
 .ecranSel .btn.go{padding:11px; font-size:1.2rem}
-@media (max-height:620px){ .ecranSel .ficheDesc{-webkit-line-clamp:1; min-height:1.35em} .ecranSel .panneau.actif::after{display:none} }
+@media (max-height:620px){ .ecranSel .ficheDesc{-webkit-line-clamp:1; min-height:1.35em} }
 /* écran large (ordinateur, téléphone tourné) : les deux joueurs sur les côtés, la grille au milieu */
 @media (min-aspect-ratio:5/4){
   .ecranSel{grid-template-columns:minmax(0,1fr) minmax(0,1.55fr) minmax(0,1fr); grid-template-rows:auto auto auto minmax(0,1fr) auto;
@@ -6468,7 +6472,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.96.5", NOTES = "Menu de sélection : les deux grands cadres des joueurs gardent toujours la même taille, quel que soit le perso choisi (la fiche du perso en dessous a maintenant une hauteur fixe).";
+const VERSION = "1.96.6", NOTES = "Menu de sélection : « À toi de choisir » ne passe plus par-dessus le perso : c’est l’étiquette du joueur, en haut du cadre, qui affiche « ▼ À toi, J1 » ou « ▼ À toi, J2 ». Le perso commence sous cette étiquette, qui reste toujours devant.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

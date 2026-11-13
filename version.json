@@ -1,1 +1,1 @@
-{"version": "1.96.4", "notes": "Corrigé : Oda pouvait rester coincé invisible à l’infini quand quelque chose bloquait le chemin vers sa cachette (un mur, un gros adversaire…). S’il est bloqué ou met trop longtemps, il se soigne maintenant là où il est."}
+{"version": "1.96.5", "notes": "Menu de sélection : les deux grands cadres des joueurs gardent toujours la même taille, quel que soit le perso choisi (la fiche du perso en dessous a maintenant une hauteur fixe)."}

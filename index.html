@@ -6572,7 +6572,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.97.8", NOTES = "Équilibrage : tous les persos sont maintenant entre 48 et 52 % de victoires. Oda : son bond tranchant passe outre toute armure ou réduction de dégâts. Bullets : un tas de munitions toutes les 9 s (au lieu de 9,5). L’Inconnu regagne 4 PV par téléportation (au lieu de 3). Bouldozer : 36 % de dégâts en moins en tourelle (au lieu de 30). D.Nouille : coup de langue au plus toutes les 13 s (au lieu de 10). Sorcier : son aura de feu ajoute 4 dégâts (au lieu de 6).";
+const VERSION = "1.97.9", NOTES = "Le bouton 📲 pour installer l’application n’apparaît plus quand on joue déjà dans l’application.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;
@@ -6580,7 +6580,9 @@ document.getElementById("notesTexte").textContent = NOTES;
 // du téléphone utilisé passe en premier (sur iPhone, seule celle de l'iPhone : un iPhone n'installe pas d'APK)
 (() => {
   const btn = document.getElementById("appliBtn"), f = document.getElementById("feuilleAppli");
-  const installe = window.BattlePongApp || navigator.standalone || (matchMedia && matchMedia("(display-mode: standalone)").matches);
+  // dans l'appli Android : le pont BattlePongApp, l'adresse locale jeu.local, ou la vue web d'Android (« ; wv) » dans le navigateur)
+  const dansAppli = !!window.BattlePongApp || location.hostname === "jeu.local" || /; wv\)/.test(navigator.userAgent || "");
+  const installe = dansAppli || navigator.standalone || (matchMedia && matchMedia("(display-mode: standalone)").matches);
   if (installe) return;
   const ua = navigator.userAgent || "", ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   if (ios) document.getElementById("appliAndroid").hidden = true;

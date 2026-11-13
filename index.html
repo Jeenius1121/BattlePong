@@ -2654,7 +2654,7 @@ const CHARS = {
       if (E === "souffle") return 35;
       return imageMarche(f, 9, 1 + Math.floor(h * 8) % 8);
     },
-    desc: "Le garde du corps d’Arasaka, armé de ses lames mantes. Au corps à corps, il enchaîne des combos de coups très rapides et variés (taille, revers, croix, tourbillon, traversée, frappe plongeante) : chaque coup fait peu de dégâts, mais plus le combo est long, plus ils font mal et plus ils partent vite (+1,5 % de vitesse d’attaque par coup du combo), et chaque coup fait saigner l’adversaire, qui perd des PV un moment. De loin, il bondit lames en avant sur l’adversaire (s’il le rate, il reste planté un instant). De temps en temps, il active son Sandevistan : pendant un peu plus de 2 secondes, l’adversaire et ses tirs sont au ralenti, et lui va encore plus vite. Ses lames parent parfois un tir, et tranchent la langue du Smoker qui l’attrape en plein coup ou en plein bond (sinon, seulement s’il réussit sa parade). Sur le point d’être touché par une attaque ou par un gros tir (10 dégâts ou plus), il fait un pas éclair sur le côté, intouchable le temps du pas (au plus toutes les 4 secondes, bien plus souvent pendant son Sandevistan). Quand il passe sous la moitié de ses PV, puis sous un cinquième, il disparaît, invisible, et file se cacher dans un coin de l’arène pour se soigner petit à petit : l’adversaire ne le voit que s’il passe tout près de lui, et un coup interrompt le soin.",
+    desc: "Le garde du corps d’Arasaka, armé de ses lames mantes. Au corps à corps, il enchaîne des combos de coups très rapides et variés (taille, revers, croix, tourbillon, traversée, frappe plongeante) : chaque coup fait peu de dégâts, mais plus le combo est long, plus ils partent vite (+2,5 % de vitesse d’attaque par coup du combo), et chaque coup fait saigner l’adversaire, qui perd des PV un moment. De loin, il bondit lames en avant sur l’adversaire (s’il le rate, il reste planté un instant). De temps en temps, il active son Sandevistan : pendant un peu plus de 2 secondes, l’adversaire et ses tirs sont au ralenti, et lui va encore plus vite. Ses lames parent parfois un tir, et tranchent la langue du Smoker qui l’attrape en plein coup ou en plein bond (sinon, seulement s’il réussit sa parade). Sur le point d’être touché par une attaque ou par un gros tir (10 dégâts ou plus), il fait un pas éclair sur le côté, intouchable le temps du pas (au plus toutes les 4 secondes, bien plus souvent pendant son Sandevistan). Quand il passe sous la moitié de ses PV, puis sous un cinquième, il disparaît, invisible, et file se cacher dans un coin de l’arène pour se soigner petit à petit : l’adversaire ne le voit que s’il passe tout près de lui, et un coup interrompt le soin.",
     svg: `<g ${O}>
       <rect x='46' y='112' width='11' height='28' fill='#1d1d24'/><rect x='63' y='112' width='11' height='28' fill='#1d1d24'/>
       <path d='M38 60 Q60 52 82 60 L86 116 H34Z' fill='#26262e'/>
@@ -2806,7 +2806,7 @@ const CHARS = {
     toucher(f, o, g, C) {
       const t = cibleDe(f, o) || o;
       if (t === o) { f.combo = (f.combo || 0) + 1; f.chaine = (f.chaine || 0) + 1; f.dernierCoup = f.horloge; f.comboPop = 0.18; } // le combo ne monte qu'en touchant l'adversaire lui-même
-      const n = Math.max(1, Math.round((ODA_COUP + ODA_COUP_PAR * Math.min(Math.max(0, (f.combo || 1) - 1), ODA_COMBO_MAX)) * (C.mult || 1)));
+      const n = Math.max(1, Math.round(ODA_COUP * (C.mult || 1))); // dégâts fixes : le combo le rend plus rapide, pas plus fort
       const x = (f.x + t.x) / 2, y = (f.y + t.y) / 2 - 10;
       frapper(g, o, t, n, x, y);
       if (t === o) saigner(o, C.slam ? 2 : 1);
@@ -3654,13 +3654,13 @@ const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 // (sans tas par terre, il erre au hasard) ; chaque tas sur lequel il passe lui ajoute des balles, sans limite au nombre de balles qu'il porte
 // Oda : lames mantes (combos qui saignent), bond tranchant, Sandevistan, parade, repli invisible qui soigne
 const ODA_FUITE_MAX = 2.5; // temps max pour rejoindre sa cachette
-const ODA_COMBO_VITESSE = 0.015; // vitesse d'attaque gagnée par coup du combo (+1,5 %)
-const ODA_PORTEE = 34, ODA_COUP = 2, ODA_COUP_PAR = 0.06, ODA_COMBO_MAX = 12, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts d'un coup, en plus par coup du combo (jusqu'à ODA_COMBO_MAX) ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
+const ODA_COMBO_VITESSE = 0.025; // vitesse d'attaque gagnée par coup du combo (+2,5 %)
+const ODA_PORTEE = 34, ODA_COUP = 2, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts fixes d'un coup ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
 const ODA_SAIGNE = 0.2, ODA_SAIGNE_DUREE = 3, ODA_SAIGNE_MAX = 6; // saignement : PV perdus par seconde et par cran, durée (relancée à chaque coup), crans au plus
 const ODA_BOND_MIN = 120, ODA_BOND_MAX = 330, ODA_BOND_PREP = 0.22, ODA_BOND_DUREE = 0.42, ODA_BOND_HAUT = 46, ODA_BOND_DEGATS = 9, ODA_BOND_RATE = 0.6, ODA_BOND_CD = 3.4;
 const ODA_SANDEV_PREMIER = 6, ODA_SANDEV_CD = 11, ODA_SANDEV_DUREE = 2.2, SANDEV_LENT = 0.3, ODA_SANDEV_TEMPO = 0.65; // Sandevistan : l'adversaire et ses tirs à SANDEV_LENT de leur vitesse ; ses coups durent ODA_SANDEV_TEMPO fois moins
 const ODA_ESQUIVE_CD = 4, ODA_ESQUIVE_DUREE = 0.2, ODA_ESQUIVE_VITESSE = 720, ODA_ESQUIVE_GROS = 10; // pas éclair : intouchable le temps du pas ; il ne s'en sert pas pour les petits tirs
-const ODA_PARADE = 0.1, ODA_PALIERS = [0.5, 0.2], ODA_DISPARAIT = 0.55, ODA_FUITE = 330, ODA_REVELE = 140, ODA_SOIN = 5, ODA_SOIN_PAS = 2, ODA_SOIN_DUREE = 6, ODA_SOIN_MAX = 16;
+const ODA_PARADE = 0.1, ODA_PALIERS = [0.5, 0.2], ODA_DISPARAIT = 0.55, ODA_FUITE = 330, ODA_REVELE = 140, ODA_SOIN = 6, ODA_SOIN_PAS = 2, ODA_SOIN_DUREE = 6, ODA_SOIN_MAX = 20;
 // les coups du combo : durée, moment(s) où la lame touche, images, pas en avant, multiplicateur de dégâts, et le mouvement des lames
 // (angle de la lame : 0 = droit devant, positif = vers le bas ; de → a pendant le coup ; cote 0 = bras avant, 1 = bras arrière)
 const ODA_COUPS = [
@@ -6514,7 +6514,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.96.8", NOTES = "Oda : ses coups font moins mal (le bonus de dégâts gagné à chaque coup du combo est divisé par deux), mais chaque coup du combo augmente maintenant sa vitesse d’attaque de 1,5 % (au lieu de 0,5 %) : à 20 coups, il frappe 30 % plus vite.";
+const VERSION = "1.96.9", NOTES = "Oda : ses coups ne gagnent plus de dégâts avec le combo (dégâts fixes). En échange, chaque coup du combo augmente sa vitesse d’attaque de 2,5 % (au lieu de 1,5 %), et il se soigne plus vite et plus longtemps quand il est caché (6 PV/s au lieu de 5, jusqu’à 20 PV par repli au lieu de 16).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

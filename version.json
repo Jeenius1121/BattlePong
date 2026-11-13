@@ -1,1 +1,1 @@
-{"version": "1.97.9", "notes": "Le bouton 📲 pour installer l’application n’apparaît plus quand on joue déjà dans l’application."}
+{"version": "1.98.0", "notes": "Corrigé : le bouton 📲 pour installer l’application restait affiché dans l’application. Il est maintenant bien caché quand on joue dans l’appli (il reste sur le site)."}

@@ -38,6 +38,7 @@ button{-webkit-user-select:none; user-select:none}
 .entete{display:flex; align-items:center; gap:10px; margin:0 0 10px}
 h1{flex:1; margin:0; font-size:clamp(1.9rem,8.6vw,2.6rem); line-height:1; letter-spacing:-.01em; transform:rotate(-2deg); transform-origin:left; user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:default}
 .rond{flex:none; width:44px; height:44px; border-radius:50%; border:2px solid var(--line); background:var(--panel); color:var(--ink); font-size:1.15rem; display:grid; place-items:center; cursor:pointer; box-shadow:0 3px 0 #070912; transition:transform .1s}
+.rond[hidden]{display:none} /* sinon « display:grid » l'emporte sur hidden (bouton 📲 visible dans l'appli) */
 .rond:active{transform:translateY(2px); box-shadow:0 1px 0 #070912}
 body.vue-combat .entete{display:none}
 
@@ -6572,7 +6573,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.97.9", NOTES = "Le bouton 📲 pour installer l’application n’apparaît plus quand on joue déjà dans l’application.";
+const VERSION = "1.98.0", NOTES = "Corrigé : le bouton 📲 pour installer l’application restait affiché dans l’application. Il est maintenant bien caché quand on joue dans l’appli (il reste sur le site).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

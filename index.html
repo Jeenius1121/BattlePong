@@ -668,7 +668,7 @@ const CHARS = {
     nom: "Sorcier", emoji: "🧙", vitesse: 200, pv: 100, voitInvisible: true, images: ["attaque", "bouclier", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "marche 7", "marche 8"], son2: "bouclier", marche: [4, 11],
     tailles: { 3: 1.4 }, // l'image du bouclier (cercle de feu) est affichée plus grande
     imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : imageMarche(f, 4), // il marche : images 4 à 11 (un pas de chaque pied)
-    desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 6 dégâts de plus.",
+    desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 4 dégâts de plus.",
     svg: `<g ${O}>
       <rect x='92' y='34' width='6' height='112' rx='3' fill='#8a5228'/><circle cx='95' cy='30' r='10' fill='#4fc3f7'/>
       <rect x='28' y='72' width='12' height='30' rx='6' fill='#6a4bb5'/>
@@ -843,7 +843,7 @@ const CHARS = {
   inconnu: {
     nom: "L’Inconnu", emoji: "👁️", vitesse: 230, pv: 100, son2: "téléportation", images: ["attaque"],
     imageDe: f => f.attT > 0 ? 2 : 1,
-    desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit l’adversaire (déplacements et attaques), puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter : à chaque téléportation, il regagne 3 PV.",
+    desc: "Tire un obus en cloche, comme un mortier : il transperce et ralentit l’adversaire (déplacements et attaques), puis explose en touchant un mur ou le sol. Pose une copie de lui-même toutes les 3 secondes (3 max) et peut s’y téléporter : à chaque téléportation, il regagne 4 PV.",
     svg: `<g ${O}>
       <path d='M36 60 Q60 50 84 60 L94 140 Q86 132 78 142 Q70 132 60 144 Q50 132 42 142 Q34 132 26 140Z' fill='#2a2440'/>
       <path d='M80 74 Q96 78 104 70' fill='none' stroke='#2a2440' stroke-width='11'/>
@@ -1553,7 +1553,7 @@ const CHARS = {
     portraitImage: 2, portraitAutre: { cx: 0.4, cy: 0.1, taille: 0.26 },
     sonNom: "grappin", son2: "mitraillettes", son3: "choc en feu", son4: "écrasement au sol",
     imageDe: f => f.etatH === "tourelle" ? 2 : 1,
-    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute (en feu, il brûle la langue du Smoker). Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (30 % de dégâts en moins), avant de relancer son grappin.",
+    desc: "Une grosse boule de démolition (150 PV). Il accroche son grappin à un endroit au hasard sur un mur et se balance au bout du câble en prenant de plus en plus de vitesse : quand il va assez vite, il prend feu, et là seulement il blesse l’adversaire qu’il percute (en feu, il brûle la langue du Smoker). Au bout d’un moment, il lâche le grappin et file encore un instant (toujours en feu s’il va vite), puis il s’arrête en hauteur, tremble une demi-seconde et s’écrase au sol : l’adversaire qui est en bas près de l’impact prend de gros dégâts et est projeté en l’air, et celui qui était sur sa trajectoire en prend un peu. Il sort alors de sa boule et arrose l’adversaire avec ses mitraillettes (petits dégâts), un peu blindé (36 % de dégâts en moins), avant de relancer son grappin.",
     svg: `<g ${O}>
       <circle cx='60' cy='80' r='52' fill='#8b93a6'/><circle cx='60' cy='80' r='52' fill='none' stroke='#4a5160' stroke-width='5'/>
       <path d='M12 80 H108 M60 28 V132' stroke='#5d6476' stroke-width='4'/>
@@ -2089,7 +2089,7 @@ const CHARS = {
       if (B && B.phase === "pause" && B.t > PILOTE_PAUSE - 0.12) return 6;
       return 2;
     },
-    desc: "D.Nouille, une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille : quand l’adversaire est proche, il bondit droit sur lui, et s’il lui retombe dessus, il l’écrase (3 dégâts) et le repousse. Si l’adversaire vient se coller au mécha, la grenouille lui donne un coup de langue collant (3 dégâts) qui le repousse (au plus toutes les 10 secondes). Son canon gonfle une bulle, petite au début, de plus en plus grosse ; pendant ce temps, elle ne saute plus et marche lentement sur le côté. Si la langue du Smoker touche la bulle, la langue est coupée. La bulle part quand elle est au maximum, ou dès que l’adversaire (ou la langue du Smoker) la touche pendant qu’elle gonfle. La bulle vole vers l’adversaire en le suivant un peu pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : elle arrête jusqu’à 15 dégâts du prochain coup. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout (en se rapprochant peu à peu de l’adversaire) et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
+    desc: "D.Nouille, une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille : quand l’adversaire est proche, il bondit droit sur lui, et s’il lui retombe dessus, il l’écrase (3 dégâts) et le repousse. Si l’adversaire vient se coller au mécha, la grenouille lui donne un coup de langue collant (3 dégâts) qui le repousse (au plus toutes les 13 secondes). Son canon gonfle une bulle, petite au début, de plus en plus grosse ; pendant ce temps, elle ne saute plus et marche lentement sur le côté. Si la langue du Smoker touche la bulle, la langue est coupée. La bulle part quand elle est au maximum, ou dès que l’adversaire (ou la langue du Smoker) la touche pendant qu’elle gonfle. La bulle vole vers l’adversaire en le suivant un peu pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : elle arrête jusqu’à 15 dégâts du prochain coup. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout (en se rapprochant peu à peu de l’adversaire) et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
     svg: `<g ${O}>
       <ellipse cx='60' cy='92' rx='40' ry='34' fill='#7a8f3c'/><rect x='88' y='84' width='30' height='14' rx='4' fill='#4a4a52'/>
       <circle cx='58' cy='60' r='24' fill='#bfe3ff' opacity='.7'/><circle cx='62' cy='62' r='14' fill='#7cc24a'/><circle cx='68' cy='58' r='5' fill='#f2a23a'/>
@@ -2680,7 +2680,7 @@ const CHARS = {
       if (E === "souffle") return 35;
       return imageMarche(f, 9, 1 + Math.floor(h * 8) % 8);
     },
-    desc: "Le garde du corps d’Arasaka, armé de ses lames mantes. Au corps à corps, il enchaîne des combos de coups très rapides et variés (taille, revers, croix, tourbillon, traversée, frappe plongeante) : chaque coup fait peu de dégâts, mais plus le combo est long, plus ils partent vite (+0,8 % de vitesse d’attaque par coup du combo), et chaque coup fait saigner l’adversaire, qui perd des PV un moment. De loin, il bondit lames en avant sur l’adversaire (s’il le rate, il reste planté un instant). Quand un coup arrive sur lui, que l’adversaire se colle à lui ou qu’il vient d’encaisser un gros coup, il active son Sandevistan (au plus toutes les 11 secondes) : pendant un peu plus de 2 secondes, l’adversaire et ses tirs sont au ralenti, et lui va encore plus vite. Avec un combo d’au moins 15 coups, ses lames bloquent les gros coups au corps à corps (8 dégâts ou plus ; les petits passent), mais son combo baisse d’autant de coups que les dégâts bloqués (un coup de 7 dégâts lui retire 7 coups de combo). Ses lames parent aussi parfois un tir, et tranchent la langue du Smoker qui l’attrape en plein coup ou en plein bond (sinon, seulement s’il réussit sa parade). Sur le point d’être touché par une attaque ou par un gros tir (10 dégâts ou plus), il fait un pas éclair sur le côté, intouchable le temps du pas (au plus toutes les 4 secondes, bien plus souvent pendant son Sandevistan). Quand il passe sous la moitié de ses PV, puis sous un cinquième, il disparaît, invisible, et file se cacher dans un coin de l’arène pour se soigner petit à petit : l’adversaire ne le voit que s’il passe tout près de lui, et un coup interrompt le soin.",
+    desc: "Le garde du corps d’Arasaka, armé de ses lames mantes. Au corps à corps, il enchaîne des combos de coups très rapides et variés (taille, revers, croix, tourbillon, traversée, frappe plongeante) : chaque coup fait peu de dégâts, mais plus le combo est long, plus ils partent vite (+0,8 % de vitesse d’attaque par coup du combo), et chaque coup fait saigner l’adversaire, qui perd des PV un moment. De loin, il bondit lames en avant sur l’adversaire : ce coup passe outre toute armure ou réduction de dégâts (s’il le rate, il reste planté un instant). Quand un coup arrive sur lui, que l’adversaire se colle à lui ou qu’il vient d’encaisser un gros coup, il active son Sandevistan (au plus toutes les 11 secondes) : pendant un peu plus de 2 secondes, l’adversaire et ses tirs sont au ralenti, et lui va encore plus vite. Avec un combo d’au moins 15 coups, ses lames bloquent les gros coups au corps à corps (8 dégâts ou plus ; les petits passent), mais son combo baisse d’autant de coups que les dégâts bloqués (un coup de 7 dégâts lui retire 7 coups de combo). Ses lames parent aussi parfois un tir, et tranchent la langue du Smoker qui l’attrape en plein coup ou en plein bond (sinon, seulement s’il réussit sa parade). Sur le point d’être touché par une attaque ou par un gros tir (10 dégâts ou plus), il fait un pas éclair sur le côté, intouchable le temps du pas (au plus toutes les 4 secondes, bien plus souvent pendant son Sandevistan). Quand il passe sous la moitié de ses PV, puis sous un cinquième, il disparaît, invisible, et file se cacher dans un coin de l’arène pour se soigner petit à petit : l’adversaire ne le voit que s’il passe tout près de lui, et un coup interrompt le soin.",
     svg: `<g ${O}>
       <rect x='46' y='112' width='11' height='28' fill='#1d1d24'/><rect x='63' y='112' width='11' height='28' fill='#1d1d24'/>
       <path d='M38 60 Q60 52 82 60 L86 116 H34Z' fill='#26262e'/>
@@ -2874,7 +2874,7 @@ const CHARS = {
           f.haut = 0; f.vx = 0; f.vy = 0; f.bondCd = ODA_BOND_CD; g.secousse = Math.max(g.secousse, 0.15);
           for (let i = 0; i < 14; i++) g.parts.push({ x: f.x + f.face * f.hw * 0.4, y: f.y + f.hh * 0.85, vx: (Math.random() - 0.5) * 220, vy: -60 - Math.random() * 140, t: 0.4, g: 500, c: i % 3 ? "#ff4040" : "#ffd0d0" });
           if (!o.mort && !o.enLair && ecart(f, o) < 16) { // il retombe sur lui : gros coup, saignement, et le combo enchaîne
-            const n = ODA_BOND_DEGATS; frapper(g, o, o, n, o.x, o.y - o.hh * 0.2); saigner(o, 2);
+            const n = ODA_BOND_DEGATS; coupPercant = true; frapper(g, o, o, n, o.x, o.y - o.hh * 0.2); coupPercant = false; saigner(o, 2); // le bond passe outre l'armure
             f.combo = (f.combo || 0) + 1; f.chaine = 1; f.dernierCoup = f.horloge; f.comboPop = 0.18; f.suite = 0; f.etatO = "garde";
           } else { B.phase = "rate"; B.rate = true; B.t = ODA_BOND_RATE; } // raté : planté au sol un instant
         }
@@ -2900,7 +2900,7 @@ const CHARS = {
       if (f.tirT < 0.11) return 6;
       return f.vise < BULLETS_VISEE / 2 ? 2 : 3;
     },
-    desc: "Un dur à cuire (150 PV). Tire sur l’adversaire balle après balle avec son pistolet (7 dégâts par balle), quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Mais il commence le combat avec seulement 5 balles ! Un tas de balles tombe au hasard dans l’arène au bout de 3 secondes, puis toutes les 9,5 secondes (2 au plus par terre) : il ramasse tous ceux sur lesquels il passe, et chaque tas lui ajoute 6 balles, sans limite. Quand il n’a plus de balles, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets ») et en marchant un peu moins vite. Il va droit vers le tas le plus proche (ou vers le fusil d’assaut s’il y en a un par terre plus près : le ramasser lui donne aussi des balles), et s’il n’y a rien, il erre au hasard en attendant qu’il en tombe un. À chaque tas qui tombe, un fusil d’assaut a 40 % de chance de tomber aussi dans l’arène (un seul à la fois) : s’il passe dessus, il le ramasse (« Better Weapon ») et le garde jusqu’à la fin du combat. Il tire alors en continu de petites balles tant qu’il a sa cible en vue : chacune fait 3 % des PV de départ de l’adversaire (3 dégâts contre un perso à 100 PV, 5 contre 200 PV, 5 au plus) et traverse la moitié de ses résistances aux dégâts (blindage, pose, furie…). Avec le fusil, chaque tas lui ajoute 12 balles (le fusil aussi, quand il le ramasse) ; pendant ses claques, le fusil passe dans son dos. Quand il gagne, il se claque les fesses pour fêter ça.",
+    desc: "Un dur à cuire (150 PV). Tire sur l’adversaire balle après balle avec son pistolet (7 dégâts par balle), quand il l’a devant lui (pas s’il est trop haut ou trop bas), en visant un peu en avant, là où il le voit aller. Mais il commence le combat avec seulement 5 balles ! Un tas de balles tombe au hasard dans l’arène au bout de 3 secondes, puis toutes les 9 secondes (2 au plus par terre) : il ramasse tous ceux sur lesquels il passe, et chaque tas lui ajoute 6 balles, sans limite. Quand il n’a plus de balles, il ne peut plus tirer : il cherche des balles en se claquant les fesses (« I need more bullets ») et en marchant un peu moins vite. Il va droit vers le tas le plus proche (ou vers le fusil d’assaut s’il y en a un par terre plus près : le ramasser lui donne aussi des balles), et s’il n’y a rien, il erre au hasard en attendant qu’il en tombe un. À chaque tas qui tombe, un fusil d’assaut a 40 % de chance de tomber aussi dans l’arène (un seul à la fois) : s’il passe dessus, il le ramasse (« Better Weapon ») et le garde jusqu’à la fin du combat. Il tire alors en continu de petites balles tant qu’il a sa cible en vue : chacune fait 3 % des PV de départ de l’adversaire (3 dégâts contre un perso à 100 PV, 5 contre 200 PV, 5 au plus) et traverse la moitié de ses résistances aux dégâts (blindage, pose, furie…). Avec le fusil, chaque tas lui ajoute 12 balles (le fusil aussi, quand il le ramasse) ; pendant ses claques, le fusil passe dans son dos. Quand il gagne, il se claque les fesses pour fêter ça.",
     svg: `<g ${O}>
       <rect x='43' y='104' width='15' height='32' fill='#56603a'/><rect x='62' y='104' width='15' height='32' fill='#56603a'/>
       <path d='M41 132h18v12H35v-4z' fill='#1f2026'/><path d='M61 132h18l5 8v4H61z' fill='#1f2026'/>
@@ -3217,7 +3217,7 @@ function nouveauJeu(running) {
 }
 // tirs ratés : aveuglé par la grenade flash (tout rate), puis vue trouble (20 % de chances de rater)
 // coupFoudroyant : cri de Steve (traverse la pose de GigaChad) ; coupDirect : dégâts qui ignorent sa pose (langue annulée)
-let coupVenu = null, attaquant = null, coupRate = false, coupFoudroyant = false, coupDirect = false, coupSaigne = false; // coupSaigne : PV perdus en saignant (aucune réaction)
+let coupPercant = false, coupVenu = null, attaquant = null, coupRate = false, coupFoudroyant = false, coupDirect = false, coupSaigne = false; // coupSaigne : PV perdus en saignant (aucune réaction)
 function rateTir(f) { return !!f && (f.aveugle > 0 || (f.flou > 0 && Math.random() < FLASH_PRECISION)); }
 function rate(g, x, y) { if (!g.txt.some(t => t.rate && t.t > 0.5)) g.txt.push({ x, y: y - 20, t: 0.8, s: "Raté !", rate: true }); }
 function degats(g, cible, n, x, y) {
@@ -3234,7 +3234,7 @@ function degats(g, cible, n, x, y) {
   if (c.annuleCoup && c.annuleCoup(cible, g)) { n -= 15; if (n <= 0) return; } // annuleCoup : coup entièrement bloqué (bulle de protection de la Grenouille)
   if (c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
   // Myers encaisse moins pendant sa furie (arrondi, 1 dégât minimum)
-  const perceTir = (coupVenu && coupVenu.perceResist) || 0; // balles du fusil d'I Need More Bullets : elles traversent une partie de toute résistance aux dégâts
+  const perceTir = coupPercant ? 1 : (coupVenu && coupVenu.perceResist) || 0; // coupPercant : traverse toute armure (bond d'Oda) // balles du fusil d'I Need More Bullets : elles traversent une partie de toute résistance aux dégâts
   const perce = Math.max((attaquant && CHARS[attaquant.type].perceBlindage) || 0, perceTir); // la puissance psychique de Bison traverse une partie du blindage
   if (cible.type === "hammond" && cible.etatH === "tourelle") n = Math.max(1, Math.round(n * (1 - HAMMOND_BLINDAGE * (1 - perce)))); // Bouldozer posé en bas : un peu blindé
   if (cible.esquive > 0) n = Math.max(1, Math.round(n * (1 - 0.5 * (1 - perceTir)))); // juste après une roulade de McCree : 50 % de dégâts en moins
@@ -3548,7 +3548,7 @@ const VOL_LIBRE = 1.2, VOL_LIBRE_MIN = 0.5, STASE_DUREE = 0.5, STASE_HAUTEUR = 3
 // écrasement : dégâts à l'adversaire au sol (pas trop loin), et plus petits s'il était sur la trajectoire
 const ECRASE_SOL = 8, ECRASE_TRAJET = 4, ECRASE_RAYON = 170, ECRASE_HAUTEUR_SOL = 60, ECRASE_PROJETE = 700, ECRASE_PROJETE_DUREE = 0.4;
 const HAMMOND_ENVOLEE = 450; // vitesse vers le haut ajoutée quand il lâche le grappin
-const HAMMOND_BLINDAGE = 0.3; // dégâts en moins quand il est posé en bas (mode tourelle)
+const HAMMOND_BLINDAGE = 0.36; // dégâts en moins quand il est posé en bas (mode tourelle)
 const TOURELLE_DUREE = 1.6, MITRAILLE_CADENCE = 0.12, MITRAILLE_DEGATS = 2, MITRAILLE_VITESSE = 900, MITRAILLE_DISPERSION = 0.15;
 // mitraillettes de Bouldozer en mode tourelle : 0 = celle de derrière (cachée en partie par la boule), 1 = celle de devant.
 // Repère du perso tourné vers l'avant (x vers l'avant) ; u = demi-hauteur de l'image
@@ -3673,7 +3673,7 @@ const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 150, BULL
 const BULLE_MARCHE = 90; // vitesse de la Grenouille pendant qu'elle gonfle sa bulle (elle marche lentement au lieu de sauter)
 const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 5;
 const NOUILLE_BOND_PORTEE = 150, NOUILLE_ECRASE = 3, NOUILLE_ECRASE_RECUL = 500; // bond écrasant : il saute sur l'adversaire proche et l'écrase en retombant
-const NOUILLE_LANGUE_CD = 10, NOUILLE_LANGUE_DEG = 3, NOUILLE_LANGUE_RECUL = 520, NOUILLE_LANGUE_PORTEE = 34; // coup de langue : frappe et repousse l'adversaire collé à lui
+const NOUILLE_LANGUE_CD = 13, NOUILLE_LANGUE_DEG = 3, NOUILLE_LANGUE_RECUL = 520, NOUILLE_LANGUE_PORTEE = 34; // coup de langue : frappe et repousse l'adversaire collé à lui
 // pilote éjecté : PV qui lui restent, bonds, et son pistolet à petites bulles ; explosion du mécha à l'éjection
 const PILOTE_ECART = 2.2; // écart au hasard des bonds du pilote autour de la direction de l'adversaire (radians)
 const PILOTE_PV = 30, PILOTE_VITESSE = 330, PILOTE_BOND_DUREE = 0.35, PILOTE_PAUSE = 0.25, PILOTE_TIR_CD = 0.3, PILOTE_BULLE_R = 7, PILOTE_BULLE_VITESSE = 340, PILOTE_BULLE_VOL = 0.8, PILOTE_BULLE_DEG = 2;
@@ -3744,7 +3744,7 @@ const BULLETS_ARME_CHANCE = 0.4; // à chaque tas qui tombe, chance qu'un fusil 
 // avec lui, chaque tas ajoute BULLETS_FUSIL_TAS balles (et le fusil lui-même, quand il le ramasse)
 const BULLETS_FUSIL_TAS = 12, BULLETS_FUSIL_CADENCE = 0.15, BULLETS_FUSIL_DISPERSION = 0.08;
 const BULLETS_FUSIL_PART = 0.03, BULLETS_FUSIL_PERCE = 0.5, BULLETS_FUSIL_MAX = 5; // dégâts d'une balle du fusil : part des PV de départ de la cible ; part de ses résistances aux dégâts qu'elle traverse
-const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 9.5, BULLETS_TAS_MAX = 2; // tas de balles : le premier, puis un toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus), qu'il ait des balles ou non
+const BULLETS_TAS_PREMIER = 3, BULLETS_TAS_CD = 9, BULLETS_TAS_MAX = 2; // tas de balles : le premier, puis un toutes les BULLETS_TAS_CD secondes (BULLETS_TAS_MAX par terre au plus), qu'il ait des balles ou non
 // MAIN_SENS : nombre d'orientations de l'avant-bras ; MAIN_BIAIS : son angle (depuis la verticale) sur les murs de côté
 const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;
@@ -3891,10 +3891,10 @@ function dessinerRayonOeil(f) {
   ctx.restore();
 }
 const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
-const FEU_BONUS = 6; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
+const FEU_BONUS = 4; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 36, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
-const INCONNU_SOIN = 3; // PV regagnés par l'Inconnu à chaque téléportation
+const INCONNU_SOIN = 4; // PV regagnés par l'Inconnu à chaque téléportation
 const RALENTI = 0.75; // vitesse (déplacement et recharges) d'un perso ralenti (obus de l'Inconnu, regard de la Chose, traînée du Slime)
 const BALLE_VITESSE = 1000; // vitesse des balles de McCree
 // grenade flash de McCree : aveugle et ralentit énormément l'adversaire touché
@@ -6572,7 +6572,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.97.7", NOTES = "Myers : en furie, il ne fonce plus sur un adversaire invisible (Oda caché, Steve en approche…). Il court au hasard jusqu’à ce que l’adversaire redevienne visible, par exemple en passant tout près d’Oda caché.";
+const VERSION = "1.97.8", NOTES = "Équilibrage : tous les persos sont maintenant entre 48 et 52 % de victoires. Oda : son bond tranchant passe outre toute armure ou réduction de dégâts. Bullets : un tas de munitions toutes les 9 s (au lieu de 9,5). L’Inconnu regagne 4 PV par téléportation (au lieu de 3). Bouldozer : 36 % de dégâts en moins en tourelle (au lieu de 30). D.Nouille : coup de langue au plus toutes les 13 s (au lieu de 10). Sorcier : son aura de feu ajoute 4 dégâts (au lieu de 6).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

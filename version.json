@@ -1,1 +1,1 @@
-{"version": "1.96.9", "notes": "Oda : ses coups ne gagnent plus de dégâts avec le combo (dégâts fixes). En échange, chaque coup du combo augmente sa vitesse d’attaque de 2,5 % (au lieu de 1,5 %), et il se soigne plus vite et plus longtemps quand il est caché (6 PV/s au lieu de 5, jusqu’à 20 PV par repli au lieu de 16)."}
+{"version": "1.97.0", "notes": "McCree : on entend de nouveau son rechargement. Le son était beaucoup plus faible que ses autres sons (couvert par les tirs) : il est remonté au même niveau, sans saturer."}

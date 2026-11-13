@@ -1,1 +1,1 @@
-{"version": "1.96.3", "notes": "Oda : chaque coup de son combo augmente maintenant sa vitesse d’attaque de 0,5 % (au lieu de 0,1 %). Pour rester équilibré, le bonus de dégâts gagné à chaque coup du combo est un peu réduit."}
+{"version": "1.96.4", "notes": "Corrigé : Oda pouvait rester coincé invisible à l’infini quand quelque chose bloquait le chemin vers sa cachette (un mur, un gros adversaire…). S’il est bloqué ou met trop longtemps, il se soigne maintenant là où il est."}

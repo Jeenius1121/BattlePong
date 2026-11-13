@@ -2717,9 +2717,13 @@ const CHARS = {
       if (E === "disparait" || E === "fuite") { // il s'efface en courant, puis file invisible vers sa cachette
         const C = f.cachette, dx = C.x - f.x, dy = C.y - f.y, d = Math.hypot(dx, dy) || 1, v = ODA_FUITE;
         f.vx = dx / d * v; f.vy = dy / d * v; if (Math.abs(dx) > 4) f.face = dx > 0 ? 1 : -1; f.vitesse = v;
-        if (E === "disparait") { f.etatT -= dt; f.vis = Math.max(0.08, f.etatT / ODA_DISPARAIT); if (f.etatT <= 0) { f.etatO = "fuite"; f.camoufle = true; } }
+        if (E === "disparait") { f.etatT -= dt; f.vis = Math.max(0.08, f.etatT / ODA_DISPARAIT); if (f.etatT <= 0) { f.etatO = "fuite"; f.camoufle = true; f.fuiteT = 0; f.fuiteD = d; f.fuiteBloque = 0; } }
         else this.cache(f, o);
-        if (E === "fuite" && d < 14) { f.etatO = "soin"; f.soinT = 0; f.soinRecu = 0; f.soinAcc = 0; f.hpVu = f.hp; }
+        if (E === "fuite") { // bloqué (mur, gros adversaire…) ou trop long : il se soigne là où il est, au lieu de rester coincé invisible
+          f.fuiteT = (f.fuiteT || 0) + dt;
+          if (d < (f.fuiteD ?? Infinity) - 1) { f.fuiteD = d; f.fuiteBloque = 0; } else f.fuiteBloque = (f.fuiteBloque || 0) + dt;
+        }
+        if (E === "fuite" && (d < 14 || f.fuiteT > ODA_FUITE_MAX || f.fuiteBloque > 0.35)) { f.etatO = "soin"; f.soinT = 0; f.soinRecu = 0; f.soinAcc = 0; f.hpVu = f.hp; }
         return;
       }
       if (E === "soin") { // accroupi, caché : il se soigne petit à petit ; un coup reçu l'interrompt
@@ -3636,6 +3640,7 @@ const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 // des tas de balles tombent au hasard dans l'arène à intervalles réguliers ; plus de balles, il va chercher le plus proche en se claquant les fesses
 // (sans tas par terre, il erre au hasard) ; chaque tas sur lequel il passe lui ajoute des balles, sans limite au nombre de balles qu'il porte
 // Oda : lames mantes (combos qui saignent), bond tranchant, Sandevistan, parade, repli invisible qui soigne
+const ODA_FUITE_MAX = 2.5; // temps max pour rejoindre sa cachette
 const ODA_COMBO_VITESSE = 0.005; // vitesse d'attaque gagnée par coup du combo (+0,5 %)
 const ODA_PORTEE = 34, ODA_COUP = 2, ODA_COUP_PAR = 0.12, ODA_COMBO_MAX = 12, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts d'un coup, en plus par coup du combo (jusqu'à ODA_COMBO_MAX) ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
 const ODA_SAIGNE = 0.2, ODA_SAIGNE_DUREE = 3, ODA_SAIGNE_MAX = 6; // saignement : PV perdus par seconde et par cran, durée (relancée à chaque coup), crans au plus
@@ -6458,7 +6463,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.96.3", NOTES = "Oda : chaque coup de son combo augmente maintenant sa vitesse d’attaque de 0,5 % (au lieu de 0,1 %). Pour rester équilibré, le bonus de dégâts gagné à chaque coup du combo est un peu réduit.";
+const VERSION = "1.96.4", NOTES = "Corrigé : Oda pouvait rester coincé invisible à l’infini quand quelque chose bloquait le chemin vers sa cachette (un mur, un gros adversaire…). S’il est bloqué ou met trop longtemps, il se soigne maintenant là où il est.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

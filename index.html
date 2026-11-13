@@ -2076,7 +2076,7 @@ const CHARS = {
     creation: true,
     nom: "D.Nouille", emoji: "🐸", vitesse: 150, pv: 100, taille: 1.2, portrait: { cx: 0.5, cy: 0.27, taille: 0.45 }, // portrait centré sur le pilote dans sa bulle
     images: ["pilote", "pilote tir", "pilote saut 1", "pilote saut 2", "pilote atterrit"], echelles: { 2: 0.72, 3: 0.72, 4: 0.72, 5: 0.72, 6: 0.72 },
-    sonNom: "bulle", son2: "bulle qui éclate", son3: "bulle de protection", son4: "éjection",
+    sonNom: "bulle", son2: "bulle qui éclate", son3: "bulle de protection", son4: "éjection", son6: "coup de langue",
     // le pilote : au repos, en train de tirer (avec la flamme), puis son saut (élan, en l'air, réception accroupie)
     imageDe: f => {
       if (!f.pilote) return 1;
@@ -2086,7 +2086,7 @@ const CHARS = {
       if (B && B.phase === "pause" && B.t > PILOTE_PAUSE - 0.12) return 6;
       return 2;
     },
-    desc: "D.Nouille, une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille. Son canon gonfle une bulle, petite au début, de plus en plus grosse ; pendant ce temps, elle ne saute plus et marche lentement sur le côté. Si la langue du Smoker touche la bulle, la langue est coupée. La bulle part quand elle est au maximum, ou dès que l’adversaire (ou la langue du Smoker) la touche pendant qu’elle gonfle. La bulle vole vers l’adversaire en le suivant un peu pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : elle arrête jusqu’à 15 dégâts du prochain coup. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout (en se rapprochant peu à peu de l’adversaire) et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
+    desc: "D.Nouille, une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille : quand l’adversaire est proche, il bondit droit sur lui, et s’il lui retombe dessus, il l’écrase (3 dégâts) et le repousse. Si l’adversaire vient se coller au mécha, la grenouille lui donne un coup de langue collant (3 dégâts) qui le repousse (au plus toutes les 10 secondes). Son canon gonfle une bulle, petite au début, de plus en plus grosse ; pendant ce temps, elle ne saute plus et marche lentement sur le côté. Si la langue du Smoker touche la bulle, la langue est coupée. La bulle part quand elle est au maximum, ou dès que l’adversaire (ou la langue du Smoker) la touche pendant qu’elle gonfle. La bulle vole vers l’adversaire en le suivant un peu pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : elle arrête jusqu’à 15 dégâts du prochain coup. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout (en se rapprochant peu à peu de l’adversaire) et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
     svg: `<g ${O}>
       <ellipse cx='60' cy='92' rx='40' ry='34' fill='#7a8f3c'/><rect x='88' y='84' width='30' height='14' rx='4' fill='#4a4a52'/>
       <circle cx='58' cy='60' r='24' fill='#bfe3ff' opacity='.7'/><circle cx='62' cy='62' r='14' fill='#7cc24a'/><circle cx='68' cy='58' r='5' fill='#f2a23a'/>
@@ -2107,6 +2107,16 @@ const CHARS = {
       // bulle de protection (mécha seulement)
       if (!f.pilote && !f.protection) { f.protCd = (f.protCd ?? PROTECTION_CD * 0.5) - dt; if (f.protCd <= 0) { f.protection = true; son(f, 3); } }
       if (f.pilote) return this.pilote(f, o, g, dt, vu);
+      // coup de langue : l'adversaire collé à lui prend un coup de langue collant et se fait repousser
+      f.langueCd = Math.max(0, (f.langueCd ?? 1) - dt);
+      if (f.langueCd <= 0 && vu && !o.enLair && ecart(f, o) < NOUILLE_LANGUE_PORTEE && f.haut < 4) {
+        f.langueCd = NOUILLE_LANGUE_CD; f.face = o.x >= f.x ? 1 : -1;
+        const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
+        f.langueVis = { t: 0.22, x: o.x, y: o.y - o.hh * 0.2 };
+        const att = attaquant; attaquant = f; frapper(g, o, o, NOUILLE_LANGUE_DEG, o.x, o.y - o.hh * 0.2); attaquant = att;
+        if (!o.capture) { o.recul = 0.3; o.rvx = dx / d * NOUILLE_LANGUE_RECUL; o.rvy = dy / d * NOUILLE_LANGUE_RECUL; }
+        son(f, 6);
+      }
       // il gonfle sa bulle : immobile, tourné vers l'adversaire
       // pendant qu'elle gonfle sa bulle : elle ne saute plus, elle marche lentement sur le côté, tournée vers l'adversaire
       if (f.gonfle !== undefined) {
@@ -2130,10 +2140,22 @@ const CHARS = {
       if (Bd.phase === "pause") {
         f.vx = 0; f.vy = 0; f.haut = 0;
         if (f.bulleCd <= 0 && vu) { f.gonfle = 0; f.cote = Math.random() < 0.5 ? -1 : 1; son(f); return; }
-        if (Bd.t <= 0) { Bd.phase = "saut"; Bd.t = BOND_DUREE; const a = angleAleatoire(); Bd.vx = Math.cos(a) * BOND_VITESSE; Bd.vy = Math.sin(a) * BOND_VITESSE; }
+        if (Bd.t <= 0) { // adversaire à portée : il bondit droit dessus pour l'écraser ; sinon un bond au hasard
+          Bd.phase = "saut"; Bd.t = BOND_DUREE; const dd = Math.hypot(o.x - f.x, o.y - f.y); Bd.vise = vu && !o.mort && dd < NOUILLE_BOND_PORTEE;
+          const a = Bd.vise ? Math.atan2(o.y - f.y, o.x - f.x) : angleAleatoire(), v = Bd.vise ? Math.min(BOND_VITESSE, dd / BOND_DUREE) : BOND_VITESSE;
+          Bd.vx = Math.cos(a) * v; Bd.vy = Math.sin(a) * v; if (Bd.vise) f.face = Bd.vx >= 0 ? 1 : -1;
+        }
       } else {
         f.vx = Bd.vx; f.vy = Bd.vy; f.vitesse = BOND_VITESSE; f.haut = Math.sin(Math.PI * (1 - Bd.t / BOND_DUREE)) * BOND_HAUT;
-        if (Bd.t <= 0) { Bd.phase = "pause"; Bd.t = BOND_PAUSE; f.haut = 0; g.secousse = Math.max(g.secousse, 0.06); }
+        if (Bd.t <= 0) { Bd.phase = "pause"; Bd.t = BOND_PAUSE; f.haut = 0; g.secousse = Math.max(g.secousse, 0.06);
+          if (Bd.vise && !o.mort && !o.enLair && ecart(f, o) < 20) { // il retombe sur l'adversaire : écrasé et repoussé
+            const att = attaquant; attaquant = f; frapper(g, o, o, NOUILLE_ECRASE, o.x, o.y); attaquant = att;
+            const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
+            if (!o.capture) { o.recul = 0.25; o.rvx = dx / d * NOUILLE_ECRASE_RECUL; o.rvy = dy / d * NOUILLE_ECRASE_RECUL; }
+            g.secousse = Math.max(g.secousse, 0.22);
+            for (let i = 0; i < 14; i++) { const a2 = Math.random() * Math.PI * 2, v2 = 80 + Math.random() * 160; g.parts.push({ x: f.x, y: f.y + f.hh * 0.8, vx: Math.cos(a2) * v2, vy: Math.sin(a2) * v2 * 0.4 - 40, t: 0.4, c: i % 2 ? "#b9a07a" : "#d8c7a0" }); }
+          }
+        }
       }
     },
     // la langue du Smoker qui touche sa bulle en train de gonfler (la bulle protège tout l'avant, du côté du canon) :
@@ -2655,7 +2677,7 @@ const CHARS = {
       if (E === "souffle") return 35;
       return imageMarche(f, 9, 1 + Math.floor(h * 8) % 8);
     },
-    desc: "Le garde du corps d’Arasaka, armé de ses lames mantes. Au corps à corps, il enchaîne des combos de coups très rapides et variés (taille, revers, croix, tourbillon, traversée, frappe plongeante) : chaque coup fait peu de dégâts, mais plus le combo est long, plus ils partent vite (+2,5 % de vitesse d’attaque par coup du combo), et chaque coup fait saigner l’adversaire, qui perd des PV un moment. De loin, il bondit lames en avant sur l’adversaire (s’il le rate, il reste planté un instant). De temps en temps, il active son Sandevistan : pendant un peu plus de 2 secondes, l’adversaire et ses tirs sont au ralenti, et lui va encore plus vite. Ses lames parent parfois un tir, et tranchent la langue du Smoker qui l’attrape en plein coup ou en plein bond (sinon, seulement s’il réussit sa parade). Sur le point d’être touché par une attaque ou par un gros tir (10 dégâts ou plus), il fait un pas éclair sur le côté, intouchable le temps du pas (au plus toutes les 4 secondes, bien plus souvent pendant son Sandevistan). Quand il passe sous la moitié de ses PV, puis sous un cinquième, il disparaît, invisible, et file se cacher dans un coin de l’arène pour se soigner petit à petit : l’adversaire ne le voit que s’il passe tout près de lui, et un coup interrompt le soin.",
+    desc: "Le garde du corps d’Arasaka, armé de ses lames mantes. Au corps à corps, il enchaîne des combos de coups très rapides et variés (taille, revers, croix, tourbillon, traversée, frappe plongeante) : chaque coup fait peu de dégâts, mais plus le combo est long, plus ils partent vite (+1,2 % de vitesse d’attaque par coup du combo), et chaque coup fait saigner l’adversaire, qui perd des PV un moment. De loin, il bondit lames en avant sur l’adversaire (s’il le rate, il reste planté un instant). De temps en temps, il active son Sandevistan : pendant un peu plus de 2 secondes, l’adversaire et ses tirs sont au ralenti, et lui va encore plus vite. Ses lames parent parfois un tir, et tranchent la langue du Smoker qui l’attrape en plein coup ou en plein bond (sinon, seulement s’il réussit sa parade). Sur le point d’être touché par une attaque ou par un gros tir (10 dégâts ou plus), il fait un pas éclair sur le côté, intouchable le temps du pas (au plus toutes les 4 secondes, bien plus souvent pendant son Sandevistan). Quand il passe sous la moitié de ses PV, puis sous un cinquième, il disparaît, invisible, et file se cacher dans un coin de l’arène pour se soigner petit à petit : l’adversaire ne le voit que s’il passe tout près de lui, et un coup interrompt le soin.",
     svg: `<g ${O}>
       <rect x='46' y='112' width='11' height='28' fill='#1d1d24'/><rect x='63' y='112' width='11' height='28' fill='#1d1d24'/>
       <path d='M38 60 Q60 52 82 60 L86 116 H34Z' fill='#26262e'/>
@@ -3628,6 +3650,8 @@ function majBombes(g, dt) {
 const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 150, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 6, BULLE_DEG_MAX = 29, BULLE_CD = 0.9;
 const BULLE_MARCHE = 90; // vitesse de la Grenouille pendant qu'elle gonfle sa bulle (elle marche lentement au lieu de sauter)
 const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 5;
+const NOUILLE_BOND_PORTEE = 150, NOUILLE_ECRASE = 3, NOUILLE_ECRASE_RECUL = 500; // bond écrasant : il saute sur l'adversaire proche et l'écrase en retombant
+const NOUILLE_LANGUE_CD = 10, NOUILLE_LANGUE_DEG = 3, NOUILLE_LANGUE_RECUL = 520, NOUILLE_LANGUE_PORTEE = 34; // coup de langue : frappe et repousse l'adversaire collé à lui
 // pilote éjecté : PV qui lui restent, bonds, et son pistolet à petites bulles ; explosion du mécha à l'éjection
 const PILOTE_ECART = 2.2; // écart au hasard des bonds du pilote autour de la direction de l'adversaire (radians)
 const PILOTE_PV = 30, PILOTE_VITESSE = 330, PILOTE_BOND_DUREE = 0.35, PILOTE_PAUSE = 0.25, PILOTE_TIR_CD = 0.3, PILOTE_BULLE_R = 7, PILOTE_BULLE_VITESSE = 340, PILOTE_BULLE_VOL = 0.8, PILOTE_BULLE_DEG = 2;
@@ -3655,13 +3679,13 @@ const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 // (sans tas par terre, il erre au hasard) ; chaque tas sur lequel il passe lui ajoute des balles, sans limite au nombre de balles qu'il porte
 // Oda : lames mantes (combos qui saignent), bond tranchant, Sandevistan, parade, repli invisible qui soigne
 const ODA_FUITE_MAX = 2.5; // temps max pour rejoindre sa cachette
-const ODA_COMBO_VITESSE = 0.025; // vitesse d'attaque gagnée par coup du combo (+2,5 %)
+const ODA_COMBO_VITESSE = 0.012; // vitesse d'attaque gagnée par coup du combo (+1,2 %)
 const ODA_PORTEE = 34, ODA_COUP = 2, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts fixes d'un coup ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
 const ODA_SAIGNE = 0.2, ODA_SAIGNE_DUREE = 3, ODA_SAIGNE_MAX = 6; // saignement : PV perdus par seconde et par cran, durée (relancée à chaque coup), crans au plus
 const ODA_BOND_MIN = 120, ODA_BOND_MAX = 330, ODA_BOND_PREP = 0.22, ODA_BOND_DUREE = 0.42, ODA_BOND_HAUT = 46, ODA_BOND_DEGATS = 9, ODA_BOND_RATE = 0.6, ODA_BOND_CD = 3.4;
 const ODA_SANDEV_PREMIER = 6, ODA_SANDEV_CD = 11, ODA_SANDEV_DUREE = 2.2, SANDEV_LENT = 0.3, ODA_SANDEV_TEMPO = 0.65; // Sandevistan : l'adversaire et ses tirs à SANDEV_LENT de leur vitesse ; ses coups durent ODA_SANDEV_TEMPO fois moins
 const ODA_ESQUIVE_CD = 4, ODA_ESQUIVE_DUREE = 0.2, ODA_ESQUIVE_VITESSE = 720, ODA_ESQUIVE_GROS = 10; // pas éclair : intouchable le temps du pas ; il ne s'en sert pas pour les petits tirs
-const ODA_PARADE = 0.1, ODA_PALIERS = [0.5, 0.2], ODA_DISPARAIT = 0.55, ODA_FUITE = 330, ODA_REVELE = 140, ODA_SOIN = 6, ODA_SOIN_PAS = 2, ODA_SOIN_DUREE = 6, ODA_SOIN_MAX = 20;
+const ODA_PARADE = 0.1, ODA_PALIERS = [0.5, 0.2], ODA_DISPARAIT = 0.55, ODA_FUITE = 330, ODA_REVELE = 140, ODA_SOIN = 8, ODA_SOIN_PAS = 2, ODA_SOIN_DUREE = 6, ODA_SOIN_MAX = 24;
 // les coups du combo : durée, moment(s) où la lame touche, images, pas en avant, multiplicateur de dégâts, et le mouvement des lames
 // (angle de la lame : 0 = droit devant, positif = vers le bas ; de → a pendant le coup ; cote 0 = bras avant, 1 = bras arrière)
 const ODA_COUPS = [
@@ -4485,6 +4509,13 @@ function versMonde(f, u, v) {
 function vpart(g, o) { (g.vparts ||= []).push(o); }
 // petits effets propres à certains persos (fumée, étincelles, plumes…) : dessin seulement
 const DECORS = {
+  grenouille(f, g, dtv) { // le coup de langue : une langue rose qui jaillit de la bouche de la grenouille jusqu'à l'adversaire, puis rentre
+    const L = f.langueVis; if (!L || f.pilote) return;
+    L.t -= dtv; if (L.t <= 0) { f.langueVis = null; return; }
+    const k = Math.sin(Math.PI * Math.min(1, (0.22 - L.t) / 0.22)), b = versMonde(f, 0.55, 0.3), x = b.x + (L.x - b.x) * k, y = b.y + (L.y - b.y) * k;
+    ctx.save(); ctx.lineCap = "round"; ctx.strokeStyle = "#7a1f3a"; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.quadraticCurveTo((b.x + x) / 2, Math.min(b.y, y) - 18, x, y); ctx.stroke();
+    ctx.strokeStyle = "#ff7aa8"; ctx.lineWidth = 6; ctx.stroke(); ctx.fillStyle = "#ff9dbf"; ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.restore();
+  },
   cowboy(f, g, dtv) { // une douille éjectée et un peu de fumée à chaque balle
     if (f.vBurst !== undefined && f.burst < f.vBurst) {
       const c = canonMonde(f), p = versMonde(f, 0.55, 0.42);
@@ -6517,7 +6548,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.97.1", NOTES = "Corrigé pour de bon : le son de rechargement de McCree disparaissait parfois après une mise à jour. Le jeu coupe le « blanc » au début des sons, et ce son, enregistré très bas, était parfois pris tout entier pour du blanc. Le seuil s’adapte maintenant au volume de chaque son, et le fichier a été remonté à un niveau normal.";
+const VERSION = "1.97.2", NOTES = "D.Nouille retravaillé : quand l’adversaire est proche, ses bonds de grenouille partent droit sur lui pour l’écraser (dégâts et recul), et la grenouille donne un coup de langue collant à qui vient se coller au mécha (avec son propre son). Il n’était plus le perso le plus faible du jeu. Oda : un peu moins de vitesse gagnée au combo (+1,2 % par coup), mais un soin caché plus fort (8 PV/s, jusqu’à 24 PV par repli).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

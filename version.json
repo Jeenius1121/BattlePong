@@ -1,1 +1,1 @@
-{"version": "1.98.0", "notes": "Corrigé : le bouton 📲 pour installer l’application restait affiché dans l’application. Il est maintenant bien caché quand on joue dans l’appli (il reste sur le site)."}
+{"version": "1.99.0", "notes": "Slime retravaillé : le gros est plus lent mais fait très mal s’il touche en fonçant (60) ; plus les morceaux sont petits, plus ils sont rapides et moins ils font mal (jusqu’à 5 pour les plus petits). Sa traînée ne blesse plus, elle ralentit seulement. En échange, il fonce plus souvent."}

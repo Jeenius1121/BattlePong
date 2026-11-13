@@ -1938,7 +1938,7 @@ const CHARS = {
     finLibre: true, // fin du combat : il garde son mouvement (pas de freinage ni de sauts)
     nom: "Slime", emoji: "💧", vitesse: 80, pv: 140, taille: 2, portrait: { cx: 0.62, cy: 0.52, taille: 1.08 }, // portrait centré sur ses deux yeux et sa bouche
     sonNom: "fonce", son2: "se sépare", son3: "un morceau disparaît",
-    desc: "Un énorme slime (140 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction qu’en touchant un mur : il repart alors le plus souvent vers l’adversaire. Il laisse derrière lui une traînée bleue et gluante qui blesse un peu et ralentit l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’il traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant lui, il fonce (il accélère sans tourner), et il ne le blesse au contact que pendant qu’il fonce. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petits slimes : plus ils sont petits, plus ils sont rapides, mais plus ils sont fragiles et moins ils font mal ; les plus petits disparaissent quand ils n’ont plus de PV. Les adversaires frappent le morceau le plus proche d’eux, leurs tirs touchent n’importe quel morceau sur leur chemin, et leurs attaques de zone touchent tous les morceaux pris dedans, en partageant leurs dégâts entre eux (6 morceaux touchés : chacun prend un sixième) ; un coup ne retouche jamais les petits nés du morceau qu’il vient de couper. Il faut détruire tous les morceaux pour gagner.",
+    desc: "Un énorme slime (140 PV) qui avance toujours tout droit, à l’horizontale, à la verticale ou en diagonale, et ne change de direction qu’en touchant un mur : il repart alors le plus souvent vers l’adversaire. Il laisse derrière lui une traînée bleue et gluante qui ne blesse pas mais ralentit l’adversaire qui marche dedans ; la traînée s’efface à peu près le temps qu’il traverse l’arène deux fois. Sa seule attaque : quand l’adversaire se trouve droit devant lui, il fonce (il accélère sans tourner), et il ne le blesse au contact que pendant qu’il fonce. Dès qu’un morceau a perdu 20 % de ses PV, il se sépare en deux, et ainsi de suite jusqu’à 16 petits slimes : plus ils sont petits, plus ils sont rapides, mais plus ils sont fragiles et moins ils font mal : le gros, lent, fait très mal (60) s’il touche en fonçant, puis 32, 16, 9, et les plus petits seulement 5 ; les plus petits disparaissent quand ils n’ont plus de PV. Les adversaires frappent le morceau le plus proche d’eux, leurs tirs touchent n’importe quel morceau sur leur chemin, et leurs attaques de zone touchent tous les morceaux pris dedans, en partageant leurs dégâts entre eux (6 morceaux touchés : chacun prend un sixième) ; un coup ne retouche jamais les petits nés du morceau qu’il vient de couper. Il faut détruire tous les morceaux pour gagner.",
     svg: `<g ${O}>
       <path d='M14 128 Q10 100 34 92 Q30 50 64 44 Q100 42 104 84 Q116 92 112 118 Q118 132 100 136 L24 136 Q8 136 14 128Z' fill='#4aa8f0'/>
       <ellipse cx='50' cy='80' rx='12' ry='13' fill='#fff'/><ellipse cx='82' cy='74' rx='12' ry='13' fill='#fff'/>
@@ -3692,11 +3692,11 @@ const SORT_INVOC = 1.3, SORT_INVOC_CD = 10, SORT_INVOC_PREMIER = 1;
 const SQ_LIEN = 0.3, SQ_LIEN_MAX = 1; // lien d'âme : part des coups reçus par la Nécromancienne que prend son squelette le plus proche (et au plus combien par coup)
 const SQ_BOUCLIER = 0.8, SQ_BOUCLIER_SEUIL = 15; // bouclier d'os : part d'une grosse attaque de zone que prend le squelette, à partir de quels dégâts
 const SQ_MAX = 2, SQ_PV = 27, SQ_VIE = 20, SQ_VITESSE = 160, SQ_PORTEE = 14, SQ_COUP = 0.75, SQ_FRAPPE = 0.4, SQ_DEGATS = 4, SQ_COUP_CD = 0.9, SQ_HAUTEUR = 74, SQ_ECART = 42;
-const GELEE_NIV = [{ taille: 1, vit: 75, deg: 28, pv: 140 }, { taille: 0.78, vit: 110, deg: 22 }, { taille: 0.6, vit: 155, deg: 17 }, { taille: 0.46, vit: 210, deg: 13 }, { taille: 0.35, vit: 275, deg: 9 }];
+const GELEE_NIV = [{ taille: 1, vit: 70, deg: 60, pv: 140 }, { taille: 0.78, vit: 110, deg: 32 }, { taille: 0.6, vit: 155, deg: 16 }, { taille: 0.46, vit: 215, deg: 9 }, { taille: 0.35, vit: 290, deg: 5 }];
 const GELEE_SEPARE = 0.2; // part de ses PV de départ qu'un morceau perd avant de se séparer en deux
-const GELEE_TRAINEE_LENT = 0.7; // traînée gluante : ralentit l'adversaire qui marche dedans
+const GELEE_TRAINEE_LENT = 0.5; // traînée gluante : ralentit l'adversaire qui marche dedans
 const GELEE_REBOND_VISE = 0.7; // chance qu'un morceau du Slime reparte vers l'adversaire en touchant un mur
-const GELEE_FONCE_CD = 3, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.45, GELEE_CONTACT_CD = 0.55, GELEE_TRAINEE = 1, GELEE_TRAINEE_TIC = 0.3;
+const GELEE_FONCE_CD = 1.65, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELEE_FONCE_ANGLE = 0.45, GELEE_CONTACT_CD = 0.55, GELEE_TRAINEE = 0, GELEE_TRAINEE_TIC = 0.3;
 // I Need More Bullets : balles tirées une à une vers l'adversaire (seulement s'il est devant lui : à BULLETS_ANGLE près) ; chargeur vide, un tas
 // des tas de balles tombent au hasard dans l'arène à intervalles réguliers ; plus de balles, il va chercher le plus proche en se claquant les fesses
 // (sans tas par terre, il erre au hasard) ; chaque tas sur lequel il passe lui ajoute des balles, sans limite au nombre de balles qu'il porte
@@ -6573,7 +6573,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.98.0", NOTES = "Corrigé : le bouton 📲 pour installer l’application restait affiché dans l’application. Il est maintenant bien caché quand on joue dans l’appli (il reste sur le site).";
+const VERSION = "1.99.0", NOTES = "Slime retravaillé : le gros est plus lent mais fait très mal s’il touche en fonçant (60) ; plus les morceaux sont petits, plus ils sont rapides et moins ils font mal (jusqu’à 5 pour les plus petits). Sa traînée ne blesse plus, elle ralentit seulement. En échange, il fonce plus souvent.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

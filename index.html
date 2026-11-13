@@ -6010,8 +6010,10 @@ function bornesSon(buf) {
   if (pic < 0.003) return [0, buf.duration];
   // début : on coupe tout ce qui est en dessous du vrai départ du son ;
   // fin : on ne coupe que le vrai silence (les sons qui s'éteignent doucement restent entiers)
-  const seuil = Math.max(0.01, pic * 0.12), seuilFin = Math.max(0.002, pic * 0.01);
+  // seuils relatifs au son lui-même : un son enregistré très bas n'est plus pris tout entier pour du « blanc » (rechargement de McCree)
+  const seuil = Math.max(0.0005, pic * 0.12), seuilFin = Math.max(0.0002, pic * 0.01);
   let a = 0; while (a < nb && rms[a] < seuil) a++;
+  if (a >= nb) a = 0;
   let b = nb - 1; while (b > a && rms[b] < seuilFin) b--;
   return [Math.max(0, (a - 3) * win) / buf.sampleRate, Math.min(n, (b + 8) * win) / buf.sampleRate];
 }
@@ -6515,7 +6517,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.97.0", NOTES = "McCree : on entend de nouveau son rechargement. Le son était beaucoup plus faible que ses autres sons (couvert par les tirs) : il est remonté au même niveau, sans saturer.";
+const VERSION = "1.97.1", NOTES = "Corrigé pour de bon : le son de rechargement de McCree disparaissait parfois après une mise à jour. Le jeu coupe le « blanc » au début des sons, et ce son, enregistré très bas, était parfois pris tout entier pour du blanc. Le seuil s’adapte maintenant au volume de chaque son, et le fichier a été remonté à un niveau normal.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

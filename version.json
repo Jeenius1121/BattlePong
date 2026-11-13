@@ -1,1 +1,1 @@
-{"version": "1.97.0", "notes": "McCree : on entend de nouveau son rechargement. Le son était beaucoup plus faible que ses autres sons (couvert par les tirs) : il est remonté au même niveau, sans saturer."}
+{"version": "1.97.1", "notes": "Corrigé pour de bon : le son de rechargement de McCree disparaissait parfois après une mise à jour. Le jeu coupe le « blanc » au début des sons, et ce son, enregistré très bas, était parfois pris tout entier pour du blanc. Le seuil s’adapte maintenant au volume de chaque son, et le fichier a été remonté à un niveau normal."}

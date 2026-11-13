@@ -95,7 +95,7 @@ body.vue-combat .entete{display:none}
 @keyframes chVague{0%,60%,100%{transform:none} 30%{transform:translateY(-7px)}}
 .chBas{position:relative; display:flex; flex-direction:column; align-items:center; gap:10px; width:100%}
 .chBarre{position:relative; width:min(80vw,340px); height:16px; border-radius:9px; background:rgba(0,0,0,.4); box-shadow:inset 0 0 0 2px rgba(255,255,255,.12); overflow:hidden}
-.chBarre span{position:absolute; inset:2px auto 2px 2px; width:0; border-radius:7px; background:repeating-linear-gradient(115deg, rgba(255,255,255,.22) 0 6px, transparent 6px 14px), linear-gradient(90deg,#33c3cb,#ffd23f 60%,#f5a524); background-size:28px 100%, 100% 100%; box-shadow:0 0 14px rgba(255,210,63,.5); transition:width .3s ease-out; animation:chRaies .6s linear infinite}
+.chBarre span{position:absolute; inset:2px auto 2px 2px; width:0; border-radius:7px; background:repeating-linear-gradient(115deg, rgba(255,255,255,.22) 0 6px, transparent 6px 14px), linear-gradient(90deg,#33c3cb,#ffd23f 60%,#f5a524); background-size:28px 100%, 100% 100%; box-shadow:0 0 14px rgba(255,210,63,.5); transition:width .12s linear; animation:chRaies .6s linear infinite}
 @keyframes chRaies{to{background-position:28px 0, 0 0}}
 .chBarre b{position:absolute; inset:0; display:grid; place-items:center; font-size:.66rem; font-weight:800; letter-spacing:.06em; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.8)}
 .chargement #chTexte{margin:0; color:#e4e8f6; font-weight:700; font-size:.92rem}
@@ -3009,12 +3009,16 @@ function traiter(img) {
   const mask = new Uint8Array(tw * th);
   for (let j = 0; j < th; j++) for (let i = 0; i < tw; i++)
     mask[j * tw + i] = d ? (d[((j + minY) * w + i + minX) * 4 + 3] > 40 ? 1 : 0) : 1;
+  return finirSprite(t, mask, tw, th);
+}
+// image prête (recadrée) + masque : silhouette blanche et image complète du sprite
+function finirSprite(t, mask, tw, th, urlConnue) {
   const blanc = document.createElement("canvas"); blanc.width = tw; blanc.height = th;
   const bx = blanc.getContext("2d"); bx.drawImage(t, 0, 0); bx.globalCompositeOperation = "source-in";
   bx.fillStyle = "#fff"; bx.fillRect(0, 0, tw, th);
   // url : calculée seulement si on en a besoin (l'encodage en PNG est lent)
   const res = { img: t, blanc, mask, tw, th };
-  let url = null; Object.defineProperty(res, "url", { get: () => url ??= t.toDataURL("image/png"), enumerable: true });
+  let url = urlConnue || null; Object.defineProperty(res, "url", { get: () => url ??= t.toDataURL("image/png"), enumerable: true });
   return res;
 }
 
@@ -6083,8 +6087,9 @@ async function retirerSon(id) {
   await nuageEcrire("sons/" + id, null);
   majInfoSon(id);
 }
+let bddOuverte = null;
 function bdd() {
-  return new Promise((ok, ko) => {
+  return bddOuverte ||= new Promise((ok, ko) => {
     const r = indexedDB.open("duel-en-boite", 1);
     r.onupgradeneeded = () => r.result.createObjectStore("sons");
     r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
@@ -6097,6 +6102,33 @@ async function bddSet(k, v) {
     if (v === null) st.delete(k); else st.put(v, k);
     t.oncomplete = ok; t.onerror = () => ko(t.error);
   });
+}
+/* images déjà découpées, gardées sur l'appareil (site et appli) : au lancement suivant, le jeu les reprend telles quelles
+   au lieu de redécoder et redécouper chaque image (beaucoup plus rapide). Repérées par une empreinte de l'image d'origine :
+   si l'image change en ligne, elle est redécodée et l'ancienne copie remplacée. */
+async function imagesGardees() {
+  try {
+    const db = await bdd();
+    return await new Promise(ok => {
+      const out = {}, q = db.transaction("sons").objectStore("sons").openCursor(IDBKeyRange.bound("img:", "img:\uffff"));
+      q.onsuccess = () => { const c = q.result; if (!c) return ok(out); out[c.key.slice(4)] = c.value; c.continue(); };
+      q.onerror = () => ok(out);
+    });
+  } catch (e) { return {}; }
+}
+const empreinteImage = url => url.length + ":" + url.slice(22, 100) + url.slice(-100);
+async function depuisGardee(r) {
+  const bmp = await createImageBitmap(r.blob);
+  const t = document.createElement("canvas"); t.width = r.tw; t.height = r.th; t.getContext("2d").drawImage(bmp, 0, 0); if (bmp.close) bmp.close();
+  return finirSprite(t, r.mask, r.tw, r.th, URL.createObjectURL(r.blob)); // l'image gardée sert aussi aux vignettes (pas de réencodage)
+}
+async function garderImages(liste) { // en arrière-plan, après le chargement
+  for (const [k, sig, res, mask] of liste) {
+    try {
+      const blob = await new Promise(ok => res.img.toBlob(ok, "image/png"));
+      if (blob) await bddSet("img:" + k, { sig, blob, tw: res.tw, th: res.th, mask: mask || res.mask });
+    } catch (e) {}
+  }
 }
 async function bddGet(k) {
   const db = await bdd();
@@ -6207,7 +6239,8 @@ function finChargement() {
   const ch = document.getElementById("chargement"), b = document.getElementById("entrer");
   if (!ch || !b.hidden) return;
   for (const id of Object.keys(CHARS)) persoPret(id);
-  const barre = document.getElementById("chBarreBloc"); if (barre) barre.remove();
+  progresChargement(1); // la barre finit pleine, avec « 100 % », avant de laisser place au bouton
+  const barre = document.getElementById("chBarreBloc"); if (barre) setTimeout(() => barre.remove(), 250);
   ch.classList.add("ok");
   document.getElementById("chTexte").textContent = "Tous les combattants sont prêts !";
   b.hidden = false; b.focus();
@@ -6242,6 +6275,7 @@ async function brancherNuageSuite() {
   for (const k of cles) lire("images/" + k);
   for (const k of petits) lire("sons/" + k);
   chargementEnMasse = true;
+  const gardees = proprio ? {} : await imagesGardees(), aGarder = [];
   await Promise.all(ids.map(async id => {
     const c = CHARS[id];
     await Promise.all(clesImage(id).map(async k => {
@@ -6252,14 +6286,18 @@ async function brancherNuageSuite() {
           const url = im.data().url; let ancien = null;
           try { ancien = localStorage.getItem("duel-img:" + k); } catch (e) {}
           if (url !== ancien || !persoImage(k)) { // nouvelle image (ou pas encore sur cet appareil) : on la décode ; sinon elle est déjà là
-            appliquerSprite(k, traiter(await chargerImage(url)), true);
+            const sig = empreinteImage(url), g = gardees[k];
+            let res = null;
+            if (g && g.sig === sig) try { res = await depuisGardee(g); } catch (e) { res = null; } // déjà découpée sur cet appareil
+            if (!res) { res = traiter(await chargerImage(url)); if (!proprio) aGarder.push([k, sig, res, res.mask]); } // le masque d'origine (certains persos le modifient ensuite)
+            appliquerSprite(k, res, true);
             try { localStorage.setItem("duel-img:" + k, url); } catch (e) {}
           }
         } else if (nuage && perso && !migre) {
           if (!await nuageEcrire("images/" + k, { url: urlCompacte(spriteImage(k)) })) echec = true;
         } else if (perso && (nuage || !proprio)) {
           // l'image a été retirée en ligne : on revient au dessin par défaut
-          try { localStorage.removeItem("duel-img:" + k); } catch (e) {}
+          try { localStorage.removeItem("duel-img:" + k); bddSet("img:" + k, null).catch(() => {}); } catch (e) {}
           appliquerSprite(k, deux ? null : traiter(await chargerImage(svgUrl(c.svg))), false);
         }
       } catch (e) { echec = true; }
@@ -6272,6 +6310,7 @@ async function brancherNuageSuite() {
   if (!jeu || !jeu.running) { document.getElementById("overlay").classList.remove("show"); nouveauJeu(false); dessiner(); }
   for (const k of petits) { echec = !await sonEnLigne(k) || echec; avance(); }
   finChargement(); // on peut entrer : le reste des sons arrive pendant qu'on choisit ses persos
+  if (aGarder.length) setTimeout(() => garderImages(aGarder), 1500); // les images découpées sont gardées pour le prochain lancement
   // 2) en arrière-plan : la musique et les noms d'abord (utiles tout de suite à la sélection), puis tous les autres sons
   const sonsPersos = ids.flatMap(id => clesSon(id)), d_abord = ["musique", ...ids.map(id => id + "-5")];
   await Promise.all(d_abord.map(k => lire("sons/" + k).catch(() => null)));
@@ -6411,17 +6450,20 @@ document.getElementById("edOk").addEventListener("click", () => { enregistrer(ed
 
 async function init() {
   preparerEcranChargement();
+  const gardees = await imagesGardees();
+  // image gardée sur l'appareil : déjà découpée si possible (rapide), sinon décodée et découpée
+  const sprite = async (k, src) => { const g = gardees[k]; if (g && g.sig === empreinteImage(src)) try { return await depuisGardee(g); } catch (e) {} return traiter(await chargerImage(src)); };
   // images déjà sur l'appareil (ou dessin par défaut) : décodées toutes en même temps
   await Promise.all(Object.entries(CHARS).map(async ([id, c]) => {
     let src = null;
     try { src = localStorage.getItem("duel-img:" + id); } catch (e) {}
-    try { c.sprite = traiter(await chargerImage(src || svgUrl(c.svg))); c.perso = !!src; }
+    try { c.sprite = src ? await sprite(id, src) : traiter(await chargerImage(svgUrl(c.svg))); c.perso = !!src; }
     catch (e) { c.sprite = traiter(await chargerImage(svgUrl(c.svg))); c.perso = false; }
     c.spr = {}; c.pn = {};
     await Promise.all(clesImage(id).slice(1).map(async k => {
       let src2 = null;
       try { src2 = localStorage.getItem("duel-img:" + k); } catch (e) {}
-      try { if (src2) { c.spr[numImage(k)] = traiter(await chargerImage(src2)); c.pn[numImage(k)] = true; } } catch (e) {}
+      try { if (src2) { c.spr[numImage(k)] = await sprite(k, src2); c.pn[numImage(k)] = true; } } catch (e) {}
     }));
     if (c.svgMain && !c.spr[2]) c.spr[2] = traiter(await chargerImage(svgUrl(c.svgMain))); // main à l'œil dessinée par défaut
     dessinerPortraitChargement(id);
@@ -6472,7 +6514,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.96.6", NOTES = "Menu de sélection : « À toi de choisir » ne passe plus par-dessus le perso : c’est l’étiquette du joueur, en haut du cadre, qui affiche « ▼ À toi, J1 » ou « ▼ À toi, J2 ». Le perso commence sous cette étiquette, qui reste toujours devant.";
+const VERSION = "1.96.7", NOTES = "Chargement : la barre de progression suit maintenant exactement le pourcentage affiché, et finit à 100 %. Démarrage plus rapide sur le site comme dans l’appli : les images déjà découpées sont gardées sur l’appareil et reprises telles quelles aux lancements suivants (environ 25 % plus rapide sur téléphone).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

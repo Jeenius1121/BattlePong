@@ -947,15 +947,18 @@ const CHARS = {
         }
       } else { // furie : couteau sorti, plus rapide, fonce sur l'adversaire
         f.jauge -= dt / 7.45; // la furie dure 7,45 s
-        const t = cibleDe(f, o) || o; // fonce sur l'ennemi le plus proche (adversaire ou appareil)
-        const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1, k = Math.min(1, dt * 5);
+        const t = cibleDe(f, o) || o, voit = !cache(t, f); // fonce sur l'ennemi le plus proche (adversaire ou appareil)… s'il le voit
         const n0 = Math.hypot(f.vx, f.vy) || 1;
         let vx = f.vx / n0, vy = f.vy / n0;
-        vx += (dx / d - vx) * k; vy += (dy / d - vy) * k;
+        if (voit) { const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1, k = Math.min(1, dt * 5); vx += (dx / d - vx) * k; vy += (dy / d - vy) * k; }
+        else { // l'adversaire est invisible : il fonce au hasard, change de direction de temps en temps
+          f.chercheT = (f.chercheT || 0) - dt;
+          if (f.chercheT <= 0) { f.chercheT = 0.7 + Math.random() * 0.6; const a = angleAleatoire(); vx = Math.cos(a); vy = Math.sin(a); }
+        }
         const n = Math.hypot(vx, vy) || 1, sp = this.vitesse * 1.89; // vitesse en furie
         f.vx = vx / n * sp; f.vy = vy / n * sp;
         f.cd -= dt;
-        if (f.cd <= 0 && !cache(t) && ecart(f, t) < 30) {
+        if (f.cd <= 0 && voit && ecart(f, t) < 30) {
           f.cd = 0.88; f.coupT = 0.15; // petit temps de recharge entre deux coups de couteau
           const ex = t.x - f.x, ey = t.y - f.y, ed = Math.hypot(ex, ey) || 1;
           frapper(g, o, t, 16, t.x - ex / ed * t.hw * 0.6, t.y - ey / ed * t.hh * 0.6);
@@ -6569,7 +6572,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "1.97.6", NOTES = "Oda : sa parade au corps à corps (dès 15 coups de combo) ne bloque plus que les gros coups, de 8 dégâts ou plus ; les petits coups passent normalement, sans toucher à son combo. Son bond tranchant fait 7 dégâts.";
+const VERSION = "1.97.7", NOTES = "Myers : en furie, il ne fonce plus sur un adversaire invisible (Oda caché, Steve en approche…). Il court au hasard jusqu’à ce que l’adversaire redevienne visible, par exemple en passant tout près d’Oda caché.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

@@ -1,1 +1,1 @@
-{"version": "2.0.0", "notes": "Slime : 200 PV, et il se sépare maintenant à des dégâts fixes (le gros après 30, les 2 moyens après 15 chacun, puis 5 pour tous les plus petits). Dégâts revus en conséquence : 50 pour le gros, puis 25, 10, 5 et 2 pour les plus petits. Il fonce un peu moins souvent mais vise plus large."}
+{"version": "2.1.0", "notes": "Slime : 150 PV. Il se sépare toujours à des dégâts fixes : le gros après 30, puis 10, 5, 4, et les 16 plus petits disparaissent après 3. Ses dégâts remontent un peu : 50 pour le gros, puis 25, 15, 8 et 5 pour les plus petits."}

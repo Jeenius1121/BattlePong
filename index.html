@@ -669,7 +669,7 @@ const CHARS = {
     nom: "Sorcier", emoji: "🧙", vitesse: 200, pv: 100, voitInvisible: true, images: ["attaque", "bouclier", "marche 1", "marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "marche 7", "marche 8"], son2: "bouclier", marche: [4, 11],
     tailles: { 3: 1.4 }, // l'image du bouclier (cercle de feu) est affichée plus grande
     imageDe: f => f.bouclier > 0 ? 3 : f.attT > 0 ? 2 : imageMarche(f, 4), // il marche : images 4 à 11 (un pas de chaque pied)
-    desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 20 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 4 dégâts de plus.",
+    desc: "Voit les persos invisibles. Lance des boules de feu qui partent vers l’adversaire en tournant un peu vers lui. Toutes les 10 secondes, il s’entoure d’un bouclier de feu qui encaisse les coups et renvoie 25 % des dégâts à l’attaquant (il en subit lui-même 10 %) : quand il casse, il explose autour de lui et laisse un feu qui brûle pendant quelques secondes. En passant dans ce feu, il garde une aura de feu : sa prochaine boule de feu, où qu’il soit, fait 4 dégâts de plus.",
     svg: `<g ${O}>
       <rect x='92' y='34' width='6' height='112' rx='3' fill='#8a5228'/><circle cx='95' cy='30' r='10' fill='#4fc3f7'/>
       <rect x='28' y='72' width='12' height='30' rx='6' fill='#6a4bb5'/>
@@ -3341,7 +3341,7 @@ const ILE_DELAI = [15, 15], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 1
 const ILE_REGEN = 15, ILE_PROTEGE = 1, ILE_ATTENTE = 10; // l'île de la tortue : PV regagnés par seconde dessus, temps dessus avant qu'un coup la fasse replonger, temps max pour l'atteindre
 const BISON_ARRACHE = 0.8; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
-const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 17, GENOU_CD = 2.5, GENOU_DEGATS = 4;
+const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 17, GENOU_CD = 2.3, GENOU_DEGATS = 4;
 // Psycho Absorption : chance d'absorber un projectile (plus faible pour les balles de McCree) ; il regagne une part de ses dégâts
 const REFLET_CHANCE = { balle: 0.02, feu: 0.4, mortier: 0.05 };
 const ABSORPTION_SOIN = 0.5;
@@ -3771,10 +3771,10 @@ const MAIN_SENS = 16, MAIN_BIAIS = Math.PI / 4;
 const BRAS_NB = 6, BRAS_GLISSE = 0.06, MAIN_HAUTEUR = 105, MAIN_MUR = MAIN_HAUTEUR / 2 - 3, CORPS_HAUTEUR = 250, CORPS_VITESSE = 40;
 const OEIL_DUREE = [4, 5], OEIL_FERME = 2, OEIL_GROS_COUP = 8; // temps de l'œil sur une main, temps fermé après un gros coup, ce qu'est un gros coup
 // regard maudit : charge, durée du balayage, angle balayé, ouverture du cône, portée, dégâts tous les RAYON_TIC, ralentissement
-const RAYON_PREMIER = 3, RAYON_CD = 4.6, RAYON_CHARGE = 1, RAYON_DUREE = 1.6, RAYON_ARC = 1.4, RAYON_CONE = 0.5, RAYON_PORTEE = 440;
+const RAYON_PREMIER = 3, RAYON_CD = 4.4, RAYON_CHARGE = 1, RAYON_DUREE = 1.6, RAYON_ARC = 1.4, RAYON_CONE = 0.5, RAYON_PORTEE = 440;
 const RAYON_VIT_REF = 180, RAYON_VIT_MIN = 0.5, RAYON_VIT_MAX = 1.15; // dégâts du regard selon la vitesse de l'adversaire (vitesse de référence, bornes)
 const RAYON_TIC = 0.2, RAYON_DEGATS = 6, RAYON_LENT = 1.2;
-const SAISIE_PREMIERE = 5, SAISIE_CD = 3.5, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 2, SAISIE_SEUIL = 15, SAISIE_MAX = 1.5;
+const SAISIE_PREMIERE = 5, SAISIE_CD = 3.5, SAISIE_VITESSE = 650, SAISIE_TIC = 0.5, SAISIE_DEGATS = 2, SAISIE_SEUIL = 17, SAISIE_MAX = 1.5;
 const OEIL_POS = { x: 0.527, y: 0.217, rx: 0.09, ry: 0.079 }; // le grand œil sur l'image du corps (proportions)
 function corpsEchelle(f) { return CORPS_HAUTEUR / CHARS.oeil.sprite.th; }
 // géométrie d'un bras : épaule sur le corps, point de pli (coude), main (x, y)
@@ -3911,7 +3911,7 @@ function dessinerRayonOeil(f) {
   }
   ctx.restore();
 }
-const BOUCLIER_RENVOI = 0.2; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
+const BOUCLIER_RENVOI = 0.25; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
 const FEU_BONUS = 4; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 36, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
@@ -6593,7 +6593,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "2.6.0", NOTES = "Smoker : contre la Chose Impie, sa langue attrape maintenant la main à l’œil et la ramène pour l’étrangler, comme un adversaire normal (le grand œil continue de lancer son regard pendant ce temps). Bison s’arrache de la langue plus vite (0,8 s au lieu de 2 s) et D.Nouille, gluant, glisse hors de la langue au bout d’1 seconde.";
+const VERSION = "2.7.0", NOTES = "Petits renforcements pour les persos les moins bien classés : Bison donne ses coups de genou un peu plus souvent ; la Chose Impie lance son regard un peu plus souvent et sa main tient plus longtemps l’adversaire qu’elle a attrapé ; le bouclier de feu du Sorcier renvoie 25 % des dégâts au lieu de 20 %.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

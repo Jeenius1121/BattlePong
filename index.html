@@ -3032,6 +3032,137 @@ const CHARS = {
         } else { f.cd = BULLETS_CADENCE; son(f); }
       }
     }
+  },
+  vampire: {
+    creation: true,
+    nom: "Sanguina", emoji: "🦇", vitesse: 215, pv: 110, memeEchelle: true, taille: 1.15, marche: [1, 8],
+    portraitImage: 50, portraitAutre: { cx: 0.5, cy: 0.5, taille: 1 }, // portrait : son visage en gros plan (image 50)
+    ancres: {"2": [-0.0079, 0.0015], "3": [-0.004, 0.0031], "4": [0.0137, 0.0016], "5": [0.004, 0.0092], "6": [0.002, 0.0077], "7": [0.01, 0.0124], "8": [-0.0079, 0.014], "9": [0.004, 0.0141], "10": [-0.0518, 0.0962], "11": [-0.0689, 0.101], "12": [-0.0077, 0.0657], "13": [-0.0038, -0.032], "14": [0.0715, -0.0849], "15": [0.0359, 0.0944], "16": [0.0, 0.1506], "17": [-0.0197, 0.0753], "18": [-0.0209, 0.1615], "19": [-0.029, 0.3011], "20": [-0.0416, 0.4427], "21": [-0.0459, 0.4934], "22": [-0.0502, 0.3969], "23": [-0.0525, 0.2533], "24": [-0.0299, 0.1219], "25": [-0.0135, 0.0173], "26": [-0.0116, 0.0157], "27": [-0.0021, 0.0137], "28": [-0.0119, 0.0132], "29": [-0.016, 0.0131], "30": [-0.014, 0.0134], "31": [0.0108, 0.0154], "32": [-0.0234, 0.0171], "33": [-0.008, -0.0313], "34": [-0.0119, -0.03], "35": [-0.006, -0.0313], "36": [-0.0079, -0.0397], "37": [-0.0119, -0.0618], "38": [0.0, -0.0846], "39": [0.002, -0.0992], "40": [-0.01, -0.0942], "41": [0.0046, -0.053], "42": [0.0066, -0.0584], "43": [0.0105, -0.0594], "44": [0.0145, -0.0594], "45": [0.0251, -0.0594], "46": [0.0273, -0.0594], "47": [-0.0387, -0.0594], "48": [-0.0437, -0.0602], "49": [-0.0035, 0.0594]},
+    images: ["marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "marche 7", "marche 8",
+      "morsure 1", "morsure 2", "morsure 3", "morsure 4", "morsure 5", "morsure 6", "morsure 7", "morsure 8",
+      "boit 1", "boit 2", "boit 3", "boit 4", "boit 5", "boit 6", "boit 7", "boit 8",
+      "nuée 1", "nuée 2", "nuée 3", "nuée 4", "nuée 5", "nuée 6", "nuée 7", "nuée 8",
+      "dissolution 1", "dissolution 2", "dissolution 3", "dissolution 4", "dissolution 5", "dissolution 6", "dissolution 7", "dissolution 8",
+      "repue 1", "repue 2", "repue 3", "repue 4", "repue 5", "repue 6", "repue 7", "repue 8", "victoire", "portrait"],
+    sonNom: "morsure", son2: "elle boit", son3: "nuée de chauves-souris",
+    // marche : 1 à 8 (1 : repos) ; morsure : 9 à 16 ; boit : 17 à 24 ; nuée : 25 à 32 ; dissolution en chauves-souris : 33 à 40 ;
+    // repue (victoire) : 41 à 48, puis 49 ; 50 : portrait
+    imageDe: f => CHARS.vampire.pose(f),
+    pose(f) {
+      const E = f.etatV, h = f.horloge || 0, p = f.etatT && f.etatD ? 1 - f.etatT / f.etatD : 0, i8 = Math.min(7, Math.floor(p * 8));
+      if (E === "fete") return f.feteT < 1.6 ? 41 + Math.min(7, Math.floor(f.feteT / 0.2)) : 49;
+      if (E === "morsure") return 9 + i8;
+      if (E === "boit") return 17 + i8;
+      if (E === "dissout") return 33 + i8;
+      if (E === "reforme") return 40 - i8;
+      if (E === "nuee") return 25 + Math.floor(h * 12) % 8;
+      return imageMarche(f, 1, 1);
+    },
+    desc: "Une vampire (110 PV) qui se nourrit du sang de l’adversaire, mais pas en le frappant : chaque fois que l’adversaire perd des PV, quelle qu’en soit la cause, du sang tombe au sol (70 % des PV perdus), et elle doit aller le boire, à genoux, pour se soigner (pendant ce temps, elle ne bouge plus ; un coup de 4 dégâts ou plus la dérange : elle avale ce qu’elle peut et se relève). Le sang sèche au bout de 6 secondes. Au corps à corps, elle bondit et mord (12 dégâts) : la morsure laisse un fil de sang entre elles, qui aspire 4 PV par seconde pendant 4 secondes, tant que l’adversaire ne s’éloigne pas trop et reste visible (ce sang-là ne tombe pas au sol). La moitié de ce qu’elle boit, et tout ce qui dépasse ses PV max, remplit une réserve de sang : à 15, elle se dissout en une nuée de chauves-souris, intouchable, qui fonce sur l’adversaire en le mordillant (et se soigne de ce qu’elle mord), puis se reforme.",
+    svg: `<g ${O}>
+      <path d='M60 50 Q44 30 14 34 Q26 46 22 60 Q34 52 42 64 Q48 54 60 62 Q72 54 78 64 Q86 52 98 60 Q94 46 106 34 Q76 30 60 50Z' fill='#2a0d14'/>
+      <circle cx='52' cy='50' r='3' fill='#ff3040' stroke='none'/><circle cx='68' cy='50' r='3' fill='#ff3040' stroke='none'/>
+      <path d='M55 58 l2 6 l2 -6 M61 58 l2 6 l2 -6' fill='#fff' stroke='#fff' stroke-width='1.5'/></g>`,
+    // la nuée qui fonce sur f : une zone (pour esquiver)
+    menacePour(o, f) { return o.etatV === "nuee" && Math.hypot(o.x - f.x, o.y - f.y) < 140 ? { x: o.x, y: o.y, zone: true } : null; },
+    victoire(f) { f.etatV = "fete"; f.feteT = 0; f.enLair = false; f.vis = 1; f.traverse = false; f.fil = null; f.vx = 0; f.vy = 0; },
+    // le sang : chaque PV perdu par l'adversaire (sauf ceux que le fil aspire) fait tomber du sang au sol ; il sèche peu à peu
+    monde(f, o, g, dt) {
+      if (f.etatV === "fete") f.feteT = (f.feteT || 0) + dt;
+      const S = g.sang ||= [];
+      for (const s of S) s.t -= dt;
+      if (S.some(s => s.t <= 0)) g.sang = S.filter(s => s.t > 0);
+      if (!o) return;
+      const perdu = Math.max(0, (f.advHp ?? o.hp) - o.hp - (f.aspire || 0)); f.advHp = o.hp; f.aspire = 0;
+      if (perdu > 0 && g.running && !o.mort) {
+        const v = perdu * VAMP_SANG_PART, x = o.x + (Math.random() - 0.5) * o.hw * 1.2, y = Math.min(W - 8, o.y + o.hh * 0.75 + (Math.random() - 0.5) * 14);
+        const pres = g.sang.find(s => Math.hypot(s.x - x, s.y - y) < 22);
+        if (pres) { pres.v += v; pres.t = VAMP_SANG_VIE; pres.r = Math.min(30, 8 + Math.sqrt(pres.v) * 4); }
+        else g.sang.push({ x, y, v, t: VAMP_SANG_VIE, r: Math.min(30, 8 + Math.sqrt(v) * 4), rot: Math.random() * 6 });
+      }
+    },
+    // boire : tout le sang sous elle ; au-delà de ses PV max, il remplit sa réserve
+    boire(f, g) {
+      let v = 0; const pied = { x: f.x, y: f.y + f.hh * 0.7 };
+      g.sang = (g.sang || []).filter(s => { if (Math.hypot(s.x - pied.x, s.y - pied.y) < VAMP_BOIRE_R + s.r) { v += s.v; return false; } return true; });
+      if (!v) return;
+      const soin = Math.min(v, f.hpMax - f.hp); f.hp += soin;
+      f.reserve = Math.min(VAMP_RESERVE_MAX, (f.reserve || 0) + v * VAMP_RESERVE_PART + (v - soin)); // une part de tout ce qu'elle boit, et tout ce qui dépasse ses PV max
+      g.txt.push({ x: f.x, y: f.y - f.hh - 18, t: 0.8, s: "+" + Math.round(v), soin: true });
+      for (let i = 0; i < 6; i++) g.parts.push({ x: pied.x, y: pied.y, vx: (Math.random() - 0.5) * 90, vy: -30 - Math.random() * 60, t: 0.35, g: 400, c: "#b0101e" });
+    },
+    // la goutte la plus intéressante : assez proche, et pas sous l'adversaire
+    goutteVisee(f, o, g) {
+      let best = null, bs = -Infinity;
+      for (const s of g.sang || []) {
+        const d = Math.hypot(s.x - f.x, s.y - f.y - f.hh * 0.7), dAdv = Math.hypot(s.x - o.x, s.y - o.y);
+        if (d > VAMP_GOUTTE_PORTEE || (dAdv < VAMP_GOUTTE_ADV && !o.mort)) continue;
+        const sc = s.v * 3 - d * 0.04; if (sc > bs) { bs = sc; best = s; }
+      }
+      return best;
+    },
+    etat(f, E, d) { f.etatV = E; f.etatT = d; f.etatD = d; },
+    attaque(f, o, g, dt) {
+      f.horloge = (f.horloge || 0) + dt; f.etatV ||= "chasse";
+      f.morsureCd = Math.max(0, (f.morsureCd ?? 1) - dt);
+      const E = f.etatV;
+      if (E === "fete") { f.vx = 0; f.vy = 0; return; }
+      // le fil de sang : il aspire la vie de l'adversaire tant qu'il ne s'éloigne pas trop et reste visible
+      const F = f.fil;
+      if (F) {
+        F.t -= dt;
+        if (F.t <= 0 || o.mort || cache(o, f) || Math.hypot(o.x - f.x, o.y - f.y) > VAMP_FIL_PORTEE || E === "nuee") f.fil = null;
+        else { F.acc += VAMP_FIL_DRAIN * dt; if (F.acc >= 1) { const n = Math.floor(F.acc); F.acc -= n; const av = o.hp; const att = attaquant; attaquant = null; degats(g, o, n, o.x, o.y - o.hh * 0.3); attaquant = att; const pris = av - o.hp; f.aspire = (f.aspire || 0) + pris; f.hp = Math.min(f.hpMax, f.hp + pris); } }
+      }
+      if (f.etatT > 0) f.etatT -= dt;
+      const fini = !(f.etatT > 0);
+      if (E === "morsure") {
+        const p = 1 - Math.max(0, f.etatT) / f.etatD;
+        if (p < 0.75) { f.vx = Math.cos(f.angM) * VAMP_BOND; f.vy = Math.sin(f.angM) * VAMP_BOND; } else { f.vx *= 0.8; f.vy *= 0.8; }
+        f.face = Math.cos(f.angM) >= 0 ? 1 : -1;
+        if (!f.mordu && p >= 0.55) {
+          const t = cibleDe(f, o);
+          if (t && ecart(f, t) < VAMP_MORSURE_PORTEE) {
+            f.mordu = true; son(f); frapper(g, o, t, VAMP_MORSURE, (f.x + t.x) / 2, (f.y + t.y) / 2 - 10);
+            if (!t.drone && !o.mort) f.fil = { t: VAMP_FIL_DUREE, acc: 0 };
+          }
+        }
+        if (fini) { this.etat(f, "chasse", 0); f.morsureCd = VAMP_MORSURE_CD; }
+        return;
+      }
+      if (E === "boit") {
+        f.vx = 0; f.vy = 0;
+        const choc = (f.hpBoit ?? f.hp) - f.hp; f.hpBoit = f.hp;
+        if (choc >= VAMP_BOIRE_CHOC && !f.bu) { f.bu = true; this.boire(f, g); this.etat(f, "chasse", 0); return; } // dérangée par un coup : elle avale ce qu'elle peut et se relève
+        if (!f.bu && f.etatT < f.etatD * 0.45) { f.bu = true; this.boire(f, g); }
+        if (fini) this.etat(f, "chasse", 0);
+        return;
+      }
+      if (E === "dissout") { f.vx = 0; f.vy = 0; if (fini) { this.etat(f, "nuee", VAMP_NUEE_DUREE); f.enLair = true; f.traverse = true; f.nuTic = 0; son(f, 3); } return; }
+      if (E === "nuee") { // la nuée fonce sur l'adversaire, le traverse en le mordillant, puis repart
+        const t = cibleDe(f, o) || o, dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1;
+        f.vx += (dx / d * VAMP_NUEE_VITESSE - f.vx) * Math.min(1, dt * 3); f.vy += (dy / d * VAMP_NUEE_VITESSE - f.vy) * Math.min(1, dt * 3);
+        f.nuTic -= dt;
+        if (f.nuTic <= 0 && d < Math.max(t.hw || 20, t.hh || 20) + 40 && !o.mort) { f.nuTic = VAMP_NUEE_TIC; const av = o.hp; frapper(g, o, t, VAMP_NUEE_DEG, t.x, t.y - 10); if (!t.drone) { const pris = av - o.hp; f.hp = Math.min(f.hpMax, f.hp + pris); f.aspire = (f.aspire || 0) + pris; } }
+        if (fini) { this.etat(f, "reforme", VAMP_DISSOUT); f.enLair = false; f.traverse = false; f.vx = 0; f.vy = 0; }
+        return;
+      }
+      if (E === "reforme") { f.vx = 0; f.vy = 0; if (fini) this.etat(f, "chasse", 0); return; }
+      // chasse
+      if ((f.reserve || 0) >= VAMP_NUEE_COUT && !o.mort) { f.reserve -= VAMP_NUEE_COUT; this.etat(f, "dissout", VAMP_DISSOUT); f.fil = null; return; }
+      const t = cibleDe(f, o), goutte = (f.hp < f.hpMax || (f.reserve || 0) < VAMP_RESERVE_MAX) && !(f.aveugle > 0) ? this.goutteVisee(f, o, g) : null;
+      const veut = goutte && (!t || f.hp < f.hpMax * 0.75 || Math.hypot(goutte.x - f.x, goutte.y - f.y) < Math.hypot(t.x - f.x, t.y - f.y));
+      if (veut) {
+        const dx = goutte.x - f.x, dy = goutte.y - (f.y + f.hh * 0.7), d = Math.hypot(dx, dy);
+        if (d < VAMP_BOIRE_R + goutte.r * 0.6) { f.bu = false; f.hpBoit = f.hp; this.etat(f, "boit", VAMP_BOIRE); son(f, 2); return; }
+        f.vx = dx; f.vy = dy; normaliser(f); return;
+      }
+      if (t && !o.mort) {
+        const dx = t.x - f.x, dy = t.y - f.y;
+        if (f.morsureCd <= 0 && ecart(f, t) < VAMP_ELAN) { f.angM = Math.atan2(dy, dx); f.mordu = false; this.etat(f, "morsure", VAMP_MORSURE_DUREE); return; }
+        f.vx = dx; f.vy = dy; normaliser(f);
+      } else if (Math.hypot(f.vx, f.vy) < 1) { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); }
+    }
   }
 };
 
@@ -3724,6 +3855,11 @@ const GELEE_FONCE_CD = 2, GELEE_FONCE_DUREE = 1, GELEE_FONCE_VITESSE = 2.5, GELE
 const ODA_FUITE_MAX = 2.5; // temps max pour rejoindre sa cachette
 const ODA_COMBO_VITESSE = 0.008; // vitesse d'attaque gagnée par coup du combo (+0,8 %)
 const ODA_PORTEE = 34, ODA_COUP = 2, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts fixes d'un coup ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
+// Sanguina (vampire) : le sang que perd l'adversaire tombe au sol et elle va le boire ; morsure + fil de sang ; nuée de chauves-souris
+const VAMP_SANG_PART = 0.7, VAMP_SANG_VIE = 6, VAMP_BOIRE = 0.9, VAMP_BOIRE_R = 26, VAMP_GOUTTE_PORTEE = 320, VAMP_GOUTTE_ADV = 60, VAMP_BOIRE_CHOC = 4; // part des PV perdus qui tombe en sang, temps avant qu'il sèche, durée pour boire, portée sous elle, distance max d'une goutte visée
+const VAMP_MORSURE = 12, VAMP_MORSURE_CD = 1.2, VAMP_MORSURE_DUREE = 0.6, VAMP_MORSURE_PORTEE = 14, VAMP_ELAN = 110, VAMP_BOND = 380; // morsure : dégâts, recharge, durée du bond, portée du coup, distance d'élan, vitesse du bond
+const VAMP_FIL_DUREE = 4, VAMP_FIL_DRAIN = 4, VAMP_FIL_PORTEE = 300; // fil de sang : durée, PV aspirés par seconde, distance au-delà de laquelle il casse
+const VAMP_RESERVE_PART = 0.5, VAMP_RESERVE_MAX = 30, VAMP_NUEE_COUT = 15, VAMP_NUEE_DUREE = 1.8, VAMP_DISSOUT = 0.4, VAMP_NUEE_VITESSE = 360, VAMP_NUEE_TIC = 0.25, VAMP_NUEE_DEG = 2; // réserve de sang et nuée de chauves-souris
 const ODA_SAIGNE = 0.2, ODA_SAIGNE_DUREE = 3, ODA_SAIGNE_MAX = 6; // saignement : PV perdus par seconde et par cran, durée (relancée à chaque coup), crans au plus
 const ODA_BOND_MIN = 120, ODA_BOND_MAX = 330, ODA_BOND_PREP = 0.22, ODA_BOND_DUREE = 0.42, ODA_BOND_HAUT = 46, ODA_BOND_DEGATS = 7, ODA_BOND_RATE = 0.6, ODA_BOND_CD = 3.4;
 const ODA_SANDEV_PREMIER = 6, ODA_SANDEV_CD = 11, ODA_SANDEV_DUREE = 2.2, SANDEV_LENT = 0.3, ODA_SANDEV_TEMPO = 0.65; // Sandevistan : l'adversaire et ses tirs à SANDEV_LENT de leur vitesse ; ses coups durent ODA_SANDEV_TEMPO fois moins
@@ -4451,6 +4587,7 @@ const ALLURES = {
   sorciere: { type: "spectre", saut: 4, penche: 0.09, souple: { amp: 2.6, bas: true } },
   burger: { type: "fixe" },
   oda: { type: "fixe" },
+  vampire: { type: "fixe" },
   bullets: { type: "marche", pas: 50, saut: 2.6, penche: 0.04, souple: { amp: 1.3, bas: true } },
 };
 function animerPerso(f, dtv, now) {
@@ -4554,6 +4691,18 @@ function versMonde(f, u, v) {
 function vpart(g, o) { (g.vparts ||= []).push(o); }
 // petits effets propres à certains persos (fumée, étincelles, plumes…) : dessin seulement
 const DECORS = {
+  vampire(f, g) { // le fil de sang qui relie la mordue à la vampire (il ondule et goutte), et sa réserve de sang qui rougeoie
+    const o = g.f.find(x => x !== f), F = f.fil, t = performance.now() / 1000;
+    if (F && o && !o.mort) {
+      const a = versMonde(f, 0.62, 0.22), b = { x: o.x, y: o.y - o.hh * 0.2 }, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 + 26 + Math.sin(t * 5) * 8;
+      ctx.save(); ctx.lineCap = "round"; ctx.globalAlpha = Math.min(1, F.t * 2);
+      ctx.strokeStyle = "#4a0710"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(mx, my, b.x, b.y); ctx.stroke();
+      ctx.strokeStyle = "#d4222f"; ctx.lineWidth = 2.5; ctx.stroke();
+      const u = (t * 0.8) % 1, px = (1 - u) * (1 - u) * b.x + 2 * u * (1 - u) * mx + u * u * a.x, py = (1 - u) * (1 - u) * b.y + 2 * u * (1 - u) * my + u * u * a.y; // une goutte qui remonte vers elle
+      ctx.fillStyle = "#ff4250"; ctx.beginPath(); ctx.arc(px, py, 3.5, 0, 7); ctx.fill(); ctx.restore();
+    }
+    if ((f.reserve || 0) > 0 && f.etatV !== "nuee") { const k = Math.min(1, f.reserve / VAMP_NUEE_COUT); ctx.save(); ctx.globalAlpha = 0.25 + 0.2 * k * (0.6 + 0.4 * Math.sin(t * 4)); ctx.fillStyle = "#c0101e"; ctx.beginPath(); ctx.ellipse(f.x, f.y + f.hh * 0.85, f.hw * (0.5 + 0.4 * k), 6 + 4 * k, 0, 0, 7); ctx.fill(); ctx.restore(); }
+  },
   grenouille(f, g, dtv) { // le coup de langue : une langue rose qui jaillit de la bouche de la grenouille jusqu'à l'adversaire, puis rentre
     const L = f.langueVis; if (!L || f.pilote) return;
     L.t -= dtv; if (L.t <= 0) { f.langueVis = null; return; }
@@ -4859,6 +5008,7 @@ function dessiner() {
   }
   for (const b of g.os || []) CHARS.sorciere.dessinerTas(ctx, b); // tas d'os des squelettes de la Nécromancienne (restent au sol)
   dessinerSolBurger(g); // flaques de sauce et frites plantées du Burger
+  dessinerSang(g); // sang au sol que la vampire va boire
   for (const f of g.f) if (f.armeSol && !f.mort) dessinerArmeSol(f.armeSol); // arme qu'I Need More Bullets peut ramasser
   for (const f of g.f) if (f.tas && !f.mort) for (const T of f.tas) dessinerTasBalles(T, f.fusil ? BULLETS_FUSIL_TAS : BULLETS_TAS_BALLES); // tas de balles que I Need More Bullets peut ramasser (plus gros quand il a le fusil)
   for (const tc of g.taches) { // tâches sombres laissées par les explosions
@@ -5432,6 +5582,17 @@ function dessinerFrite(x, y, ang, L = 30, etat = "") {
   ctx.restore();
 }
 // au sol : flaques de sauce qui s'effacent, frites ratées plantées dans le sol ou dans les murs (jusqu'à la fin du combat)
+function dessinerSang(g) {
+  if (!g.sang) return;
+  const now = performance.now() / 1000;
+  for (const e of g.sang) {
+    const k = Math.min(1, e.t / VAMP_SANG_VIE * 2.5); // il sèche : plus sombre et plus pâle sur la fin
+    ctx.save(); ctx.translate(e.x, e.y); ctx.scale(1, 0.45); ctx.globalAlpha = 0.85 * k;
+    ctx.fillStyle = k > 0.6 ? "#9a0b18" : "#5e0a12"; goutte(ctx, 0, 0, e.r, e.rot + now * 0.3); ctx.fill();
+    ctx.globalAlpha = 0.5 * k; ctx.fillStyle = "#e0303e"; goutte(ctx, -e.r * 0.25, -e.r * 0.2, e.r * 0.3, e.rot + 2); ctx.fill();
+    ctx.restore();
+  }
+}
 function dessinerSolBurger(g) {
   if (g.flaques) for (const e of g.flaques) {
     const k = Math.min(1, e.t / e.vie * 1.6);
@@ -6593,7 +6754,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "2.7.0", NOTES = "Petits renforcements pour les persos les moins bien classés : Bison donne ses coups de genou un peu plus souvent ; la Chose Impie lance son regard un peu plus souvent et sa main tient plus longtemps l’adversaire qu’elle a attrapé ; le bouclier de feu du Sorcier renvoie 25 % des dégâts au lieu de 20 %.";
+const VERSION = "2.8.0", NOTES = "Nouveau perso : Sanguina, une vampire. Elle ne vole pas la vie en frappant : le sang que perd l’adversaire tombe au sol et elle doit aller le boire, à genoux, pour se soigner. Sa morsure laisse un fil de sang qui aspire la vie de l’adversaire tant qu’il reste proche et visible, et sa réserve de sang lui permet de se dissoudre en une nuée de chauves-souris intouchable.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

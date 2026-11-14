@@ -974,7 +974,7 @@ const CHARS = {
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 3,3 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire, sauf le Bombardier, trop gros, qui continue de tirer au ralenti), lui fait des dégâts pendant qu’il le traîne (3 tous les 60 pixels : plus l’adversaire était loin, plus il prend), l’étrangle pendant 2,5 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise, mais ce coup ne lui fait aucun dégât. Quand sa langue est annulée, il la relance plus vite (1 seconde plus tôt). Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose, Bouldozer en feu qui la brûle), l’adversaire prend quand même une partie des dégâts de l’étranglement. Un adversaire accroché aux murs (la Chose Impie) ne peut pas être ramené : la langue l’étrangle sur place, et pendant ce temps le Smoker reste touchable (il encaisse 60 % de moins).",
+    desc: "Frappe au corps à corps. Toutes les 3,3 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire, sauf le Bombardier, trop gros, qui continue de tirer au ralenti), lui fait des dégâts pendant qu’il le traîne (3 tous les 60 pixels : plus l’adversaire était loin, plus il prend), l’étrangle pendant 2,5 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise, mais ce coup ne lui fait aucun dégât. Quand sa langue est annulée, il la relance plus vite (1 seconde plus tôt). Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose, Bouldozer en feu qui la brûle), l’adversaire prend quand même une partie des dégâts de l’étranglement. Contre la Chose Impie, il attrape la main à l’œil et la ramène contre lui pour l’étrangler, comme un adversaire normal ; si ce bras est arraché pendant la prise, la langue lâche.",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -1029,7 +1029,6 @@ const CHARS = {
           langueAnnulee(g, o); L.annulee = true;
           L.etat = "rentre"; g.txt.push({ x: o.x, y: o.y - o.hh - 30, t: 0.9, s: o.pose > 0 ? "Imperturbable !" : "Ça glisse !" }); return;
         }
-        if (atteint && CHARS[o.type].ancree) { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; L.surPlace = true; son(f, 3, true, true); eclats(g, L.x, L.y, "#6e3038"); return; }
         if (atteint) { // attrapé !
           L.etat = "attire"; o.capture = f; arreterSons(o); // l'adversaire attrapé se tait
           o.burst = 0; o.charge = 0; o.tir = 0; o.muzzle = 0; o.rot = 0; o.vx = 0; o.vy = 0; o.crusher = null; o.stomp = null; o.haut = 0; o.vis = 1; o.enLair = false;
@@ -1051,7 +1050,7 @@ const CHARS = {
         L.serre = Math.max(0, (L.serre || 0) - dt);
         if (L.t <= 0) { // il le relâche un peu plus loin
           const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
-          if (!L.surPlace) liberer(o, f, dx / d, dy / d);
+          if (CHARS[o.type].ancree) liberer(o, f); else liberer(o, f, dx / d, dy / d); // la main de la Chose Impie retourne à son mur
           L.etat = "rentre"; L.x = o.x; L.y = o.y;
         }
       } else { // la langue revient dans la bouche
@@ -1162,7 +1161,7 @@ const CHARS = {
     sonNom: "psycho crusher", son2: "head stomp", son3: "absorption", son4: "coup de genou",
     // image 4 pendant les coups de genou (seulement si elle est fournie, sinon l'image normale)
     imageDe: f => f.crusher ? 2 : f.stomp ? 3 : f.attT > 0 && CHARS.bison.spr && CHARS.bison.spr[4] ? 4 : 1,
-    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (touchable pendant qu’il monte, intouchable une fois disparu et en retombant). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Absorption : absorbe certains projectiles (4 boules de feu sur 10, 1 mortier sur 20, 1 balle sur 50) au lieu de les subir, et regagne des PV. Sa puissance psychique traverse la moitié du blindage (bras de la Chose Impie, Bouldozer posé). Une balle de McCree qui le touche en plein Psycho Crusher l’arrête net. Attrapé par la langue du Smoker, il s’en arrache avec son Head Stomp après 2 secondes, s’il est prêt.",
+    desc: "Puissance psychique. Psycho Crusher : fonce en vrille à travers l’arène et blesse tout sur son passage (s’il rate, il reste sonné contre le mur). Head Stomp : s’envole, suit l’adversaire et lui retombe dessus (touchable pendant qu’il monte, intouchable une fois disparu et en retombant). Double Knee Press : deux coups de genou quand l’adversaire est collé à lui. Psycho Absorption : absorbe certains projectiles (4 boules de feu sur 10, 1 mortier sur 20, 1 balle sur 50) au lieu de les subir, et regagne des PV. Sa puissance psychique traverse la moitié du blindage (bras de la Chose Impie, Bouldozer posé). Une balle de McCree qui le touche en plein Psycho Crusher l’arrête net. Attrapé par la langue du Smoker, il s’en arrache avec son Head Stomp après 0,8 seconde, s’il est prêt.",
     svg: `<g ${O}>
       <path d='M30 64 Q18 104 22 146 L98 146 Q102 104 90 64Z' fill='#7a1020'/>
       <rect x='44' y='108' width='13' height='28' fill='#b3202c'/><rect x='63' y='108' width='13' height='28' fill='#b3202c'/>
@@ -1728,7 +1727,7 @@ const CHARS = {
     // un coup ne peut vider que le bras à l'œil : elle ne tombe qu'avec son dernier bras
     plafond: f => f.brasActif ? Math.min(20, Math.ceil(f.brasActif.pv)) : Infinity,
     imageDe: f => { const ferme = f.oeilFerme > 0; return f.sens ? 3 + f.sens + (ferme ? MAIN_SENS : 0) : ferme ? 3 : 2; }, blindage: 0.26,
-    desc: "Énorme créature (210 PV) suspendue au milieu de l’arène, accrochée aux murs et au plafond par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains (sur les autres, il reste fermé), et c’est cet avant-bras qu’il faut frapper ; il est dur comme de la corne (26 % de dégâts en moins). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Ses PV, ce sont ses bras : chacun en porte un sixième, les coups entament le bras à l’œil, et quand il est vidé il est arraché ; un seul coup ne peut pas lui enlever plus de 20 PV. Tant qu’il reste un bras, il reste des PV ; quand le dernier est arraché, la Chose tombe. Son grand œil suit toujours l’adversaire. De temps en temps, l’œil fixe l’adversaire et vire au vert, puis lance son regard maudit : un large cône de lumière verte qui balaie l’arène d’un côté à l’autre en passant sur l’adversaire (il ne le suit pas) ; tant qu’il est dedans, il brûle (d’autant plus fort qu’il est rapide : un perso lent, qui ne peut pas y échapper, en prend moins) et il est ralenti. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place (jusqu’à 1,5 seconde) et lui fait de petits dégâts, à moins qu’il ne l’ait assez frappée pour se libérer avant. Accrochée aux murs, elle ne peut pas être ramenée par la langue du Smoker.",
+    desc: "Énorme créature (210 PV) suspendue au milieu de l’arène, accrochée aux murs et au plafond par ses 6 bras. Son corps est intouchable : un œil s’ouvre sur une de ses mains (sur les autres, il reste fermé), et c’est cet avant-bras qu’il faut frapper ; il est dur comme de la corne (26 % de dégâts en moins). Toutes les 4 à 5 secondes, l’œil passe sur une autre main ; après un gros coup, il se referme un instant (plus rien n’est touchable) puis se rouvre ailleurs. Ses PV, ce sont ses bras : chacun en porte un sixième, les coups entament le bras à l’œil, et quand il est vidé il est arraché ; un seul coup ne peut pas lui enlever plus de 20 PV. Tant qu’il reste un bras, il reste des PV ; quand le dernier est arraché, la Chose tombe. Son grand œil suit toujours l’adversaire. De temps en temps, l’œil fixe l’adversaire et vire au vert, puis lance son regard maudit : un large cône de lumière verte qui balaie l’arène d’un côté à l’autre en passant sur l’adversaire (il ne le suit pas) ; tant qu’il est dedans, il brûle (d’autant plus fort qu’il est rapide : un perso lent, qui ne peut pas y échapper, en prend moins) et il est ralenti. La main à l’œil peut aussi aller attraper l’adversaire par le bras : elle le bloque sur place (jusqu’à 1,5 seconde) et lui fait de petits dégâts, à moins qu’il ne l’ait assez frappée pour se libérer avant. La langue du Smoker peut attraper la main à l’œil : elle la ramène vers lui et l’étrangle, puis la main regagne son mur ; pendant ce temps, le grand œil continue de lancer son regard.",
     svg: `<g ${O}>
       <path d='M60 40 Q30 60 34 110 Q40 140 60 146 Q80 140 86 110 Q90 60 60 40Z' fill='#e9c9c0' stroke='#7a1a22'/>
       <path d='M44 70 Q60 90 76 70 M46 100 Q60 116 74 100' fill='none' stroke='#b52a35' stroke-width='3'/>
@@ -1749,32 +1748,7 @@ const CHARS = {
       if (!f.bras) this.preparer(f, o, g);
       if (!f.bras.length) { f.vx = 0; f.vy = 0; f.rayon = null; return; } // plus de bras : elle tombe
       const A = f.brasActif;
-      // regard maudit : le grand œil fixe l'adversaire en se chargeant, puis un cône de lumière verte balaie l'arène
-      // d'un côté à l'autre en passant sur lui (il ne le suit pas) ; ce qui reste dedans brûle et est ralenti
-      f.rayonCd = (f.rayonCd ?? RAYON_PREMIER) - dt;
-      const R = f.rayon, oeil = this.posOeil(f);
-      if (R) {
-        R.t += dt;
-        const vu = !o.mort && !cache(o, f);
-        if (!R.tir) {
-          if (vu) R.vise = Math.atan2(o.y - oeil.y, o.x - oeil.x);
-          R.a = R.vise - R.sens * RAYON_ARC / 2;
-          if (R.t >= RAYON_CHARGE) { R.tir = true; R.t = 0; R.tic = 0; son(f); }
-        } else {
-          R.a = R.vise + R.sens * RAYON_ARC * (Math.min(1, R.t / RAYON_DUREE) - 0.5);
-          R.tic -= dt;
-          if (R.tic <= 0) {
-            R.tic = RAYON_TIC;
-            // plus l'adversaire est rapide, plus le regard lui fait mal (un lent, qui ne peut pas y échapper, en prend moins)
-            const vit = o.vitesse ?? CHARS[o.type].vitesse, kv = Math.max(RAYON_VIT_MIN, Math.min(RAYON_VIT_MAX, vit / RAYON_VIT_REF));
-            const dzR = (x, y, r) => this.dansRegard(f, { x, y, hw: r, hh: r }), nzR = partZone(o, dzR, Math.max(1, Math.round(RAYON_DEGATS * kv)));
-            if (vu && this.dansRegard(f, o)) { degats(g, o, nzR, o.x, o.y - o.hh * 0.3); if (!CHARS[o.type].lourd) o.lent = Math.max(o.lent || 0, RAYON_LENT); } // le Bombardier, trop lourd, n'est pas ralenti
-            zoneAutres(g, o, dzR, nzR);
-            for (const d of [...(o.drones || [])]) { const q = dronePos(o, d); if (this.dansRegard(f, { x: q.x, y: q.y, hw: 14, hh: 14 })) blesserDrone(g, o, d, RAYON_DEGATS); } // et les appareils du Bombardier
-          }
-          if (R.t >= RAYON_DUREE) { f.rayon = null; f.rayonCd = RAYON_CD; }
-        }
-      } else if (f.rayonCd <= 0 && !f.saisie && !o.mort && !cache(o, f)) f.rayon = { t: 0, vise: Math.atan2(o.y - oeil.y, o.x - oeil.x), a: 0, sens: Math.random() < 0.5 ? -1 : 1, tir: false };
+      this.regard(f, o, g, dt);
       // l'œil de la main fermé après un gros coup : la main n'est plus touchable (le regard, lui, continue), puis l'œil se rouvre sur une autre main
       if (f.oeilFerme > 0) { f.oeilFerme -= dt; f.vis = 0.8; if (f.oeilFerme <= 0) { f.enLair = false; f.vis = 1; this.changerOeil(f); } return; }
       // saisie : la main à l'œil quitte le mur et va attraper l'adversaire
@@ -1839,6 +1813,7 @@ const CHARS = {
         const p = { x: f.x, y: f.y }; f.bras = f.bras.filter(x => x !== B); son(f, 3); arrache = true; // bras arraché
         for (let i = 0; i < 18; i++) g.parts.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.5) * 260 - 60, t: 0.7, g: 500, c: i % 2 ? "#efd0c6" : "#b52a35" });
         if (f.saisie) { o.piege = 0; f.saisie = null; f.traverse = false; }
+        if (f.capture && f.capture.langue) couperLangue(f.capture, f, g, p.x, p.y); // bras arraché dans la langue du Smoker : elle lâche
         if (f.bras.length) this.changerOeil(f); else f.brasActif = null;
       }
       // tant qu'il reste un bras, il reste des PV ; plus de bras : plus de PV, il tombe
@@ -1934,8 +1909,39 @@ const CHARS = {
     },
     // victoire : la caméra zoome sur son corps (l'image du perso), pas sur la main à l'œil
     zoomSur: f => f.corps || f,
-    // attrapé par la langue du Smoker : la saisie en cours est annulée
-    attrape(f, o) { if (f.saisie) { o.piege = 0; f.saisie = null; f.traverse = false; } },
+    // attrapé par la langue du Smoker : la saisie en cours est annulée ; la main à l'œil est ramenée vers lui comme un adversaire normal
+    // son corps n'est pas pris : le grand œil continue de lancer son regard
+    attrape(f, o, g, dt) { if (f.saisie && f.saisie.phase !== "retour") { o.piege = 0; f.saisie = null; f.traverse = false; } if (f.bras && f.bras.length && !o.mort) this.regard(f, o, g, dt); },
+    regard(f, o, g, dt) {
+      // regard maudit : le grand œil fixe l'adversaire en se chargeant, puis un cône de lumière verte balaie l'arène
+      // d'un côté à l'autre en passant sur lui (il ne le suit pas) ; ce qui reste dedans brûle et est ralenti
+      f.rayonCd = (f.rayonCd ?? RAYON_PREMIER) - dt;
+      const R = f.rayon, oeil = this.posOeil(f);
+      if (R) {
+        R.t += dt;
+        const vu = !o.mort && !cache(o, f);
+        if (!R.tir) {
+          if (vu) R.vise = Math.atan2(o.y - oeil.y, o.x - oeil.x);
+          R.a = R.vise - R.sens * RAYON_ARC / 2;
+          if (R.t >= RAYON_CHARGE) { R.tir = true; R.t = 0; R.tic = 0; son(f); }
+        } else {
+          R.a = R.vise + R.sens * RAYON_ARC * (Math.min(1, R.t / RAYON_DUREE) - 0.5);
+          R.tic -= dt;
+          if (R.tic <= 0) {
+            R.tic = RAYON_TIC;
+            // plus l'adversaire est rapide, plus le regard lui fait mal (un lent, qui ne peut pas y échapper, en prend moins)
+            const vit = o.vitesse ?? CHARS[o.type].vitesse, kv = Math.max(RAYON_VIT_MIN, Math.min(RAYON_VIT_MAX, vit / RAYON_VIT_REF));
+            const dzR = (x, y, r) => this.dansRegard(f, { x, y, hw: r, hh: r }), nzR = partZone(o, dzR, Math.max(1, Math.round(RAYON_DEGATS * kv)));
+            if (vu && this.dansRegard(f, o)) { degats(g, o, nzR, o.x, o.y - o.hh * 0.3); if (!CHARS[o.type].lourd) o.lent = Math.max(o.lent || 0, RAYON_LENT); } // le Bombardier, trop lourd, n'est pas ralenti
+            zoneAutres(g, o, dzR, nzR);
+            for (const d of [...(o.drones || [])]) { const q = dronePos(o, d); if (this.dansRegard(f, { x: q.x, y: q.y, hw: 14, hh: 14 })) blesserDrone(g, o, d, RAYON_DEGATS); } // et les appareils du Bombardier
+          }
+          if (R.t >= RAYON_DUREE) { f.rayon = null; f.rayonCd = RAYON_CD; }
+        }
+      } else if (f.rayonCd <= 0 && !f.saisie && !o.mort && !cache(o, f)) f.rayon = { t: 0, vise: Math.atan2(o.y - oeil.y, o.x - oeil.x), a: 0, sens: Math.random() < 0.5 ? -1 : 1, tir: false };
+    },
+    // relâchée : la main regagne son mur (comme après une saisie)
+    reprendre(f) { f.saisie = { phase: "retour", t: 0, tic: 0, recu: 0 }; f.traverse = true; },
     // position du grand œil dans l'arène (sur l'image du corps : 52,7 % de la largeur, 21,7 % de la hauteur)
     posOeil(f) { const C = f.corps, k = corpsEchelle(f); return { x: C.x + (OEIL_POS.x - 0.5) * CHARS.oeil.sprite.tw * k, y: C.y + (OEIL_POS.y - 0.5) * CHARS.oeil.sprite.th * k }; }
   },
@@ -2097,7 +2103,7 @@ const CHARS = {
       if (B && B.phase === "pause" && B.t > PILOTE_PAUSE - 0.12) return 6;
       return 2;
     },
-    desc: "D.Nouille, une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille : quand l’adversaire est proche, il bondit droit sur lui, et s’il lui retombe dessus, il l’écrase (3 dégâts) et le repousse. Si l’adversaire vient se coller au mécha, la grenouille lui donne un coup de langue collant (3 dégâts) qui le repousse (au plus toutes les 13 secondes). Son canon gonfle une bulle, petite au début, de plus en plus grosse ; pendant ce temps, elle ne saute plus et marche lentement sur le côté. Si la langue du Smoker touche la bulle, la langue est coupée. La bulle part quand elle est au maximum, ou dès que l’adversaire (ou la langue du Smoker) la touche pendant qu’elle gonfle. La bulle vole vers l’adversaire en le suivant un peu pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : elle arrête jusqu’à 15 dégâts du prochain coup. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout (en se rapprochant peu à peu de l’adversaire) et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
+    desc: "D.Nouille, une grenouille dans son mécha (100 PV en tout). Il avance par bonds, comme une grenouille : quand l’adversaire est proche, il bondit droit sur lui, et s’il lui retombe dessus, il l’écrase (3 dégâts) et le repousse. Si l’adversaire vient se coller au mécha, la grenouille lui donne un coup de langue collant (3 dégâts) qui le repousse (au plus toutes les 13 secondes). Son canon gonfle une bulle, petite au début, de plus en plus grosse ; pendant ce temps, elle ne saute plus et marche lentement sur le côté. Si la langue du Smoker touche la bulle, la langue est coupée ; et s’il se fait attraper, il est si gluant qu’il glisse hors de la langue au bout d’1 seconde. La bulle part quand elle est au maximum, ou dès que l’adversaire (ou la langue du Smoker) la touche pendant qu’elle gonfle. La bulle vole vers l’adversaire en le suivant un peu pendant un peu plus d’une seconde, s’arrête une demi-seconde, puis éclate en zone (elle éclate aussi si l’adversaire la touche) ; plus elle est grosse, plus elle fait mal. De temps en temps, le petit appareil sur son dos l’entoure d’une bulle de protection : elle arrête jusqu’à 15 dégâts du prochain coup. Quand le mécha n’a plus que 30 PV, il explose (dégâts autour de lui) et le pilote s’éjecte : petit, rapide, il saute partout (en se rapprochant peu à peu de l’adversaire) et tire plein de petites bulles avec son pistolet, qui volent, s’arrêtent et éclatent comme des bulles. Il faut aussi battre le pilote pour gagner.",
     svg: `<g ${O}>
       <ellipse cx='60' cy='92' rx='40' ry='34' fill='#7a8f3c'/><rect x='88' y='84' width='30' height='14' rx='4' fill='#4a4a52'/>
       <circle cx='58' cy='60' r='24' fill='#bfe3ff' opacity='.7'/><circle cx='62' cy='62' r='14' fill='#7cc24a'/><circle cx='68' cy='58' r='5' fill='#f2a23a'/>
@@ -2171,6 +2177,9 @@ const CHARS = {
     },
     // la langue du Smoker qui touche sa bulle en train de gonfler (la bulle protège tout l'avant, du côté du canon) :
     // la langue est coupée et la bulle part tout de suite
+    // gluant : pris dans la langue du Smoker, il finit par glisser hors de sa prise (après NOUILLE_GLISSE s)
+    attrape(f, o, g, dt) { f.glisse = (f.glisse || 0) + dt; if (f.glisse >= NOUILLE_GLISSE && f.capture.langue) { f.glisse = 0; g.txt.push({ x: f.x, y: f.y - f.hh - 30, t: 0.9, s: "Ça glisse !" }); const S = f.capture; couperLangue(S, f, g, f.x, f.y); if (S.langue) S.langue.annulee = false; } }, // (pas de relance plus rapide pour le Smoker)
+    reprendre(f) { f.glisse = 0; },
     obstacleLangue(f, x, y) {
       if (f.pilote || f.gonfle === undefined) return false;
       const B = this.bulleCanon(f), devant = (x - f.x) * f.face > 0 && Math.abs(x - f.x) < f.hw + B.r * 2 && Math.abs(y - f.y) < f.hh + B.r;
@@ -3233,7 +3242,6 @@ function degats(g, cible, n, x, y) {
   if (coupRate || (attaquant && attaquant !== cible && rateTir(attaquant))) { rate(g, x, y); return; }
   // le Smoker qui étrangle quelqu'un contre lui ne prend aucun dégât (mais il reste touchable pendant qu'il le ramène)
   if (cible.langue && cible.langue.etat === "etreinte" && g.f.some(x => x.capture === cible)) return;
-  if (cible.langue && cible.langue.surPlace && cible.langue.etat === "etreinte") n = Math.max(1, Math.round(n * 0.4));
   if (attaquant && attaquant !== cible && attaquant.avale > 0 && !coupVenu) { attaquant.avale--; n = Math.max(1, Math.round(n * AVALE_DEGATS)); } // frite du Burger avalée : son prochain coup (sans tir) est plus faible
   const c = CHARS[cible.type];
   if (c.pareCorps && c.pareCorps(cible, g, n)) return; // Oda : parade d'un coup au corps à corps (avec un gros combo)
@@ -3331,7 +3339,7 @@ function plouf(g, x, y) { for (let i = 0; i < 7; i++) g.parts.push({ x, y, vx: (
 const PLONGEE_DUREE = 0.9, PLONGEE_CD = 7, PLONGEE_VU = 0.1, PLONGEE_RATE = 1;
 const ILE_DELAI = [15, 15], ILE_LARGEUR = 190, ILE_HAUTEUR = 95, ILE_VITESSE = 120;
 const ILE_REGEN = 15, ILE_PROTEGE = 1, ILE_ATTENTE = 10; // l'île de la tortue : PV regagnés par seconde dessus, temps dessus avant qu'un coup la fasse replonger, temps max pour l'atteindre
-const BISON_ARRACHE = 2; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
+const BISON_ARRACHE = 0.8; // secondes dans la langue du Smoker avant de pouvoir s'en arracher
 const STOMP_SUIVI = 370; // vitesse à laquelle Bison suit l'adversaire depuis le ciel
 const STOMP_CD = 4.9, STOMP_DUREE = 1.2, STOMP_DEGATS = 17, GENOU_CD = 2.5, GENOU_DEGATS = 4;
 // Psycho Absorption : chance d'absorber un projectile (plus faible pour les balles de McCree) ; il regagne une part de ses dégâts
@@ -3683,6 +3691,7 @@ const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 150, BULL
 const BULLE_MARCHE = 90; // vitesse de la Grenouille pendant qu'elle gonfle sa bulle (elle marche lentement au lieu de sauter)
 const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 5;
 const NOUILLE_BOND_PORTEE = 150, NOUILLE_ECRASE = 3, NOUILLE_ECRASE_RECUL = 500; // bond écrasant : il saute sur l'adversaire proche et l'écrase en retombant
+const NOUILLE_GLISSE = 1; // secondes dans la langue du Smoker avant de glisser hors de sa prise
 const NOUILLE_LANGUE_CD = 13, NOUILLE_LANGUE_DEG = 3, NOUILLE_LANGUE_RECUL = 520, NOUILLE_LANGUE_PORTEE = 34; // coup de langue : frappe et repousse l'adversaire collé à lui
 // pilote éjecté : PV qui lui restent, bonds, et son pistolet à petites bulles ; explosion du mécha à l'éjection
 const PILOTE_ECART = 2.2; // écart au hasard des bonds du pilote autour de la direction de l'adversaire (radians)
@@ -6584,7 +6593,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "2.5.0", NOTES = "Smoker : retour à sa langue d’avant (un tir sur la langue la coupe), mais quand elle est annulée, le coup qui l’annule ne lui fait aucun dégât, et il la relance 1 seconde plus tôt au lieu de devoir attendre plus longtemps. En échange : une langue toutes les 3,3 s, étranglement de 2,5 s et 3 dégâts tous les 60 pixels traînés.";
+const VERSION = "2.6.0", NOTES = "Smoker : contre la Chose Impie, sa langue attrape maintenant la main à l’œil et la ramène pour l’étrangler, comme un adversaire normal (le grand œil continue de lancer son regard pendant ce temps). Bison s’arrache de la langue plus vite (0,8 s au lieu de 2 s) et D.Nouille, gluant, glisse hors de la langue au bout d’1 seconde.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

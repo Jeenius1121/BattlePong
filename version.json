@@ -1,0 +1,1 @@
+{"version": "2.3.0", "notes": "Smoker : quand il ramène l’adversaire avec sa langue, il lui fait maintenant des dégâts selon la distance (4 tous les 60 pixels traînés) : plus l’adversaire était loin, plus il prend. En échange, l’étranglement dure 3 secondes au lieu de 4."}

@@ -992,6 +992,7 @@ const CHARS = {
       const L = f.langue;
       if (!L || (L.etat !== "tire" && L.etat !== "attire")) return;
       const o = g.f.find(x => x !== f), b = boutLangue(f, o), m = bouche(f);
+      if (!LANGUE_CORPS_COUPE && langueTient(f, g, (m.x + b.x) / 2, (m.y + b.y) / 2)) return; // un coup sur lui la coupe tout de suite
       couperLangue(f, o, g, (m.x + b.x) / 2, (m.y + b.y) / 2);
     },
     // sa langue qui arrive sur f
@@ -1016,6 +1017,7 @@ const CHARS = {
         return;
       }
       f.vx = 0; f.vy = 0; // immobile tant que la langue est sortie
+      L.repit = Math.max(0, (L.repit || 0) - dt);
       if (L.etat !== "rentre" && langueCoupee(f, o, g)) return;
       if (L.etat === "tire") { // la langue file vers l'adversaire
         L.t += dt;
@@ -1036,7 +1038,12 @@ const CHARS = {
         } else if (L.t > 0.9) L.etat = "rentre";
       } else if (L.etat === "attire") { // il ramène l'adversaire contre lui
         const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy) || 1;
-        if (ecart(f, o) > 2) { const pas = Math.min(d, 420 * dt); o.x += dx / d * pas; o.y += dy / d * pas; }
+        if (ecart(f, o) > 2) {
+          const pas = Math.min(d, 420 * dt); o.x += dx / d * pas; o.y += dy / d * pas;
+          // traîné jusqu'à lui : il serre déjà (plus l'adversaire était loin, plus il prend de dégâts)
+          L.traine = (L.traine || 0) + pas;
+          while (L.traine >= LANGUE_TRAINE_PAS) { L.traine -= LANGUE_TRAINE_PAS; L.serre = 0.12; degats(g, o, LANGUE_TRAINE_COUP, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
+        }
         else { L.etat = "etreinte"; L.t = ETREINTE_DUREE; L.coup = 0; son(f, 3, true, true); } // musique d'étranglement, reprise là où elle s'était arrêtée
       } else if (L.etat === "etreinte") { // 2 s d'étranglement : la langue serre, l'adversaire perd des PV par à-coups
         L.t -= dt; L.coup -= dt;
@@ -3459,7 +3466,9 @@ function crier(g, f, dmg, portee, epais) {
 }
 /* ===== LANGUE DU SMOKER ===== */
 const LANGUE_PENALITE = 1.75; // secondes d'attente en plus quand sa langue a été annulée (coupée, tranchée, glissée…)
-const LANGUE_CD = 2.8, LANGUE_VITESSE = 1000, ETREINTE_DUREE = 4, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
+const LANGUE_CD = 2.8, LANGUE_VITESSE = 1000, ETREINTE_DUREE = 3, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
+const LANGUE_SOLIDE = 2, LANGUE_SOLIDE_REPIT = 0.3, LANGUE_CORPS_COUPE = 1; // il faut toucher sa langue 2 fois pour la couper
+const LANGUE_TRAINE_PAS = 60, LANGUE_TRAINE_COUP = 2; // dégâts quand il ramène l'adversaire : 2 tous les 60 pixels traînés
 // langue annulée pile au moment où elle touche (Myers en furie, GigaChad en pose) : une part des dégâts d'un étranglement complet (7 à-coups, 42)
 const LANGUE_ANNULEE_PART = 0.25;
 function langueAnnulee(g, o) {
@@ -3494,7 +3503,7 @@ function liberer(o, f, ux, uy) {
 function langueCoupee(f, o, g) {
   const m = bouche(f), b = boutLangue(f, o);
   let coupe = null;
-  for (const p of g.proj) if (p.owner === o && distSeg(p.x, p.y, m.x, m.y, b.x, b.y) < p.r + 5) { coupe = { x: p.x, y: p.y }; break; }
+  for (const p of g.proj) if (p.owner === o && !p.langueTouchee && distSeg(p.x, p.y, m.x, m.y, b.x, b.y) < p.r + 5) { p.langueTouchee = true; coupe = { x: p.x, y: p.y }; break; }
   const n = Math.max(2, Math.ceil(Math.hypot(b.x - m.x, b.y - m.y) / 12));
   for (let i = 1; i < n && !coupe; i++) {
     const x = m.x + (b.x - m.x) * i / n, y = m.y + (b.y - m.y) * i / n;
@@ -3508,7 +3517,19 @@ function langueCoupee(f, o, g) {
     if (CHARS[o.type].obstacleLangue && CHARS[o.type].obstacleLangue(o, x, y)) coupe = { x, y }; // obstacleLangue : ce qui coupe la langue (bulle de la Grenouille)
   }
   if (!coupe) return false;
+  if (langueTient(f, g, coupe.x, coupe.y)) return false;
   couperLangue(f, o, g, coupe.x, coupe.y);
+  return true;
+}
+// la langue est solide : il faut la toucher LANGUE_SOLIDE fois (tirs, coups sur le Smoker…) pour la couper ;
+// un coup qui ne la coupe pas la fait juste saigner (et un même feu, laser ou onde ne compte qu'une fois tous les LANGUE_SOLIDE_REPIT s)
+function langueTient(f, g, x, y) {
+  const L = f.langue; if (!L) return false;
+  if (L.repit > 0) return true;
+  L.touches = (L.touches || 0) + 1;
+  if (L.touches >= LANGUE_SOLIDE) return false;
+  L.repit = LANGUE_SOLIDE_REPIT;
+  for (let i = 0; i < 5; i++) g.parts.push({ x, y, vx: (Math.random() - 0.5) * 200, vy: (Math.random() - 0.5) * 200 - 60, t: 0.4, g: 500, c: "#6e3038" });
   return true;
 }
 // langue coupée en (x, y) : giclée, l'adversaire est libéré, « aïe ! », la langue revient

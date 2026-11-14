@@ -3094,10 +3094,12 @@ const CHARS = {
       }
     },
     // boire : tout le sang sous elle ; au-delà de ses PV max, il remplit sa réserve
+    // ses pieds : mesurés sur son image debout (à genoux, l'image est plus petite mais ses pieds ne bougent pas)
+    pied: f => ({ x: f.x, y: f.y + CHARS.vampire.sprite.th * f.k * 0.35 }),
     boire(f, g) {
-      let v = 0; const pied = { x: f.x, y: f.y + f.hh * 0.7 };
+      let v = 0; const pied = this.pied(f);
       g.sang = (g.sang || []).filter(s => { if (Math.hypot(s.x - pied.x, s.y - pied.y) < VAMP_BOIRE_R + s.r) { v += s.v; return false; } return true; });
-      if (!v) return;
+      if (!v) { if (f.visee) f.visee.oubli = true; return; } // rien bu (sécurité) : elle oublie cette flaque au lieu de recommencer
       const soin = Math.min(v, f.hpMax - f.hp); f.hp += soin;
       f.reserve = Math.min(VAMP_RESERVE_MAX, (f.reserve || 0) + v * VAMP_RESERVE_PART + (v - soin)); // une part de tout ce qu'elle boit, et tout ce qui dépasse ses PV max
       g.txt.push({ x: f.x, y: f.y - f.hh - 18, t: 0.8, s: "+" + Math.round(v), soin: true });
@@ -3107,8 +3109,8 @@ const CHARS = {
     goutteVisee(f, o, g) {
       let best = null, bs = -Infinity;
       for (const s of g.sang || []) {
-        const d = Math.hypot(s.x - f.x, s.y - f.y - f.hh * 0.7), dAdv = Math.hypot(s.x - o.x, s.y - o.y);
-        if (d > VAMP_GOUTTE_PORTEE || (dAdv < VAMP_GOUTTE_ADV && !o.mort)) continue;
+        const pd = this.pied(f), d = Math.hypot(s.x - pd.x, s.y - pd.y), dAdv = Math.hypot(s.x - o.x, s.y - o.y);
+        if (s.oubli || d > VAMP_GOUTTE_PORTEE || (dAdv < VAMP_GOUTTE_ADV && !o.mort)) continue;
         const sc = s.v * 3 - d * 0.04; if (sc > bs) { bs = sc; best = s; }
       }
       return best;
@@ -3167,9 +3169,12 @@ const CHARS = {
       const t = cibleDe(f, o), goutte = (f.hp < f.hpMax || (f.reserve || 0) < VAMP_RESERVE_MAX) && !(f.aveugle > 0) ? this.goutteVisee(f, o, g) : null;
       const veut = goutte && (!t || f.hp < f.hpMax * 0.75 || Math.hypot(goutte.x - f.x, goutte.y - f.y) < Math.hypot(t.x - f.x, t.y - f.y));
       if (veut) {
-        const dx = goutte.x - f.x, dy = goutte.y - (f.y + f.hh * 0.7), d = Math.hypot(dx, dy);
-        if (d < VAMP_BOIRE_R + goutte.r * 0.6) { f.bu = false; f.hpBoit = f.hp; this.etat(f, "boit", VAMP_BOIRE); son(f, 2); return; }
-        f.vx = dx; f.vy = dy; normaliser(f); return;
+        const pd = this.pied(f), dx = goutte.x - pd.x, dy = goutte.y - pd.y, d = Math.hypot(dx, dy);
+        // flaque hors d'atteinte (contre un mur, sous un obstacle) : au bout de 2,5 s sans l'atteindre, elle l'oublie
+        if (f.visee !== goutte) { f.visee = goutte; f.viseeT = 0; } f.viseeT += dt;
+        if (f.viseeT > VAMP_VISEE_MAX) { goutte.oubli = true; f.visee = null; }
+        else if (d < VAMP_BOIRE_R + goutte.r * 0.6) { f.bu = false; f.hpBoit = f.hp; this.etat(f, "boit", VAMP_BOIRE); son(f, 2); return; }
+        else { f.vx = dx; f.vy = dy; normaliser(f); return; }
       }
       if (t && !o.mort) {
         const dx = t.x - f.x, dy = t.y - f.y;
@@ -3870,6 +3875,7 @@ const ODA_FUITE_MAX = 2.5; // temps max pour rejoindre sa cachette
 const ODA_COMBO_VITESSE = 0.008; // vitesse d'attaque gagnée par coup du combo (+0,8 %)
 const ODA_PORTEE = 34, ODA_COUP = 2, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts fixes d'un coup ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
 // Sanguina (vampire) : le sang que perd l'adversaire tombe au sol et elle va le boire ; morsure + fil de sang ; nuée de chauves-souris
+const VAMP_VISEE_MAX = 2.5; // temps max pour atteindre une flaque avant de l'oublier
 const VAMP_SANG_PART = 0.55, VAMP_SANG_VIE = 6, VAMP_BOIRE = 0.9, VAMP_BOIRE_R = 26, VAMP_GOUTTE_PORTEE = 320, VAMP_GOUTTE_ADV = 60, VAMP_BOIRE_CHOC = 4; // part des PV perdus qui tombe en sang, temps avant qu'il sèche, durée pour boire, portée sous elle, distance max d'une goutte visée
 const VAMP_MORSURE = 12, VAMP_MORSURE_CD = 1.4, VAMP_MORSURE_DUREE = 0.6, VAMP_MORSURE_PORTEE = 14, VAMP_ELAN = 110, VAMP_BOND = 380; // morsure : dégâts, recharge, durée du bond, portée du coup, distance d'élan, vitesse du bond
 const VAMP_SOIF = 1.5; // soif : bonus de morsure et de fil selon les PV perdus

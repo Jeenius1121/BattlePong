@@ -1,1 +1,1 @@
-{"version": "2.2.0", "notes": "Slime : 200 PV et 4 morceaux au maximum. Il se sépare à des dégâts fixes : le gros après 60, les 2 moyens après 30 chacun, et les 4 petits disparaissent après 20. Dégâts : 40 pour le gros, 25 pour les moyens, 15 pour les petits."}
+{"version": "2.3.0", "notes": "Smoker : quand il ramène l’adversaire avec sa langue, il lui fait maintenant des dégâts selon la distance (4 tous les 60 pixels traînés) : plus l’adversaire était loin, plus il prend. En échange, l’étranglement dure 3 secondes au lieu de 4."}

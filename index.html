@@ -974,7 +974,7 @@ const CHARS = {
     imageDe: f => f.langue ? 3 : f.attT > 0 ? 2 : 1,
     // position de la bouche dans l'image 3 (en part de la largeur et de la hauteur, perso tourné vers la droite)
     bouche: [0.785, 0.147],
-    desc: "Frappe au corps à corps. Toutes les 3,2 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire, sauf le Bombardier, trop gros, qui continue de tirer au ralenti), lui fait des dégâts pendant qu’il le traîne (4 tous les 60 pixels : plus l’adversaire était loin, plus il prend), l’étrangle pendant 3 secondes puis le relâche plus loin. Aucun tir ne peut couper sa langue, mais pendant qu’il ramène l’adversaire, celui-ci peut encore tirer (sans pouvoir bouger) ; seul un coup porté de près pendant qu’il tire sa langue ou ramène l’adversaire lui fait lâcher prise. Quand sa langue est annulée, il attend un peu plus longtemps avant de la relancer. Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose, Bouldozer en feu qui la brûle), l’adversaire prend quand même une partie des dégâts de l’étranglement. Un adversaire accroché aux murs (la Chose Impie) ne peut pas être ramené : la langue l’étrangle sur place, et pendant ce temps le Smoker reste touchable (il encaisse 60 % de moins).",
+    desc: "Frappe au corps à corps. Toutes les 3,3 secondes, il tire sa langue : si rien ne la touche en chemin, elle s’enroule autour de l’adversaire, le ramène contre lui (il ne peut plus rien faire, sauf le Bombardier, trop gros, qui continue de tirer au ralenti), lui fait des dégâts pendant qu’il le traîne (3 tous les 60 pixels : plus l’adversaire était loin, plus il prend), l’étrangle pendant 2,5 secondes puis le relâche plus loin. Un projectile ou un tir qui touche la langue la coupe, et s’il est touché pendant qu’il tire sa langue ou ramène l’adversaire, il lâche prise, mais ce coup ne lui fait aucun dégât. Quand sa langue est annulée, il la relance plus vite (1 seconde plus tôt). Une fois l’adversaire contre lui, rien ne peut arrêter l’étranglement : il ne prend aucun dégât. Si sa langue est annulée pile au moment où elle touche (Myers en furie, GigaChad en pleine pose, Bouldozer en feu qui la brûle), l’adversaire prend quand même une partie des dégâts de l’étranglement. Un adversaire accroché aux murs (la Chose Impie) ne peut pas être ramené : la langue l’étrangle sur place, et pendant ce temps le Smoker reste touchable (il encaisse 60 % de moins).",
     svg: `<g ${O}>
       <rect x='44' y='112' width='12' height='28' fill='#3b4252'/><rect x='64' y='112' width='12' height='28' fill='#3b4252'/>
       <rect x='40' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/><rect x='62' y='134' width='18' height='9' rx='2' fill='#2a2a2e'/>
@@ -987,13 +987,13 @@ const CHARS = {
       <circle cx='66' cy='35' r='2.6' fill='#f2e46b' stroke='none'/><circle cx='74' cy='36' r='2.2' fill='#f2e46b' stroke='none'/>
       <ellipse cx='72' cy='45' rx='5' ry='4' fill='#3a1020'/>
       <path d='M74 46 Q86 56 90 72 Q92 80 86 80 Q82 72 78 60Z' fill='#c2456b'/></g>`,
-    // touché pendant que sa langue part ou ramène l'adversaire : il lâche prise
-    quandTouche(f, g) {
+    // touché pendant que sa langue part ou ramène l'adversaire : il lâche prise, mais le coup ne lui fait aucun dégât
+    lacheLangue(f, g) {
       const L = f.langue;
-      if (!L || (L.etat !== "tire" && L.etat !== "attire")) return;
+      if (!L || (L.etat !== "tire" && L.etat !== "attire")) return false;
       const o = g.f.find(x => x !== f), b = boutLangue(f, o), m = bouche(f);
-      if (coupVenu || ecart(f, o) > LANGUE_CORPS_PORTEE) return; // un tir ne la coupe plus : seul un coup porté de près lui fait lâcher prise
       couperLangue(f, o, g, (m.x + b.x) / 2, (m.y + b.y) / 2);
+      return true;
     },
     // sa langue qui arrive sur f
     menacePour(o, f) { return o.langue && o.langue.etat === "tire" && Math.hypot(o.langue.x - f.x, o.langue.y - f.y) < 130 ? { x: o.x, y: o.y, zone: true } : null; },
@@ -1038,7 +1038,7 @@ const CHARS = {
       } else if (L.etat === "attire") { // il ramène l'adversaire contre lui
         const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy) || 1;
         if (ecart(f, o) > 2) {
-          const pas = Math.min(d, LANGUE_ATTIRE_VITESSE * dt); o.x += dx / d * pas; o.y += dy / d * pas;
+          const pas = Math.min(d, 420 * dt); o.x += dx / d * pas; o.y += dy / d * pas;
           // traîné jusqu'à lui : il serre déjà (plus l'adversaire était loin, plus il prend de dégâts)
           L.traine = (L.traine || 0) + pas;
           while (L.traine >= LANGUE_TRAINE_PAS) { L.traine -= LANGUE_TRAINE_PAS; L.serre = 0.12; degats(g, o, LANGUE_TRAINE_COUP, o.x, o.y - o.hh * 0.4); o.flash = 0.04; }
@@ -3237,6 +3237,7 @@ function degats(g, cible, n, x, y) {
   if (attaquant && attaquant !== cible && attaquant.avale > 0 && !coupVenu) { attaquant.avale--; n = Math.max(1, Math.round(n * AVALE_DEGATS)); } // frite du Burger avalée : son prochain coup (sans tir) est plus faible
   const c = CHARS[cible.type];
   if (c.pareCorps && c.pareCorps(cible, g, n)) return; // Oda : parade d'un coup au corps à corps (avec un gros combo)
+  if (c.lacheLangue && c.lacheLangue(cible, g)) return; // le Smoker touché pendant qu'il tire sa langue : il lâche prise sans prendre de dégâts
   if (c.modifDegats) { n = c.modifDegats(cible, n); if (!n) return; } // la Tortue : intouchable en boule, fragile quand elle est étourdie
   if (c.bloqueDessus && c.bloqueDessus(cible, x, y)) { g.txt.push({ x: cible.x, y: cible.y - cible.hh - 10, t: 0.7, s: "Carapace !" }); return; } // carapace : rien ne passe par le dessus
   if (c.annuleCoup && c.annuleCoup(cible, g)) { n -= 15; if (n <= 0) return; } // annuleCoup : coup entièrement bloqué (bulle de protection de la Grenouille)
@@ -3464,11 +3465,9 @@ function crier(g, f, dmg, portee, epais) {
   g.ondes.push({ x: f.x, y: f.y, r: Math.max(f.hw, f.hh) * 0.6, max: portee, dmg, epais, owner: f, touche: false });
 }
 /* ===== LANGUE DU SMOKER ===== */
-const LANGUE_PENALITE = 1.75; // secondes d'attente en plus quand sa langue a été annulée (coupée, tranchée, glissée…)
-const LANGUE_CD = 3.2, LANGUE_VITESSE = 1000, ETREINTE_DUREE = 3, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
-const LANGUE_ATTIRE_VITESSE = 350; // vitesse à laquelle il ramène l'adversaire
-const LANGUE_CORPS_PORTEE = 60; // un coup sur le Smoker ne lui fait lâcher prise que s'il est porté de près (pas un tir)
-const LANGUE_TRAINE_PAS = 60, LANGUE_TRAINE_COUP = 4; // dégâts quand il ramène l'adversaire : 4 tous les 60 pixels traînés
+const LANGUE_PENALITE = -1; // secondes d'attente en plus (ici en moins) quand sa langue a été annulée (coupée, tranchée, glissée…)
+const LANGUE_CD = 3.3, LANGUE_VITESSE = 1000, ETREINTE_DUREE = 2.5, ETREINTE_TIC = 0.625, ETREINTE_COUP = 6;
+const LANGUE_TRAINE_PAS = 60, LANGUE_TRAINE_COUP = 3; // dégâts quand il ramène l'adversaire : 4 tous les 60 pixels traînés
 // langue annulée pile au moment où elle touche (Myers en furie, GigaChad en pose) : une part des dégâts d'un étranglement complet (7 à-coups, 42)
 const LANGUE_ANNULEE_PART = 0.25;
 function langueAnnulee(g, o) {
@@ -3503,9 +3502,14 @@ function liberer(o, f, ux, uy) {
 function langueCoupee(f, o, g) {
   const m = bouche(f), b = boutLangue(f, o);
   let coupe = null;
+  for (const p of g.proj) if (p.owner === o && distSeg(p.x, p.y, m.x, m.y, b.x, b.y) < p.r + 5) { coupe = { x: p.x, y: p.y }; break; }
   const n = Math.max(2, Math.ceil(Math.hypot(b.x - m.x, b.y - m.y) / 12));
   for (let i = 1; i < n && !coupe; i++) {
     const x = m.x + (b.x - m.x) * i / n, y = m.y + (b.y - m.y) * i / n;
+    if (o.tir > 0 && o.laserLen) {
+      const c = canonMonde(o);
+      if (distSeg(x, y, c.x, c.y, c.x + Math.cos(o.laserAng) * o.laserLen, c.y + Math.sin(o.laserAng) * o.laserLen) < 14) coupe = { x, y };
+    }
     for (const z of g.feux) if (z.owner === o && Math.hypot(x - z.x, y - z.y) < z.r) coupe = { x, y };
     if (o.crusher && Math.hypot(x - o.x, y - o.y) < Math.max(o.hw, o.hh) * 0.8) coupe = { x, y }; // Psycho Crusher de Bison
     for (const w of g.ondes) if (w.owner === o && Math.abs(Math.hypot(x - w.x, y - w.y) - w.r) < w.epais) coupe = { x, y };
@@ -3989,10 +3993,6 @@ function maj(dt) {
     // ralenti par l'Inconnu (mortier) ou, beaucoup plus fort, aveuglé par la grenade flash de McCree
     const lenteur = f.aveugle > 0 ? FLASH_RALENTI : f.sandev > 0 ? SANDEV_LENT : f.lent > 0 ? RALENTI : 1; // sandev : pris dans le Sandevistan d'Oda
     if (g.running && !f.capture) CHARS[f.type].attaque(f, o, g, dt * lenteur);
-    else if (g.running && f.capture && f.capture.langue && f.capture.langue.etat === "attire" && !CHARS[f.type].attrape) { // (ceux qui ont leur propre réaction dans la langue la gardent) // ramené par la langue : il peut encore tirer (mais pas bouger)
-      const x = f.x, y = f.y; CHARS[f.type].attaque(f, o, g, dt * lenteur); f.x = x; f.y = y; f.vx = 0; f.vy = 0; f.enLair = false; f.haut = 0;
-      if (!f.capture) { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); } // il s'est libéré en attaquant
-    }
     else if (g.running && f.capture && CHARS[f.type].attrape) CHARS[f.type].attrape(f, o, g, dt); // ce qu'il peut faire dans la langue du Smoker
     attaquant = null;
     majTaille(f);
@@ -6584,7 +6584,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "2.4.0", NOTES = "Smoker : aucun tir ne peut plus couper sa langue. En échange, l’adversaire qu’il ramène peut encore tirer pendant qu’il est traîné (sans bouger), il est ramené un peu moins vite, et la langue revient toutes les 3,2 secondes au lieu de 2,8. Seul un coup porté de près lui fait lâcher prise.";
+const VERSION = "2.5.0", NOTES = "Smoker : retour à sa langue d’avant (un tir sur la langue la coupe), mais quand elle est annulée, le coup qui l’annule ne lui fait aucun dégât, et il la relance 1 seconde plus tôt au lieu de devoir attendre plus longtemps. En échange : une langue toutes les 3,3 s, étranglement de 2,5 s et 3 dégâts tous les 60 pixels traînés.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

@@ -1,1 +1,1 @@
-{"version": "2.11.0", "notes": "Sanguina : elle ne poursuit plus l’adversaire. Elle erre au hasard dans l’arène comme la plupart des persos, et bondit sur lui pour le mordre dès qu’il passe à portée (bond déclenché de plus loin, morsure à 15). Ses combats sont beaucoup plus équilibrés."}
+{"version": "2.12.0", "notes": "Sanguina se balade maintenant vraiment au hasard, comme GigaChad : elle ne va plus vers l’adversaire, et ne le mord qu’au contact, mais sa morsure frappe fort (20). Elle boit les flaques de sang qu’elle croise en chemin au lieu d’aller les chercher."}

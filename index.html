@@ -3177,8 +3177,12 @@ const CHARS = {
       if (t && !o.mort) {
         const dx = t.x - f.x, dy = t.y - f.y;
         if (f.morsureCd <= 0 && ecart(f, t) < VAMP_ELAN) { f.angM = Math.atan2(dy, dx); f.mordu = false; this.etat(f, "morsure", VAMP_MORSURE_DUREE); return; }
-        f.vx = dx; f.vy = dy; normaliser(f);
-      } else if (Math.hypot(f.vx, f.vy) < 1) { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); normaliser(f); }
+        if (!VAMP_ERRE) { f.vx = dx; f.vy = dy; normaliser(f); return; }
+      }
+      // elle erre au hasard (rebonds sur les murs, changement de cap de temps en temps), comme la plupart des persos
+      f.capT = (f.capT ?? 0) - dt;
+      if (Math.hypot(f.vx, f.vy) < 1 || f.capT <= 0) { if (f.capT <= 0 || Math.hypot(f.vx, f.vy) < 1) { const a = angleAleatoire(); f.vx = Math.cos(a); f.vy = Math.sin(a); } f.capT = 1.5 + Math.random() * 2; }
+      normaliser(f);
     }
   }
 };
@@ -3874,9 +3878,10 @@ const ODA_COMBO_VITESSE = 0.008; // vitesse d'attaque gagnée par coup du combo 
 const ODA_PORTEE = 34, ODA_COUP = 2, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts fixes d'un coup ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
 // Sanguina (vampire) : le sang que perd l'adversaire tombe au sol et elle va le boire ; morsure + fil de sang ; nuée de chauves-souris
 const VAMP_SOIN_MAX = 1.5; // soin au plus (PV par seconde, en moyenne)
+const VAMP_ERRE = 1; // 1 : elle erre au hasard et ne fond sur l'adversaire qu'avec son bond (0 : elle le poursuit)
 const VAMP_VISEE_MAX = 2.5; // temps max pour atteindre une flaque avant de l'oublier
 const VAMP_SANG_PV = 20, VAMP_SANG_VIE = 6, VAMP_BOIRE = 0.9, VAMP_BOIRE_R = 26, VAMP_GOUTTE_PORTEE = 320, VAMP_GOUTTE_ADV = 60, VAMP_BOIRE_CHOC = 4; // PV qu'elle regagnerait en buvant tout le sang d'un adversaire vidé de tous ses PV max (le sang suit la part des PV max perdue), temps avant qu'il sèche, durée pour boire, portée sous elle, distance max d'une goutte visée
-const VAMP_MORSURE = 14, VAMP_MORSURE_CD = 1.0, VAMP_MORSURE_DUREE = 0.6, VAMP_MORSURE_PORTEE = 14, VAMP_ELAN = 110, VAMP_BOND = 380; // morsure : dégâts, recharge, durée du bond, portée du coup, distance d'élan, vitesse du bond
+const VAMP_MORSURE = 15, VAMP_MORSURE_CD = 1.0, VAMP_MORSURE_DUREE = 0.6, VAMP_MORSURE_PORTEE = 14, VAMP_ELAN = 150, VAMP_BOND = 380; // morsure : dégâts, recharge, durée du bond, portée du coup, distance d'élan, vitesse du bond
 const VAMP_FIL_DUREE = 4, VAMP_FIL_DRAIN = 2, VAMP_FIL_PORTEE = 300; // fil de sang : durée, PV aspirés par seconde, distance au-delà de laquelle il casse
 const VAMP_RESERVE_BLESSURE = 0.2, VAMP_RESERVE_PART = 0.5, VAMP_RESERVE_MAX = 30, VAMP_NUEE_COUT = 15, VAMP_NUEE_DUREE = 1.8, VAMP_DISSOUT = 0.4, VAMP_NUEE_VITESSE = 360, VAMP_NUEE_TIC = 0.25, VAMP_NUEE_DEG = 2; // réserve de sang et nuée de chauves-souris
 const ODA_SAIGNE = 0.2, ODA_SAIGNE_DUREE = 3, ODA_SAIGNE_MAX = 6; // saignement : PV perdus par seconde et par cran, durée (relancée à chaque coup), crans au plus

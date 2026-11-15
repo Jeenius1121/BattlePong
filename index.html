@@ -3035,7 +3035,7 @@ const CHARS = {
   },
   vampire: {
     creation: true,
-    nom: "Sanguina", emoji: "🦇", vitesse: 215, pv: 110, memeEchelle: true, taille: 1.15, marche: [1, 8],
+    nom: "Sanguina", emoji: "🦇", vitesse: 215, pv: 130, memeEchelle: true, taille: 1.15, marche: [1, 8],
     portraitImage: 50, portraitAutre: { cx: 0.5, cy: 0.5, taille: 1 }, // portrait : son visage en gros plan (image 50)
     ancres: {"2": [-0.0079, 0.0015], "3": [-0.004, 0.0031], "4": [0.0137, 0.0016], "5": [0.004, 0.0092], "6": [0.002, 0.0077], "7": [0.01, 0.0124], "8": [-0.0079, 0.014], "9": [0.004, 0.0141], "10": [-0.0518, 0.0962], "11": [-0.0689, 0.101], "12": [-0.0077, 0.0657], "13": [-0.0038, -0.032], "14": [0.0715, -0.0849], "15": [0.0359, 0.0944], "16": [0.0, 0.1506], "17": [-0.0197, 0.0753], "18": [-0.0209, 0.1615], "19": [-0.029, 0.3011], "20": [-0.0416, 0.4427], "21": [-0.0459, 0.4934], "22": [-0.0502, 0.3969], "23": [-0.0525, 0.2533], "24": [-0.0299, 0.1219], "25": [-0.0135, 0.0173], "26": [-0.0116, 0.0157], "27": [-0.0021, 0.0137], "28": [-0.0119, 0.0132], "29": [-0.016, 0.0131], "30": [-0.014, 0.0134], "31": [0.0108, 0.0154], "32": [-0.0234, 0.0171], "33": [-0.008, -0.0313], "34": [-0.0119, -0.03], "35": [-0.006, -0.0313], "36": [-0.0079, -0.0397], "37": [-0.0119, -0.0618], "38": [0.0, -0.0846], "39": [0.002, -0.0992], "40": [-0.01, -0.0942], "41": [0.0046, -0.053], "42": [0.0066, -0.0584], "43": [0.0105, -0.0594], "44": [0.0145, -0.0594], "45": [0.0251, -0.0594], "46": [0.0273, -0.0594], "47": [-0.0387, -0.0594], "48": [-0.0437, -0.0602], "49": [-0.0035, 0.0594]},
     images: ["marche 2", "marche 3", "marche 4", "marche 5", "marche 6", "marche 7", "marche 8",
@@ -3065,13 +3065,6 @@ const CHARS = {
       <path d='M60 50 Q44 30 14 34 Q26 46 22 60 Q34 52 42 64 Q48 54 60 62 Q72 54 78 64 Q86 52 98 60 Q94 46 106 34 Q76 30 60 50Z' fill='#2a0d14'/>
       <circle cx='52' cy='50' r='3' fill='#ff3040' stroke='none'/><circle cx='68' cy='50' r='3' fill='#ff3040' stroke='none'/>
       <path d='M55 58 l2 6 l2 -6 M61 58 l2 6 l2 -6' fill='#fff' stroke='#fff' stroke-width='1.5'/></g>`,
-    // peau de nuit : ce qui vient de loin (projectiles, rayons, ondes, explosions) la brûle davantage ; les coups portés de près, non
-    modifDegats(f, n) {
-      if (coupSaigne || f.etatV === "fete") return n;
-      const a = attaquant && attaquant !== f ? attaquant : null;
-      const pres = a && !coupVenu && Math.hypot(a.x - f.x, a.y - f.y) < a.hw + f.hw + VAMP_PRES;
-      return !pres && (coupVenu || a) ? Math.max(1, Math.round(n * (1 + VAMP_LOIN_BONUS))) : n;
-    },
     // la nuée qui fonce sur f : une zone (pour esquiver)
     menacePour(o, f) { return o.etatV === "nuee" && Math.hypot(o.x - f.x, o.y - f.y) < 140 ? { x: o.x, y: o.y, zone: true } : null; },
     victoire(f) { f.etatV = "fete"; f.feteT = 0; f.enLair = false; f.vis = 1; f.traverse = false; f.fil = null; f.vx = 0; f.vy = 0; },
@@ -3100,7 +3093,7 @@ const CHARS = {
       let v = 0; const pied = this.pied(f);
       g.sang = (g.sang || []).filter(s => { if (Math.hypot(s.x - pied.x, s.y - pied.y) < VAMP_BOIRE_R + s.r) { v += s.v; return false; } return true; });
       if (!v) { if (f.visee) f.visee.oubli = true; return; } // rien bu (sécurité) : elle oublie cette flaque au lieu de recommencer
-      const soin = Math.min(v, f.hpMax - f.hp); f.hp += soin;
+      const soin = this.soigner(f, v);
       f.reserve = Math.min(VAMP_RESERVE_MAX, (f.reserve || 0) + v * VAMP_RESERVE_PART + (v - soin)); // une part de tout ce qu'elle boit, et tout ce qui dépasse ses PV max
       g.txt.push({ x: f.x, y: f.y - f.hh - 18, t: 0.8, s: "+" + Math.round(v), soin: true });
       for (let i = 0; i < 6; i++) g.parts.push({ x: pied.x, y: pied.y, vx: (Math.random() - 0.5) * 90, vy: -30 - Math.random() * 60, t: 0.35, g: 400, c: "#b0101e" });
@@ -3116,8 +3109,13 @@ const CHARS = {
       return best;
     },
     etat(f, E, d) { f.etatV = E; f.etatT = d; f.etatD = d; },
-    // soif : plus elle a perdu de PV, plus sa morsure et son fil sont forts (jusqu'à × (1 + VAMP_SOIF) presque morte)
-    soif: f => 1 + VAMP_SOIF * Math.max(0, 1 - f.hp / f.hpMax),
+    // soin plafonné : sa soif se recharge de VAMP_SOIN_MAX PV par seconde (au plus 3 s d'avance) ; tout soin y puise
+    soigner(f, n) {
+      const t = jeu ? jeu.temps || 0 : 0;
+      f.soifDispo = Math.min(VAMP_SOIN_MAX * 3, (f.soifDispo ?? VAMP_SOIN_MAX * 3) + (t - (f.soifT ?? t)) * VAMP_SOIN_MAX); f.soifT = t;
+      const soin = Math.max(0, Math.min(n, f.hpMax - f.hp, f.soifDispo)); f.hp += soin; f.soifDispo -= soin;
+      return soin;
+    },
     attaque(f, o, g, dt) {
       f.horloge = (f.horloge || 0) + dt; f.etatV ||= "chasse";
       f.morsureCd = Math.max(0, (f.morsureCd ?? 1) - dt);
@@ -3128,7 +3126,7 @@ const CHARS = {
       if (F) {
         F.t -= dt;
         if (F.t <= 0 || o.mort || cache(o, f) || Math.hypot(o.x - f.x, o.y - f.y) > VAMP_FIL_PORTEE || E === "nuee") f.fil = null;
-        else { F.acc += VAMP_FIL_DRAIN * this.soif(f) * dt; if (F.acc >= 1) { const n = Math.floor(F.acc); F.acc -= n; const av = o.hp; const att = attaquant; attaquant = null; degats(g, o, n, o.x, o.y - o.hh * 0.3); attaquant = att; const pris = av - o.hp; f.aspire = (f.aspire || 0) + pris; f.hp = Math.min(f.hpMax, f.hp + pris); } }
+        else { F.acc += VAMP_FIL_DRAIN * dt; if (F.acc >= 1) { const n = Math.floor(F.acc); F.acc -= n; const av = o.hp; const att = attaquant; attaquant = null; degats(g, o, n, o.x, o.y - o.hh * 0.3); attaquant = att; const pris = av - o.hp; f.aspire = (f.aspire || 0) + pris; CHARS.vampire.soigner(f, pris); } }
       }
       if (f.etatT > 0) f.etatT -= dt;
       const fini = !(f.etatT > 0);
@@ -3139,7 +3137,7 @@ const CHARS = {
         if (!f.mordu && p >= 0.55) {
           const t = cibleDe(f, o);
           if (t && ecart(f, t) < VAMP_MORSURE_PORTEE) {
-            f.mordu = true; son(f); frapper(g, o, t, Math.round(VAMP_MORSURE * this.soif(f)), (f.x + t.x) / 2, (f.y + t.y) / 2 - 10);
+            f.mordu = true; son(f); frapper(g, o, t, VAMP_MORSURE, (f.x + t.x) / 2, (f.y + t.y) / 2 - 10);
             if (!t.drone && !o.mort) f.fil = { t: VAMP_FIL_DUREE, acc: 0 };
           }
         }
@@ -3159,7 +3157,7 @@ const CHARS = {
         const t = cibleDe(f, o) || o, dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1;
         f.vx += (dx / d * VAMP_NUEE_VITESSE - f.vx) * Math.min(1, dt * 3); f.vy += (dy / d * VAMP_NUEE_VITESSE - f.vy) * Math.min(1, dt * 3);
         f.nuTic -= dt;
-        if (f.nuTic <= 0 && d < Math.max(t.hw || 20, t.hh || 20) + 40 && !o.mort) { f.nuTic = VAMP_NUEE_TIC; const av = o.hp; frapper(g, o, t, VAMP_NUEE_DEG, t.x, t.y - 10); if (!t.drone) { const pris = av - o.hp; f.hp = Math.min(f.hpMax, f.hp + pris); f.aspire = (f.aspire || 0) + pris; } }
+        if (f.nuTic <= 0 && d < Math.max(t.hw || 20, t.hh || 20) + 40 && !o.mort) { f.nuTic = VAMP_NUEE_TIC; const av = o.hp; frapper(g, o, t, VAMP_NUEE_DEG, t.x, t.y - 10); if (!t.drone) { const pris = av - o.hp; CHARS.vampire.soigner(f, pris); f.aspire = (f.aspire || 0) + pris; } }
         if (fini) { this.etat(f, "reforme", VAMP_DISSOUT); f.enLair = false; f.traverse = false; f.vx = 0; f.vy = 0; }
         return;
       }
@@ -3875,12 +3873,11 @@ const ODA_FUITE_MAX = 2.5; // temps max pour rejoindre sa cachette
 const ODA_COMBO_VITESSE = 0.008; // vitesse d'attaque gagnée par coup du combo (+0,8 %)
 const ODA_PORTEE = 34, ODA_COUP = 2, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts fixes d'un coup ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
 // Sanguina (vampire) : le sang que perd l'adversaire tombe au sol et elle va le boire ; morsure + fil de sang ; nuée de chauves-souris
+const VAMP_SOIN_MAX = 1.5; // soin au plus (PV par seconde, en moyenne)
 const VAMP_VISEE_MAX = 2.5; // temps max pour atteindre une flaque avant de l'oublier
 const VAMP_SANG_PV = 20, VAMP_SANG_VIE = 6, VAMP_BOIRE = 0.9, VAMP_BOIRE_R = 26, VAMP_GOUTTE_PORTEE = 320, VAMP_GOUTTE_ADV = 60, VAMP_BOIRE_CHOC = 4; // PV qu'elle regagnerait en buvant tout le sang d'un adversaire vidé de tous ses PV max (le sang suit la part des PV max perdue), temps avant qu'il sèche, durée pour boire, portée sous elle, distance max d'une goutte visée
-const VAMP_MORSURE = 12, VAMP_MORSURE_CD = 1.6, VAMP_MORSURE_DUREE = 0.6, VAMP_MORSURE_PORTEE = 14, VAMP_ELAN = 110, VAMP_BOND = 380; // morsure : dégâts, recharge, durée du bond, portée du coup, distance d'élan, vitesse du bond
-const VAMP_SOIF = 1.5; // soif : bonus de morsure et de fil selon les PV perdus
-const VAMP_PRES = 50, VAMP_LOIN_BONUS = 0.2; // peau de nuit : distance d'un coup « de près » (entre les bords), dégâts en plus de ce qui vient de loin
-const VAMP_FIL_DUREE = 4, VAMP_FIL_DRAIN = 1, VAMP_FIL_PORTEE = 300; // fil de sang : durée, PV aspirés par seconde, distance au-delà de laquelle il casse
+const VAMP_MORSURE = 14, VAMP_MORSURE_CD = 1.0, VAMP_MORSURE_DUREE = 0.6, VAMP_MORSURE_PORTEE = 14, VAMP_ELAN = 110, VAMP_BOND = 380; // morsure : dégâts, recharge, durée du bond, portée du coup, distance d'élan, vitesse du bond
+const VAMP_FIL_DUREE = 4, VAMP_FIL_DRAIN = 2, VAMP_FIL_PORTEE = 300; // fil de sang : durée, PV aspirés par seconde, distance au-delà de laquelle il casse
 const VAMP_RESERVE_BLESSURE = 0.2, VAMP_RESERVE_PART = 0.5, VAMP_RESERVE_MAX = 30, VAMP_NUEE_COUT = 15, VAMP_NUEE_DUREE = 1.8, VAMP_DISSOUT = 0.4, VAMP_NUEE_VITESSE = 360, VAMP_NUEE_TIC = 0.25, VAMP_NUEE_DEG = 2; // réserve de sang et nuée de chauves-souris
 const ODA_SAIGNE = 0.2, ODA_SAIGNE_DUREE = 3, ODA_SAIGNE_MAX = 6; // saignement : PV perdus par seconde et par cran, durée (relancée à chaque coup), crans au plus
 const ODA_BOND_MIN = 120, ODA_BOND_MAX = 330, ODA_BOND_PREP = 0.22, ODA_BOND_DUREE = 0.42, ODA_BOND_HAUT = 46, ODA_BOND_DEGATS = 7, ODA_BOND_RATE = 0.6, ODA_BOND_CD = 3.4;

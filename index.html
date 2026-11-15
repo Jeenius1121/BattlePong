@@ -3137,7 +3137,7 @@ const CHARS = {
         if (!f.mordu && p >= 0.55) {
           const t = cibleDe(f, o);
           if (t && ecart(f, t) < VAMP_MORSURE_PORTEE) {
-            f.mordu = true; son(f); frapper(g, o, t, VAMP_MORSURE, (f.x + t.x) / 2, (f.y + t.y) / 2 - 10);
+            f.mordu = true; son(f); frapper(g, o, t, !t.drone && VAMP_MORSURE_PART ? Math.max(1, Math.round((o.hpMax || 100) * VAMP_MORSURE_PART)) : VAMP_MORSURE, (f.x + t.x) / 2, (f.y + t.y) / 2 - 10);
             if (!t.drone && !o.mort) f.fil = { t: VAMP_FIL_DUREE, acc: 0 };
           }
         }
@@ -3164,6 +3164,8 @@ const CHARS = {
       if (E === "reforme") { f.vx = 0; f.vy = 0; if (fini) this.etat(f, "chasse", 0); return; }
       // chasse
       if ((f.reserve || 0) >= VAMP_NUEE_COUT && !o.mort) { f.reserve -= VAMP_NUEE_COUT; this.etat(f, "dissout", VAMP_DISSOUT); f.fil = null; return; }
+      // instinct : une attaque de zone va tomber tout près (atterrissage, Head Stomp, chute…) : elle s'en écarte au lieu de bondir
+      if (VAMP_INSTINCT && !o.mort) { const z = menace(f, o, g); if (z && z.zone && Math.hypot(f.x - z.x, f.y - z.y) < VAMP_INSTINCT_R) { const dx = f.x - z.x, dy = f.y - z.y; f.vx = dx || 1; f.vy = dy; normaliser(f); return; } }
       const t = cibleDe(f, o), goutte = (f.hp < f.hpMax || (f.reserve || 0) < VAMP_RESERVE_MAX) && !(f.aveugle > 0) ? this.goutteVisee(f, o, g) : null;
       const veut = goutte && (!t || f.hp < f.hpMax * 0.75 || Math.hypot(goutte.x - f.x, goutte.y - f.y) < Math.hypot(t.x - f.x, t.y - f.y));
       if (veut) {
@@ -3878,6 +3880,7 @@ const ODA_COMBO_VITESSE = 0.008; // vitesse d'attaque gagnée par coup du combo 
 const ODA_PORTEE = 34, ODA_COUP = 2, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // portée au contact ; dégâts fixes d'un coup ; combo perdu après ODA_OUBLI s sans toucher ; repos après la frappe finale
 // Sanguina (vampire) : le sang que perd l'adversaire tombe au sol et elle va le boire ; morsure + fil de sang ; nuée de chauves-souris
 const VAMP_SOIN_MAX = 1.5; // soin au plus (PV par seconde, en moyenne)
+const VAMP_INSTINCT_R = 150, VAMP_INSTINCT = 0, VAMP_MORSURE_PART = 0; // instinct du danger (1 : elle s'écarte des attaques de zone) ; morsure en part des PV max de la cible (0 : VAMP_MORSURE fixe)
 const VAMP_ERRE = 1; // 1 : elle erre au hasard et ne fond sur l'adversaire qu'avec son bond (0 : elle le poursuit)
 const VAMP_VISEE_MAX = 2.5; // temps max pour atteindre une flaque avant de l'oublier
 const VAMP_SANG_PV = 20, VAMP_SANG_VIE = 6, VAMP_BOIRE = 0.9, VAMP_BOIRE_R = 26, VAMP_GOUTTE_PORTEE = 320, VAMP_GOUTTE_ADV = 60, VAMP_BOIRE_CHOC = 4; // PV qu'elle regagnerait en buvant tout le sang d'un adversaire vidé de tous ses PV max (le sang suit la part des PV max perdue), temps avant qu'il sèche, durée pour boire, portée sous elle, distance max d'une goutte visée

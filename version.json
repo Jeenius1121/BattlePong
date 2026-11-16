@@ -1,1 +1,1 @@
-{"version": "2.12.0", "notes": "Sanguina se balade maintenant vraiment au hasard, comme GigaChad : elle ne va plus vers l’adversaire, et ne le mord qu’au contact, mais sa morsure frappe fort (20). Elle boit les flaques de sang qu’elle croise en chemin au lieu d’aller les chercher."}
+{"version": "2.12.1", "notes": "Sanguina ne mord plus les squelettes de la Nécromancienne : ils n’ont pas de sang. Elle s’en prend directement à la Nécromancienne."}

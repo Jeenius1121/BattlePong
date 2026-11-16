@@ -3109,6 +3109,8 @@ const CHARS = {
       return best;
     },
     etat(f, E, d) { f.etatV = E; f.etatT = d; f.etatD = d; },
+    // sa proie : avec VAMP_SANS_OS, jamais les squelettes (pas de sang) ; seulement l'adversaire, s'il est visible
+    proie: (f, o) => VAMP_SANS_OS ? (cache(o, f) ? null : o) : cibleDe(f, o),
     // soin plafonné : sa soif se recharge de VAMP_SOIN_MAX PV par seconde (au plus 3 s d'avance) ; tout soin y puise
     soigner(f, n) {
       const t = jeu ? jeu.temps || 0 : 0;
@@ -3135,7 +3137,7 @@ const CHARS = {
         if (p < 0.75) { f.vx = Math.cos(f.angM) * VAMP_BOND; f.vy = Math.sin(f.angM) * VAMP_BOND; } else { f.vx *= 0.8; f.vy *= 0.8; }
         f.face = Math.cos(f.angM) >= 0 ? 1 : -1;
         if (!f.mordu && p >= 0.55) {
-          const t = cibleDe(f, o);
+          const t = this.proie(f, o);
           if (t && ecart(f, t) < VAMP_MORSURE_PORTEE) {
             f.mordu = true; son(f); frapper(g, o, t, !t.drone && VAMP_MORSURE_PART ? Math.max(1, Math.round((o.hpMax || 100) * VAMP_MORSURE_PART)) : VAMP_MORSURE, (f.x + t.x) / 2, (f.y + t.y) / 2 - 10);
             if (!t.drone && !o.mort) f.fil = { t: VAMP_FIL_DUREE, acc: 0 };
@@ -3154,7 +3156,7 @@ const CHARS = {
       }
       if (E === "dissout") { f.vx = 0; f.vy = 0; if (fini) { this.etat(f, "nuee", VAMP_NUEE_DUREE); f.enLair = true; f.traverse = true; f.nuTic = 0; son(f, 3); } return; }
       if (E === "nuee") { // la nuée fonce sur l'adversaire, le traverse en le mordillant, puis repart
-        const t = cibleDe(f, o) || o, dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1;
+        const t = this.proie(f, o) || o, dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1;
         f.vx += (dx / d * VAMP_NUEE_VITESSE - f.vx) * Math.min(1, dt * 3); f.vy += (dy / d * VAMP_NUEE_VITESSE - f.vy) * Math.min(1, dt * 3);
         f.nuTic -= dt;
         if (f.nuTic <= 0 && d < Math.max(t.hw || 20, t.hh || 20) + 40 && !o.mort) { f.nuTic = VAMP_NUEE_TIC; const av = o.hp; frapper(g, o, t, VAMP_NUEE_DEG, t.x, t.y - 10); if (!t.drone) { const pris = av - o.hp; CHARS.vampire.soigner(f, pris); f.aspire = (f.aspire || 0) + pris; } }
@@ -3166,7 +3168,7 @@ const CHARS = {
       if ((f.reserve || 0) >= VAMP_NUEE_COUT && !o.mort) { f.reserve -= VAMP_NUEE_COUT; this.etat(f, "dissout", VAMP_DISSOUT); f.fil = null; return; }
       // instinct : une attaque de zone va tomber tout près (atterrissage, Head Stomp, chute…) : elle s'en écarte au lieu de bondir
       if (VAMP_INSTINCT && !o.mort) { const z = menace(f, o, g); if (z && z.zone && Math.hypot(f.x - z.x, f.y - z.y) < VAMP_INSTINCT_R) { const dx = f.x - z.x, dy = f.y - z.y; f.vx = dx || 1; f.vy = dy; normaliser(f); return; } }
-      const t = cibleDe(f, o), goutte = (f.hp < f.hpMax || (f.reserve || 0) < VAMP_RESERVE_MAX) && !(f.aveugle > 0) ? this.goutteVisee(f, o, g) : null;
+      const t = this.proie(f, o), goutte = (f.hp < f.hpMax || (f.reserve || 0) < VAMP_RESERVE_MAX) && !(f.aveugle > 0) ? this.goutteVisee(f, o, g) : null;
       const veut = goutte && (!t || f.hp < f.hpMax * 0.75 || Math.hypot(goutte.x - f.x, goutte.y - f.y) < Math.hypot(t.x - f.x, t.y - f.y));
       if (veut) {
         const pd = this.pied(f), dx = goutte.x - pd.x, dy = goutte.y - pd.y, d = Math.hypot(dx, dy);
@@ -3881,6 +3883,7 @@ const ODA_PORTEE = 34, ODA_COUP = 2, ODA_OUBLI = 1.6, ODA_SOUFFLE = 0.4; // port
 // Sanguina (vampire) : le sang que perd l'adversaire tombe au sol et elle va le boire ; morsure + fil de sang ; nuée de chauves-souris
 const VAMP_SOIN_MAX = 1.5; // soin au plus (PV par seconde, en moyenne)
 const VAMP_INSTINCT_R = 150, VAMP_INSTINCT = 0, VAMP_MORSURE_PART = 0; // instinct du danger (1 : elle s'écarte des attaques de zone) ; morsure en part des PV max de la cible (0 : VAMP_MORSURE fixe)
+const VAMP_SANS_OS = 0; // 1 : elle ne mord pas les squelettes de la Nécromancienne (ils n'ont pas de sang)
 const VAMP_ERRE = 1; // 1 : elle erre au hasard et ne fond sur l'adversaire qu'avec son bond (0 : elle le poursuit)
 const VAMP_VISEE_MAX = 2.5; // temps max pour atteindre une flaque avant de l'oublier
 const VAMP_SANG_PV = 20, VAMP_SANG_VIE = 6, VAMP_BOIRE = 0.9, VAMP_BOIRE_R = 26, VAMP_GOUTTE_PORTEE = 70, VAMP_GOUTTE_ADV = 60, VAMP_BOIRE_CHOC = 4; // PV qu'elle regagnerait en buvant tout le sang d'un adversaire vidé de tous ses PV max (le sang suit la part des PV max perdue), temps avant qu'il sèche, durée pour boire, portée sous elle, distance max d'une goutte visée

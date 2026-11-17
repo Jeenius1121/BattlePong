@@ -1,1 +1,1 @@
-{"version": "2.12.1", "notes": "Sanguina ne mord plus les squelettes de la Nécromancienne : ils n’ont pas de sang. Elle s’en prend directement à la Nécromancienne."}
+{"version": "2.13.0", "notes": "GigaChad se balade au hasard tant qu’il a moins de 3 poses ; il ne commence à se rapprocher de l’adversaire qu’à partir de 3 poses (plus vite à 5). En échange, chaque pose ajoute un peu moins de dégâts à son coup de poing."}

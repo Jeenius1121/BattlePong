@@ -1434,7 +1434,7 @@ const CHARS = {
     victoire(f) { const p = 4 + [7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n]).length; /* autant de poses que d'images de pose */ f.poing = 0; f.pose = 1e9; f.numPose = Math.floor(Math.random() * p); f.fete = true; f.vx = 0; f.vy = 0; son(f); },
     // poses : images 2 à 5, puis 7 à 9 (poses 5 à 7, rangées après le coup de poing) si elles sont fournies ; image 6 : coup de poing
     imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...[7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n])]; return p[(f.numPose || 0) % p.length]; },
-    desc: "Se balade tranquillement dans l’arène en se rapprochant peu à peu de l’adversaire, et prend de temps en temps la pose 0,75 seconde (il glisse alors lentement, sans s’arrêter) : chaque pose réussie lui donne +1 en attaque (5 max), puis il repart dans une direction au hasard. Une fois à 5 poses, il se rapproche plus vite de l’adversaire. Imperturbable : pendant qu’il pose, il prend 70 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
+    desc: "Se balade tranquillement au hasard dans l’arène et prend de temps en temps la pose 0,75 seconde (il glisse alors lentement, sans s’arrêter) : chaque pose réussie lui donne +1 en attaque (5 max), puis il repart dans une direction au hasard. À partir de 3 poses, il commence à se rapprocher peu à peu de l’adversaire, et plus vite une fois à 5 poses. Imperturbable : pendant qu’il pose, il prend 70 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
     svg: `<g ${O}>
       <rect x='46' y='110' width='12' height='30' fill='#2b3a5c'/><rect x='62' y='110' width='12' height='30' fill='#2b3a5c'/>
       <rect x='42' y='136' width='18' height='8' rx='2' fill='#1b1b22'/><rect x='60' y='136' width='18' height='8' rx='2' fill='#1b1b22'/>
@@ -1464,7 +1464,7 @@ const CHARS = {
       if (f.virageT <= 0) { f.virageT = 2 + Math.random() * 2; f.virage = (Math.random() * 2 - 1) * GIGA_VIRAGE; }
       let cap = (Math.hypot(f.vx, f.vy) > 1 ? Math.atan2(f.vy, f.vx) : f.cap ?? angleAleatoire()) + f.virage * dt;
       // il ne va vers l'adversaire qu'une fois chargé au maximum (5 poses) ; sinon, il se balade au hasard
-      if (t) { // il se rapproche peu à peu de l'adversaire (vite une fois chargé au maximum)
+      if (t && (f.poses || 0) >= GIGA_APPROCHE_DES) { // à partir de 3 poses, il se rapproche peu à peu de l'adversaire (vite une fois chargé au maximum) ; avant, il se balade au hasard
         const diff = ((Math.atan2(t.y - f.y, t.x - f.x) - cap) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
         const va = f.poses >= GIGA_POSES_MAX ? GIGA_APPROCHE : 1; cap += Math.max(-va * dt, Math.min(va * dt, diff));
       }
@@ -3468,10 +3468,10 @@ function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs
 const GIGA_POSE = 0.75, GIGA_MARCHE = 0.65, GIGA_POSES_MAX = 5;
 const GIGA_PORTEE_APPAREIL = 20; // portée du poing sur les appareils (en plus de sa taille)
 const GIGA_IMPERTURBABLE = 0.7, GIGA_IMPERTURBABLE_FURIE = 0.25, GIGA_IMPERTURBABLE_CRI = 0; // réduction des dégâts pendant la pose (contre les attaques foudroyantes : moins)
-const GIGA_APPROCHE = 1.5, GIGA_APPROCHE_DES = 5; // à 5 poses, il tourne peu à peu vers l'adversaire (radians par seconde)
+const GIGA_APPROCHE = 1.5, GIGA_APPROCHE_DES = 3; // dès 3 poses, il tourne peu à peu vers l'adversaire ; à 5 poses, plus vite (radians par seconde)
 const GIGA_VIRAGE = 0.8; // en se baladant, il tourne doucement (radians par seconde, au plus)
 // coup de poing : GIGA_COUP + GIGA_COUP_POSE par pose ; à partir de GIGA_GROS poses, envoyé au mur (+ dégâts du mur)
-const GIGA_COUP = 5, GIGA_COUP_POSE = 6, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 15, GIGA_MUR_POSE = 4;
+const GIGA_COUP = 5, GIGA_COUP_POSE = 5, GIGA_COUP_CD = 1, GIGA_GROS = 3, GIGA_PROJETE = 1100, GIGA_MUR = 15, GIGA_MUR_POSE = 4;
 // Bison
 const CRUSHER_CD = 3.2, CRUSHER_VITESSE = 750, CRUSHER_DEGATS = 10, CRUSHER_SONNE = 0.5;
 // Le Marin : la mer couvre le bas de l'arène, avec des tempêtes et un gros poisson
@@ -6784,7 +6784,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "2.12.1", NOTES = "Sanguina ne mord plus les squelettes de la Nécromancienne : ils n’ont pas de sang. Elle s’en prend directement à la Nécromancienne.";
+const VERSION = "2.13.0", NOTES = "GigaChad se balade au hasard tant qu’il a moins de 3 poses ; il ne commence à se rapprocher de l’adversaire qu’à partir de 3 poses (plus vite à 5). En échange, chaque pose ajoute un peu moins de dégâts à son coup de poing.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

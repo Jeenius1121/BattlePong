@@ -1,1 +1,1 @@
-{"version": "2.13.0", "notes": "GigaChad se balade au hasard tant qu’il a moins de 3 poses ; il ne commence à se rapprocher de l’adversaire qu’à partir de 3 poses (plus vite à 5). En échange, chaque pose ajoute un peu moins de dégâts à son coup de poing."}
+{"version": "2.14.0", "notes": "Grosse Tortue : un adversaire qui se trouve sur ses piques (collé à elle par le dessus) ne peut plus lancer ses attaques au corps à corps ; il se pique toujours. En échange, il faut 38 dégâts au lieu de 34 pour la mettre en colère."}

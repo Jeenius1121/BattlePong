@@ -959,7 +959,7 @@ const CHARS = {
         const n = Math.hypot(vx, vy) || 1, sp = this.vitesse * 1.89; // vitesse en furie
         f.vx = vx / n * sp; f.vy = vy / n * sp;
         f.cd -= dt;
-        if (f.cd <= 0 && voit && ecart(f, t) < 30) {
+        if (f.cd <= 0 && voit && ecart(f, t) < 30 && !surPiques(f, t)) {
           f.cd = 0.88; f.coupT = 0.15; // petit temps de recharge entre deux coups de couteau
           const ex = t.x - f.x, ey = t.y - f.y, ed = Math.hypot(ex, ey) || 1;
           frapper(g, o, t, 16, t.x - ex / ed * t.hw * 0.6, t.y - ey / ed * t.hh * 0.6);
@@ -1003,7 +1003,7 @@ const CHARS = {
         // corps à corps normal : tac, tac, tac quand il touche l'adversaire
         f.cd -= dt;
         const t = cibleDe(f, o);
-        if (f.cd <= 0 && t && ecart(f, t) < 8) {
+        if (f.cd <= 0 && t && ecart(f, t) < 8 && !surPiques(f, t)) {
           f.cd = 0.45; f.attT = 0.15; son(f);
           frapper(g, o, t, 5, (f.x + t.x) / 2, (f.y + t.y) / 2);
         }
@@ -1243,7 +1243,7 @@ const CHARS = {
       }
       const t = cibleDe(f, o);
       if (!t) return;
-      if (f.genouCd <= 0 && ecart(f, t) < 10) { // Double Knee Press : deux coups de genou qui repoussent
+      if (f.genouCd <= 0 && ecart(f, t) < 10 && !surPiques(f, t)) { // Double Knee Press : deux coups de genou qui repoussent
         f.genouCd = GENOU_CD; f.genou = 0.18; f.genouCible = t; this.genou(f, o, g, t);
       } else if (f.stompCd <= 0 && !t.drone) {
         f.stompCd = STOMP_CD; f.stomp = { t: 0 }; son(f, 2);
@@ -1450,7 +1450,7 @@ const CHARS = {
       f.poses ??= 0; f.poing = Math.max(0, (f.poing || 0) - dt); f.coupCd = Math.max(0, (f.coupCd || 0) - dt);
       const t = cibleDe(f, o);
       // au contact, il frappe quoi qu'il fasse (même en pleine pose, qui continue ensuite), s'il a au moins 1 pose, et les dépense toutes
-      if (t && f.poses > 0 && f.coupCd <= 0 && ecart(f, t) < 8) this.coup(f, o, g, t);
+      if (t && f.poses > 0 && f.coupCd <= 0 && ecart(f, t) < 8 && !surPiques(f, t)) this.coup(f, o, g, t);
       if (f.pose > 0) { // il prend la pose : immobile et imperturbable
         f.pose -= dt; f.vx = Math.cos(f.cap || 0) * this.vitesse * 0.35; f.vy = Math.sin(f.cap || 0) * this.vitesse * 0.35; if (t) f.face = t.x >= f.x ? 1 : -1;
         if (f.pose <= 0) { // pose réussie : +1 en attaque, puis il repart dans une direction au hasard
@@ -1664,7 +1664,7 @@ const CHARS = {
       for (const d of o.drones || []) if (d.chocH > 0) d.chocH -= dt;
       if (f.enFeu && f.chocCd <= 0) {
         const t = cibleDe(f, o);
-        if (t && ecart(f, t) < 2) {
+        if (t && ecart(f, t) < 2 && !surPiques(f, t)) {
           f.chocCd = HAMMOND_CHOC_CD; son(f, 3); g.secousse = Math.max(g.secousse, 0.15);
           frapper(g, o, t, HAMMOND_CHOC, (f.x + t.x) / 2, (f.y + t.y) / 2);
           if (!t.drone && !o.capture) { const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1; o.recul = 0.2; o.rvx = dx / d * 500; o.rvy = dy / d * 500; }
@@ -2126,7 +2126,7 @@ const CHARS = {
       if (f.pilote) return this.pilote(f, o, g, dt, vu);
       // coup de langue : l'adversaire collé à lui prend un coup de langue collant et se fait repousser
       f.langueCd = Math.max(0, (f.langueCd ?? 1) - dt);
-      if (f.langueCd <= 0 && vu && !o.enLair && ecart(f, o) < NOUILLE_LANGUE_PORTEE && f.haut < 4) {
+      if (f.langueCd <= 0 && vu && !o.enLair && ecart(f, o) < NOUILLE_LANGUE_PORTEE && !surPiques(f, o) && f.haut < 4) {
         f.langueCd = NOUILLE_LANGUE_CD; f.face = o.x >= f.x ? 1 : -1;
         const dx = o.x - f.x, dy = o.y - f.y, d = Math.hypot(dx, dy) || 1;
         f.langueVis = { t: 0.22, x: o.x, y: o.y - o.hh * 0.2 };
@@ -2272,7 +2272,7 @@ const CHARS = {
       if (T.etat === "roule") return 13 + Math.floor(T.t * TORTUE_ANIM_ROULE) % 4;
       return T.t < 0.25 ? 17 : 18 + Math.floor(T.t * TORTUE_ANIM_ETOURDIE) % 3;
     },
-    desc: "Une tortue à carapace piquante (140 PV) qui marche tout doucement. Elle ne s’énerve que quand on l’attaque : dès qu’elle a encaissé 34 dégâts, elle rugit, rentre dans sa carapace et fonce en boule piquante droit sur l’adversaire (elle le blesse et le repousse en le traversant). Sa boule renverse les squelettes comme des quilles puis file vers l’adversaire. Elle ricoche ensuite contre les murs, et à chaque rebond elle repart droit vers l’adversaire (sans le suivre ensuite) : 2 à 4 ricochets en tout, puis elle s’arrête, étourdie ; plus elle a ricoché, plus elle reste étourdie longtemps. En colère et en boule, elle ne prend aucun dégât et aucun effet ne la touche (ni ralentissement, ni piège, ni aveuglement, ni projection, et la langue du Smoker glisse sur elle) ; étourdie, elle en prend 1,3 fois plus. Seuls les coups reçus pendant qu’elle marche comptent pour la mettre en colère. Si sa boule n’a touché personne, elle se relance toute seule 3 secondes plus tard (ou avant, si elle reprend 15 dégâts). À 30 PV ou moins, elle n’attend plus : elle enchaîne attaque, étourdissement, attaque… Sa carapace la protège de tout ce qui vient d’en haut (projectiles qui tombent, missile du Bombardier qui tombe pile sur elle, coups portés par-dessus) ; par les côtés et par en bas, elle est touchable normalement. Un adversaire qui la touche par le dessus se pique sur sa carapace et perd quelques PV.",
+    desc: "Une tortue à carapace piquante (140 PV) qui marche tout doucement. Elle ne s’énerve que quand on l’attaque : dès qu’elle a encaissé 38 dégâts, elle rugit, rentre dans sa carapace et fonce en boule piquante droit sur l’adversaire (elle le blesse et le repousse en le traversant). Sa boule renverse les squelettes comme des quilles puis file vers l’adversaire. Elle ricoche ensuite contre les murs, et à chaque rebond elle repart droit vers l’adversaire (sans le suivre ensuite) : 2 à 4 ricochets en tout, puis elle s’arrête, étourdie ; plus elle a ricoché, plus elle reste étourdie longtemps. En colère et en boule, elle ne prend aucun dégât et aucun effet ne la touche (ni ralentissement, ni piège, ni aveuglement, ni projection, et la langue du Smoker glisse sur elle) ; étourdie, elle en prend 1,3 fois plus. Seuls les coups reçus pendant qu’elle marche comptent pour la mettre en colère. Si sa boule n’a touché personne, elle se relance toute seule 3 secondes plus tard (ou avant, si elle reprend 15 dégâts). À 30 PV ou moins, elle n’attend plus : elle enchaîne attaque, étourdissement, attaque… Sa carapace la protège de tout ce qui vient d’en haut (projectiles qui tombent, missile du Bombardier qui tombe pile sur elle, coups portés par-dessus) ; par les côtés et par en bas, elle est touchable normalement. Un adversaire qui la touche par le dessus se pique sur sa carapace et perd quelques PV, et ne peut pas lancer ses attaques au corps à corps tant qu’il est sur ses piques.",
     svg: `<g ${O}>
       <ellipse cx='60' cy='112' rx='46' ry='14' fill='#5a3d4a'/>
       <path d='M14 104 Q18 52 60 46 Q102 52 106 104Z' fill='#b4532a'/>
@@ -2287,6 +2287,7 @@ const CHARS = {
       return Math.hypot(o.x - f.x, o.y - f.y) < 200 ? { dx: Math.cos(T.ang), dy: Math.sin(T.ang) } : null;
     },
     // carapace : tout ce qui vient d'en haut (projectile qui tombe, coup porté par-dessus) ne lui fait rien
+    piques: true, // l'adversaire collé à elle par le dessus se pique et ne peut pas l'attaquer au contact (voir surPiques)
     bloqueDessus(f, x, y) {
       const p = coupVenu;
       if (p) return p.vy > 0 && p.vy > Math.abs(p.vx) * 0.6; // projectile qui tombe sur elle
@@ -2809,7 +2810,7 @@ const CHARS = {
       }
       const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy) || 1, e = t === o ? ecart(f, o) : d - f.hw;
       if (Math.abs(dx) > 6) f.face = dx > 0 ? 1 : -1;
-      if (e <= ODA_PORTEE - 4) return this.coup(f, o, g, tempo);
+      if (e <= ODA_PORTEE - 4 && !surPiques(f, t)) return this.coup(f, o, g, tempo);
       if (f.bondCd <= 0 && t === o && d > ODA_BOND_MIN && d < ODA_BOND_MAX) { f.etatO = "bond"; f.bondO = { phase: "prep", t: ODA_BOND_PREP }; f.vx = 0; f.vy = 0; return; }
       const v = this.vitesse * (f.sandevT > 0 ? 1.35 : 1); f.vitesse = v;
       f.vx = dx / d * v; f.vy = dy / d * v;
@@ -3180,7 +3181,7 @@ const CHARS = {
       }
       if (t && !o.mort) {
         const dx = t.x - f.x, dy = t.y - f.y;
-        if (f.morsureCd <= 0 && ecart(f, t) < VAMP_ELAN) { f.angM = Math.atan2(dy, dx); f.mordu = false; this.etat(f, "morsure", VAMP_MORSURE_DUREE); return; }
+        if (f.morsureCd <= 0 && ecart(f, t) < VAMP_ELAN && !surPiques(f, t)) { f.angM = Math.atan2(dy, dx); f.mordu = false; this.etat(f, "morsure", VAMP_MORSURE_DUREE); return; }
         if (!VAMP_ERRE) { f.vx = dx; f.vy = dy; normaliser(f); return; }
       }
       // elle erre au hasard (rebonds sur les murs, changement de cap de temps en temps), comme la plupart des persos
@@ -3329,6 +3330,8 @@ function clesImage(id) { return [id, ...(CHARS[id].images || []).map((_, i) => i
 function persoImage(cle) { const c = CHARS[persoDe(cle)], n = numImage(cle); return n > 1 ? !!(c.pn && c.pn[n]) : c.perso; }
 function spriteImage(cle) { const c = CHARS[persoDe(cle)], n = numImage(cle); return n > 1 ? c.spr && c.spr[n] : c.sprite; }
 // distance entre les bords des deux personnages (négatif = ils se chevauchent)
+// sur les piques de la Tortue : l'attaquant est collé à elle par le dessus (là où il se pique) ; ses attaques au contact ne partent pas
+function surPiques(a, t) { return !!t && !t.drone && !!CHARS[t.type] && !!CHARS[t.type].piques && !t.mort && a.y < t.y - t.hh * 0.3 && ecart(a, t) < 6; }
 function ecart(a, b) {
   return Math.max(Math.abs(b.x - a.x) - (a.hw + b.hw), Math.abs(b.y - a.y) - (a.hh + b.hh));
 }
@@ -3856,7 +3859,7 @@ const EJECTION_DEGATS = 12, EJECTION_RAYON = 110;
 // Gelée : ses 4 tailles (de la grosse aux 8 petites) : taille, vitesse, dégâts au contact, réserve de PV d'un morceau de cette taille
 // (pv : seulement pour la grosse du départ ; les autres reçoivent la moitié de ce qui restait à celle qui s'est séparée)
 // Tortue à piques : marche lente, colère puis boule qui fonce et ricoche 2 à 4 fois, étourdie d'autant plus longtemps
-const TORTUE_FURIE_PV = 30, TORTUE_RELANCE = 3, TORTUE_SEUIL_RELANCE = 15, TORTUE_SEUIL = 34, TORTUE_COLERE = 0.75, TORTUE_VITESSE = 450, TORTUE_DEGATS = 6, TORTUE_TOUCHE_CD = 0.5;
+const TORTUE_FURIE_PV = 30, TORTUE_RELANCE = 3, TORTUE_SEUIL_RELANCE = 15, TORTUE_SEUIL = 38, TORTUE_COLERE = 0.75, TORTUE_VITESSE = 450, TORTUE_DEGATS = 6, TORTUE_TOUCHE_CD = 0.5;
 const TORTUE_ETOURDIE_FRAGILE = 1.3, TORTUE_ETOURDIE_BASE = 0.85, TORTUE_ETOURDIE_RICOCHET = 0.3, TORTUE_PIQUE = 3, TORTUE_PIQUE_CD = 0.6;
 const TORTUE_ANIM_MARCHE = 6, TORTUE_ANIM_ROULE = 14, TORTUE_ANIM_ETOURDIE = 6;
 // Sorcière : orbe qui suit un peu, invocation de squelettes (2 au plus) qui marchent vers l'adversaire et le frappent
@@ -6784,7 +6787,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "2.13.0", NOTES = "GigaChad se balade au hasard tant qu’il a moins de 3 poses ; il ne commence à se rapprocher de l’adversaire qu’à partir de 3 poses (plus vite à 5). En échange, chaque pose ajoute un peu moins de dégâts à son coup de poing.";
+const VERSION = "2.14.0", NOTES = "Grosse Tortue : un adversaire qui se trouve sur ses piques (collé à elle par le dessus) ne peut plus lancer ses attaques au corps à corps ; il se pique toujours. En échange, il faut 38 dégâts au lieu de 34 pour la mettre en colère.";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

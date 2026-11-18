@@ -1,1 +1,1 @@
-{"version": "2.14.0", "notes": "Grosse Tortue : un adversaire qui se trouve sur ses piques (collé à elle par le dessus) ne peut plus lancer ses attaques au corps à corps ; il se pique toujours. En échange, il faut 38 dégâts au lieu de 34 pour la mettre en colère."}
+{"version": "2.15.0", "notes": "GigaChad : quand son coup de poing à 3 poses ou plus envoie l’adversaire s’écraser contre le mur, le choc fait toujours ses dégâts (15 + 4 par pose), quelles que soient les protections de l’adversaire (parade, bouclier, carapace, réduction de dégâts)."}

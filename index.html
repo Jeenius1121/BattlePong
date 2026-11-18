@@ -1434,7 +1434,7 @@ const CHARS = {
     victoire(f) { const p = 4 + [7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n]).length; /* autant de poses que d'images de pose */ f.poing = 0; f.pose = 1e9; f.numPose = Math.floor(Math.random() * p); f.fete = true; f.vx = 0; f.vy = 0; son(f); },
     // poses : images 2 à 5, puis 7 à 9 (poses 5 à 7, rangées après le coup de poing) si elles sont fournies ; image 6 : coup de poing
     imageDe: f => { if (f.poing > 0) return 6; if (!(f.pose > 0)) return 1; const p = [2, 3, 4, 5, ...[7, 8, 9].filter(n => CHARS.gigachad.spr && CHARS.gigachad.spr[n])]; return p[(f.numPose || 0) % p.length]; },
-    desc: "Se balade tranquillement au hasard dans l’arène et prend de temps en temps la pose 0,75 seconde (il glisse alors lentement, sans s’arrêter) : chaque pose réussie lui donne +1 en attaque (5 max), puis il repart dans une direction au hasard. À partir de 3 poses, il commence à se rapprocher peu à peu de l’adversaire, et plus vite une fois à 5 poses. Imperturbable : pendant qu’il pose, il prend 70 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant. Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
+    desc: "Se balade tranquillement au hasard dans l’arène et prend de temps en temps la pose 0,75 seconde (il glisse alors lentement, sans s’arrêter) : chaque pose réussie lui donne +1 en attaque (5 max), puis il repart dans une direction au hasard. À partir de 3 poses, il commence à se rapprocher peu à peu de l’adversaire, et plus vite une fois à 5 poses. Imperturbable : pendant qu’il pose, il prend 70 % de dégâts en moins (les attaques foudroyantes passent mieux : 25 % seulement contre la furie de Myers, le Psycho Crusher ou le Head Stomp de Bison, et rien du tout contre les cris de Steve) et la langue du Smoker glisse sur lui (il prend quand même une partie des dégâts de l’étranglement). Dès qu’il touche l’adversaire, s’il a au moins 1 pose, il frappe, quoi qu’il soit en train de faire (même en pleine pose) : son coup de poing dépense toutes ses poses ; plus il en avait, plus ça fait mal, et à partir de 3 poses l’adversaire est envoyé contre le mur (le bouclier du Sorcier éclate d’un coup) et prend des dégâts en plus en s’écrasant (15 + 4 par pose) : ce choc contre le mur passe à travers toutes les protections (parade, bouclier, carapace, réduction de dégâts). Son poing touche aussi les appareils du Bombardier proches. Sa musique tourne pendant tout le combat.",
     svg: `<g ${O}>
       <rect x='46' y='110' width='12' height='30' fill='#2b3a5c'/><rect x='62' y='110' width='12' height='30' fill='#2b3a5c'/>
       <rect x='42' y='136' width='18' height='8' rx='2' fill='#1b1b22'/><rect x='60' y='136' width='18' height='8' rx='2' fill='#1b1b22'/>
@@ -1500,7 +1500,7 @@ const CHARS = {
       if (!(o.recul > 0) || o.mort || o.capture || o.enLair) { o.projete = null; return; }
       if (o.x <= o.hw + 1 || o.x >= W - o.hw - 1 || o.y <= o.hh + 1 || o.y >= W - o.hh - 1) {
         o.projete = null; o.recul = 0; g.secousse = Math.max(g.secousse, 0.35);
-        degats(g, o, P.dmg, o.x, o.y - o.hh * 0.3);
+        coupImparable = true; degats(g, o, P.dmg, o.x, o.y - o.hh * 0.3); coupImparable = false; // écrasé contre le mur : les dégâts annoncés, quoi qu'il arrive
         for (let i = 0; i < 20; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 260; g.parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.5, g: 500, c: i % 2 ? "#c9b48a" : "#8a7a5c" }); }
       }
     }
@@ -3393,11 +3393,13 @@ function nouveauJeu(running) {
 }
 // tirs ratés : aveuglé par la grenade flash (tout rate), puis vue trouble (20 % de chances de rater)
 // coupFoudroyant : cri de Steve (traverse la pose de GigaChad) ; coupDirect : dégâts qui ignorent sa pose (langue annulée)
+let coupImparable = false; // coupImparable : dégâts qui ignorent toute protection (parade, bouclier, carapace, réduction…)
 let coupPercant = false, coupVenu = null, attaquant = null, coupRate = false, coupFoudroyant = false, coupDirect = false, coupSaigne = false; // coupSaigne : PV perdus en saignant (aucune réaction)
 function rateTir(f) { return !!f && (f.aveugle > 0 || (f.flou > 0 && Math.random() < FLASH_PRECISION)); }
 function rate(g, x, y) { if (!g.txt.some(t => t.rate && t.t > 0.5)) g.txt.push({ x, y: y - 20, t: 0.8, s: "Raté !", rate: true }); }
 function degats(g, cible, n, x, y) {
   if (cible.mort || cible.enLair) return;
+  if (coupImparable) return degatsPurs(g, cible, n, x, y); // rien ne réduit ni ne bloque ce coup (écrasé contre le mur par GigaChad)
   if (coupRate || (attaquant && attaquant !== cible && rateTir(attaquant))) { rate(g, x, y); return; }
   // le Smoker qui étrangle quelqu'un contre lui ne prend aucun dégât (mais il reste touchable pendant qu'il le ramène)
   if (cible.langue && cible.langue.etat === "etreinte" && g.f.some(x => x.capture === cible)) return;
@@ -3429,6 +3431,10 @@ function degats(g, cible, n, x, y) {
   }
   // plafond : le plus de dégâts qu'un seul coup peut lui faire (la Chose Impie : ce qui reste au bras à l'œil)
   if (c.plafond) n = Math.max(1, Math.min(n, c.plafond(cible)));
+  degatsPurs(g, cible, n, x, y);
+}
+// les dégâts eux-mêmes, une fois toutes les protections passées (ou ignorées)
+function degatsPurs(g, cible, n, x, y) {
   cible.hp = Math.max(0, cible.hp - n); cible.flash = 0.15; cible.subi = (cible.subi || 0) + n; cible.plusGros = Math.max(cible.plusGros || 0, n); // pour la carte de fin
   const reaction = CHARS[cible.type].quandTouche;
   if (reaction && !cible.capture && !coupSaigne) reaction(cible, g); // attrapé par le Smoker : aucune réaction (Myers ne file pas dans un coin)
@@ -6787,7 +6793,7 @@ document.getElementById("cleOk").addEventListener("click", async () => {
 /* ===== VERSION =====
    À chaque changement : on monte VERSION ici et dans version.json (même numéro).
    La page compare régulièrement avec version.json en ligne et propose de se mettre à jour. */
-const VERSION = "2.14.0", NOTES = "Grosse Tortue : un adversaire qui se trouve sur ses piques (collé à elle par le dessus) ne peut plus lancer ses attaques au corps à corps ; il se pique toujours. En échange, il faut 38 dégâts au lieu de 34 pour la mettre en colère.";
+const VERSION = "2.15.0", NOTES = "GigaChad : quand son coup de poing à 3 poses ou plus envoie l’adversaire s’écraser contre le mur, le choc fait toujours ses dégâts (15 + 4 par pose), quelles que soient les protections de l’adversaire (parade, bouclier, carapace, réduction de dégâts).";
 document.getElementById("version").innerHTML = `<b>v${VERSION}</b> · ${NOTES}`;
 document.getElementById("notesVersion").textContent = "Version " + VERSION;
 document.getElementById("notesTexte").textContent = NOTES;

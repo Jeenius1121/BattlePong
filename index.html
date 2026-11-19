@@ -708,7 +708,7 @@ const CHARS = {
         plusTard(g, latenceSon(f), () => {
           if (f.capture) return; // attrapé par le Smoker entre-temps : il ne peut plus rien faire
           // part vers sa cible et tourne un peu vers elle au début, sans la suivre partout
-          const c = t.drone || o, a = Math.atan2(c.y - f.y, c.x - f.x) + (Math.random() - 0.5) * 0.5;
+          const c = anticipe(f, t.drone || o, 320, FEU_ANTICIPE), a = Math.atan2(c.y - f.y, c.x - f.x) + (Math.random() - 0.5) * 0.5;
           // aura de feu (prise dans sa flaque) : la prochaine boule est attisée, plus grosse et plus forte, et l'aura s'éteint
           const attise = !!f.aura; f.aura = false;
           g.proj.push({ kind: "feu", homing: true, virage: 0.7, guideT: 1, x: f.x, y: f.y, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, r: 13, dmg: 14 + (attise ? FEU_BONUS : 0), attise, owner: f, rot: 0, drone: t.drone });
@@ -822,6 +822,7 @@ const CHARS = {
         if (!f.sonJoue && f.charge <= latenceSon(f)) { f.sonJoue = true; son(f); }
         if (f.charge <= 0) {
           if (!f.sonJoue) { f.sonJoue = true; son(f); }
+          if (ROBOT_VISEE_TARD) { const t = cibleDe(f, o); if (t) { const th = Math.atan2(t.y - f.y, t.x - f.x), d = Math.hypot(t.x - f.x, t.y - f.y) || 1; f.laserFace = Math.cos(th) >= 0 ? 1 : -1; const p = canonLocal(f).y * f.laserFace; f.laserAng = th - Math.asin(Math.max(-1, Math.min(1, p / d))); } }
           f.tir = LASER_DUREE; f.cd = 3; f.tirs = (f.tirs || 0) + 1;
           const r = rayon(); f.laserLen = r.len; f.chaine = ricochets(r);
           if (f.chaine.length) { f.brule = LASER_TIC; bruler(f.chaine, degatsLaser(f)); }
@@ -2109,8 +2110,9 @@ const CHARS = {
       <circle cx='58' cy='60' r='24' fill='#bfe3ff' opacity='.7'/><circle cx='62' cy='62' r='14' fill='#7cc24a'/><circle cx='68' cy='58' r='5' fill='#f2a23a'/>
       <rect x='36' y='120' width='14' height='22' fill='#7a8f3c'/><rect x='70' y='120' width='14' height='22' fill='#7a8f3c'/></g>`,
     // un coup tout entier annulé par la bulle de protection (le mécha seulement)
-    annuleCoup(f, g) {
+    annuleCoup(f, g, n) {
       if (!f.protection) return false;
+      if (PROTECTION_RESERVE) { const r = f.protReste ?? PROTECTION_ARRET; if (n < r) { f.protReste = r - n; g.txt.push({ x: f.x, y: f.y - f.hh - 10, t: 0.5, s: "Bloqué !" }); return n; } f.protReste = undefined; }
       f.protection = false; f.protCd = PROTECTION_CD; son(f, 3);
       for (let i = 0; i < 18; i++) { const a = Math.random() * Math.PI * 2; g.parts.push({ x: f.x + Math.cos(a) * f.hw, y: f.y + Math.sin(a) * f.hh, vx: Math.cos(a) * 160, vy: Math.sin(a) * 160, t: 0.4, c: i % 2 ? "#bfe6ff" : "#ffffff" }); }
       g.txt.push({ x: f.x, y: f.y - f.hh - 10, t: 0.8, s: "Bloqué !" });
@@ -2328,7 +2330,7 @@ const CHARS = {
         f.vx = 0; f.vy = 0;
         if (T.t >= TORTUE_COLERE) {
           T.etat = "roule"; T.t = 0; T.ricochets = 0; T.max = 2 + Math.floor(Math.random() * 3); // 2 à 4 ricochets
-          const vise = cibleDe(f, o) || o; T.ang = Math.atan2(vise.y - f.y, vise.x - f.x); T.toucheCd = 0; T.aTouche = false; son(f, 2); // vers sa cible (un squelette plus proche passe avant la Nécromancienne)
+          const vise = anticipe(f, cibleDe(f, o) || o, TORTUE_VITESSE, TORTUE_ANTICIPE); T.ang = Math.atan2(vise.y - f.y, vise.x - f.x); T.toucheCd = 0; T.aTouche = false; son(f, 2); // vers sa cible (un squelette plus proche passe avant la Nécromancienne)
         } else return;
       }
       if (T.etat === "roule") { // en boule : elle fonce, traverse l'adversaire en le blessant, ricoche contre les murs
@@ -2343,7 +2345,7 @@ const CHARS = {
             f.vx = 0; f.vy = 0; f.vitesse = undefined; f.traverse = false; son(f, 4); return;
           }
           // nouveau départ droit vers sa cible (visée au moment du rebond, elle ne la suit pas ensuite)
-          const vise = !o.mort && (cibleDe(f, o) || o), av = vise && Math.atan2(vise.y - f.y, vise.x - f.x);
+          const vise = !o.mort && anticipe(f, cibleDe(f, o) || o, TORTUE_VITESSE, TORTUE_ANTICIPE), av = vise && Math.atan2(vise.y - f.y, vise.x - f.x);
           T.ang = vise && Math.cos(av) * nx + Math.sin(av) * ny > 0.1 ? av : this.angleMur(nx, ny);
         }
         f.vx = Math.cos(T.ang) * TORTUE_VITESSE; f.vy = Math.sin(T.ang) * TORTUE_VITESSE; f.face = f.vx >= 0 ? 1 : -1;
@@ -2416,7 +2418,7 @@ const CHARS = {
         if (S.type === "orbe" && !S.parti && S.t >= SORT_ORBE * 0.55) { // l'orbe part de sa main
           S.parti = true; son(f);
           const mx = f.x + f.face * f.hw * 0.75, my = f.y - f.hh * 0.05, a = Math.atan2(o.y - my, o.x - mx);
-          g.proj.push({ kind: "orbe", x: mx, y: my, vx: Math.cos(a) * ORBE_VITESSE, vy: Math.sin(a) * ORBE_VITESSE, r: 11, dmg: ORBE_DEGATS, owner: f, rot: 0, homing: true, virage: ORBE_VIRAGE, guideT: 1.4 });
+          g.proj.push({ kind: "orbe", x: mx, y: my, vx: Math.cos(a) * ORBE_VITESSE, vy: Math.sin(a) * ORBE_VITESSE, r: 11, dmg: ORBE_DEGATS, owner: f, rot: 0, homing: true, virage: ORBE_VIRAGE, guideT: ORBE_GUIDE });
         }
         if (S.type === "invoc" && !S.parti && S.t >= SORT_INVOC * 0.8) { // le squelette sort du cercle (là où il apparaît sur l'image)
           S.parti = true; f.drones.push(this.nouveauSquelette(f, o));
@@ -2587,7 +2589,7 @@ const CHARS = {
         f.vx = 0; f.vy = 0; f.haut = 0;
         if (Bd.t <= 0) {
           Bd.phase = "saut"; Bd.t = BURGER_SAUT;
-          const a = !o.mort && Math.random() < BURGER_VISE ? Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 0.9 : angleAleatoire();
+          const a = !o.mort && !(BURGER_REBOND_HASARD && f.aEcrase) && Math.random() < BURGER_VISE ? Math.atan2(o.y - f.y, o.x - f.x) + (Math.random() - 0.5) * 0.9 : angleAleatoire();
           Bd.vx = Math.cos(a) * BURGER_BOND; Bd.vy = Math.sin(a) * BURGER_BOND; if (Math.abs(Bd.vx) > 5) f.face = Bd.vx > 0 ? 1 : -1;
         }
       } else {
@@ -2596,7 +2598,7 @@ const CHARS = {
         f.vx = Bd.vx; f.vy = Bd.vy; f.vitesse = BURGER_BOND; f.haut = Math.sin(Math.PI * (1 - Bd.t / BURGER_SAUT)) * BURGER_HAUT;
         if (Bd.t <= 0) {
           Bd.phase = "pause"; Bd.t = BURGER_PAUSE; f.haut = 0; f.vx = 0; f.vy = 0; g.secousse = Math.max(g.secousse, 0.12);
-          const touche = this.atterrir(f, o, g);
+          const touche = this.atterrir(f, o, g); f.aEcrase = !!touche;
           if (!touche && !F.length) f.prepT = FRITES_PREPARE; // personne de touché : il prépare ses frites
         }
       }
@@ -3066,7 +3068,13 @@ const CHARS = {
       <circle cx='52' cy='50' r='3' fill='#ff3040' stroke='none'/><circle cx='68' cy='50' r='3' fill='#ff3040' stroke='none'/>
       <path d='M55 58 l2 6 l2 -6 M61 58 l2 6 l2 -6' fill='#fff' stroke='#fff' stroke-width='1.5'/></g>`,
     // la nuée qui fonce sur f : une zone (pour esquiver)
-    menacePour(o, f) { return o.etatV === "nuee" && Math.hypot(o.x - f.x, o.y - f.y) < 140 ? { x: o.x, y: o.y, zone: true } : null; },
+    menacePour(o, f) {
+      if (o.etatV === "nuee" && Math.hypot(o.x - f.x, o.y - f.y) < 140) return { x: o.x, y: o.y, zone: true };
+      if (VAMP_ANNONCE && o.etatV === "morsure" && !o.mordu && ecart(o, f) < VAMP_ELAN + 25) return { x: o.x, y: o.y, zone: true }; // la morsure se voit venir
+      return null;
+    },
+    // prise par la langue du Smoker : si sa réserve le permet, elle se dissout en nuée et s'échappe
+    attrape(f, o, g) { if (VAMP_ECHAPPE && (f.reserve || 0) >= VAMP_NUEE_COUT && f.capture && f.capture.langue) { const S = f.capture; couperLangue(S, f, g, f.x, f.y); if (S.langue) S.langue.annulee = false; f.reserve -= VAMP_NUEE_COUT; f.fil = null; this.etat(f, "dissout", VAMP_DISSOUT); } },
     victoire(f) { f.etatV = "fete"; f.feteT = 0; f.enLair = false; f.vis = 1; f.traverse = false; f.fil = null; f.vx = 0; f.vy = 0; },
     // le sang : chaque PV perdu par l'adversaire (sauf ceux que le fil aspire) fait tomber du sang au sol ; il sèche peu à peu
     monde(f, o, g, dt) {
@@ -3136,7 +3144,7 @@ const CHARS = {
         const p = 1 - Math.max(0, f.etatT) / f.etatD;
         if (p < 0.75) { f.vx = Math.cos(f.angM) * VAMP_BOND; f.vy = Math.sin(f.angM) * VAMP_BOND; } else { f.vx *= 0.8; f.vy *= 0.8; }
         f.face = Math.cos(f.angM) >= 0 ? 1 : -1;
-        if (!f.mordu && p >= 0.55) {
+        if (!f.mordu && p >= VAMP_MORSURE_TOT) {
           const t = this.proie(f, o);
           if (t && ecart(f, t) < VAMP_MORSURE_PORTEE) {
             f.mordu = true; son(f); frapper(g, o, t, !t.drone && VAMP_MORSURE_PART ? Math.max(1, Math.round((o.hpMax || 100) * VAMP_MORSURE_PART)) : VAMP_MORSURE, (f.x + t.x) / 2, (f.y + t.y) / 2 - 10);
@@ -3329,6 +3337,7 @@ function clesImage(id) { return [id, ...(CHARS[id].images || []).map((_, i) => i
 function persoImage(cle) { const c = CHARS[persoDe(cle)], n = numImage(cle); return n > 1 ? !!(c.pn && c.pn[n]) : c.perso; }
 function spriteImage(cle) { const c = CHARS[persoDe(cle)], n = numImage(cle); return n > 1 ? c.spr && c.spr[n] : c.sprite; }
 // distance entre les bords des deux personnages (négatif = ils se chevauchent)
+function anticipe(f, t, vit, k) { if (!k || !t) return t; const T = Math.hypot(t.x - f.x, t.y - f.y) / vit * k; return { x: t.x + (t.vx || 0) * T, y: t.y + (t.vy || 0) * T }; }
 function ecart(a, b) {
   return Math.max(Math.abs(b.x - a.x) - (a.hw + b.hw), Math.abs(b.y - a.y) - (a.hh + b.hh));
 }
@@ -3405,7 +3414,7 @@ function degats(g, cible, n, x, y) {
   if (!coupInarretable && c.lacheLangue && c.lacheLangue(cible, g)) return; // le Smoker touché pendant qu'il tire sa langue : il lâche prise sans prendre de dégâts
   if (c.modifDegats) { const n0 = n; n = c.modifDegats(cible, n); if (!n) { if (!coupInarretable) return; n = n0; } } // (un coup inarrêtable passe même s'il aurait été annulé) // la Tortue : intouchable en boule, fragile quand elle est étourdie
   if (!coupInarretable && c.bloqueDessus && c.bloqueDessus(cible, x, y)) { g.txt.push({ x: cible.x, y: cible.y - cible.hh - 10, t: 0.7, s: "Carapace !" }); return; } // carapace : rien ne passe par le dessus
-  if (!coupInarretable && c.annuleCoup && c.annuleCoup(cible, g)) { n -= 15; if (n <= 0) return; } // annuleCoup : coup entièrement bloqué (bulle de protection de la Grenouille)
+  if (!coupInarretable && c.annuleCoup) { const a = c.annuleCoup(cible, g, n); if (a) { n -= a === true ? PROTECTION_ARRET : a; if (n <= 0) return; } } // annuleCoup : coup entièrement bloqué (bulle de protection de la Grenouille)
   if (!coupInarretable && c.encaisse && cible.bouclier > 0) { n = c.encaisse(cible, g, n); if (!n) return; }
   // Myers encaisse moins pendant sa furie (arrondi, 1 dégât minimum)
   const perceTir = coupPercant ? 1 : (coupVenu && coupVenu.perceResist) || 0; // coupPercant : traverse toute armure (bond d'Oda) // balles du fusil d'I Need More Bullets : elles traversent une partie de toute résistance aux dégâts
@@ -3466,7 +3475,7 @@ function explosion(g, x, y, cible, dmg, ang) {
 const BOUCLIER_USURE = 5; // points perdus par seconde par le bouclier, même sans coup reçu (36 → 7,2 s max)
 /* ===== APPAREILS ET MISSILES DU TITAN ===== */
 // laser du robot : de plus en plus fort, un palier tous les LASER_TIC (très petit, petit, moyen, gros, très gros)
-const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 4.2;
+const LASER_DUREE = 1.15, LASER_TIC = 0.25, LASER_BASE = 9, LASER_HAUSSE = 4.2, ROBOT_VISEE_TARD = 0; // visée reprise à la fin de la charge (1) ou bloquée au début (0)
 // dégâts de chaque brûlure : très petits au 1er tir, puis de plus en plus gros à chaque nouveau tir
 function degatsLaser(f) { return Math.round(LASER_BASE + LASER_HAUSSE * ((f.tirs || 1) - 1)); }
 // GigaChad : pose de 1 s, 1 s de marche entre deux poses ; +1 en attaque par pose (5 max)
@@ -3850,7 +3859,7 @@ function majBombes(g, dt) {
 // Grenouille : bulle du canon (charge, taille, vitesse, temps de vol, arrêt avant d'éclater, dégâts selon la taille, attente entre deux bulles)
 const BULLE_CHARGE = 1.6, BULLE_R0 = 8, BULLE_R1 = 46, BULLE_VITESSE = 150, BULLE_VOL = 1.5, BULLE_ARRET = 0.5, BULLE_DEG_MIN = 6, BULLE_DEG_MAX = 29, BULLE_CD = 0.9;
 const BULLE_MARCHE = 90; // vitesse de la Grenouille pendant qu'elle gonfle sa bulle (elle marche lentement au lieu de sauter)
-const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 5;
+const BOND_PAUSE = 0.5, BOND_DUREE = 0.45, BOND_VITESSE = 420, BOND_HAUT = 40, PROTECTION_CD = 5, PROTECTION_ARRET = 15, PROTECTION_RESERVE = 0; // bulle : dégâts arrêtés ; 1 = elle absorbe ce total sur plusieurs coups
 const NOUILLE_BOND_PORTEE = 150, NOUILLE_ECRASE = 3, NOUILLE_ECRASE_RECUL = 500; // bond écrasant : il saute sur l'adversaire proche et l'écrase en retombant
 const NOUILLE_GLISSE = 1; // secondes dans la langue du Smoker avant de glisser hors de sa prise
 const NOUILLE_LANGUE_CD = 13, NOUILLE_LANGUE_DEG = 3, NOUILLE_LANGUE_RECUL = 520, NOUILLE_LANGUE_PORTEE = 34; // coup de langue : frappe et repousse l'adversaire collé à lui
@@ -3861,12 +3870,12 @@ const EJECTION_DEGATS = 12, EJECTION_RAYON = 110;
 // Gelée : ses 4 tailles (de la grosse aux 8 petites) : taille, vitesse, dégâts au contact, réserve de PV d'un morceau de cette taille
 // (pv : seulement pour la grosse du départ ; les autres reçoivent la moitié de ce qui restait à celle qui s'est séparée)
 // Tortue à piques : marche lente, colère puis boule qui fonce et ricoche 2 à 4 fois, étourdie d'autant plus longtemps
-const TORTUE_FURIE_PV = 30, TORTUE_RELANCE = 3, TORTUE_SEUIL_RELANCE = 15, TORTUE_SEUIL = 34, TORTUE_COLERE = 0.75, TORTUE_VITESSE = 450, TORTUE_DEGATS = 6, TORTUE_TOUCHE_CD = 0.5;
+const TORTUE_FURIE_PV = 30, TORTUE_RELANCE = 3, TORTUE_SEUIL_RELANCE = 15, TORTUE_SEUIL = 34, TORTUE_COLERE = 0.75, TORTUE_VITESSE = 450, TORTUE_DEGATS = 6, TORTUE_TOUCHE_CD = 0.5, TORTUE_ANTICIPE = 0; // part d'anticipation de la visée de la boule
 const TORTUE_ETOURDIE_FRAGILE = 1.3, TORTUE_ETOURDIE_BASE = 0.85, TORTUE_ETOURDIE_RICOCHET = 0.3, TORTUE_PIQUE = 3, TORTUE_PIQUE_CD = 0.6;
 const TORTUE_ANIM_MARCHE = 6, TORTUE_ANIM_ROULE = 14, TORTUE_ANIM_ETOURDIE = 6;
 // Sorcière : orbe qui suit un peu, invocation de squelettes (2 au plus) qui marchent vers l'adversaire et le frappent
 const SORCIERE_VITESSE = 120, SORCIERE_DIST = [210, 360];
-const SORT_ORBE = 0.5, SORT_ORBE_CD = 1.65, SORT_ORBE_PREMIER = 1.2, ORBE_VITESSE = 250, ORBE_DEGATS = 10, ORBE_VIRAGE = 1.4;
+const SORT_ORBE = 0.5, SORT_ORBE_CD = 1.65, SORT_ORBE_PREMIER = 1.2, ORBE_VITESSE = 250, ORBE_DEGATS = 10, ORBE_VIRAGE = 1.4, ORBE_GUIDE = 1.4;
 const SORT_INVOC = 1.3, SORT_INVOC_CD = 10, SORT_INVOC_PREMIER = 1;
 const SQ_LIEN = 0.3, SQ_LIEN_MAX = 1; // lien d'âme : part des coups reçus par la Nécromancienne que prend son squelette le plus proche (et au plus combien par coup)
 const SQ_BOUCLIER = 0.8, SQ_BOUCLIER_SEUIL = 15; // bouclier d'os : part d'une grosse attaque de zone que prend le squelette, à partir de quels dégâts
@@ -3893,7 +3902,7 @@ const VAMP_ERRE = 1; // 1 : elle erre au hasard et ne fond sur l'adversaire qu'a
 const VAMP_VISEE_MAX = 2.5; // temps max pour atteindre une flaque avant de l'oublier
 const VAMP_SANG_PV = 20, VAMP_SANG_VIE = 6, VAMP_BOIRE = 0.9, VAMP_BOIRE_R = 26, VAMP_GOUTTE_PORTEE = 70, VAMP_GOUTTE_ADV = 60, VAMP_BOIRE_CHOC = 4; // PV qu'elle regagnerait en buvant tout le sang d'un adversaire vidé de tous ses PV max (le sang suit la part des PV max perdue), temps avant qu'il sèche, durée pour boire, portée sous elle, distance max d'une goutte visée
 const VAMP_MORSURE = 20, VAMP_MORSURE_CD = 1.3, VAMP_MORSURE_DUREE = 0.45, VAMP_MORSURE_PORTEE = 14, VAMP_ELAN = 15, VAMP_BOND = 250; // morsure : dégâts, recharge, durée du bond, portée du coup, distance d'élan, vitesse du bond
-const VAMP_FIL_DUREE = 4, VAMP_FIL_DRAIN = 2, VAMP_FIL_PORTEE = 300; // fil de sang : durée, PV aspirés par seconde, distance au-delà de laquelle il casse
+const VAMP_FIL_DUREE = 4, VAMP_FIL_DRAIN = 2, VAMP_FIL_PORTEE = 300, VAMP_MORSURE_TOT = 0.55, VAMP_ANNONCE = 0, VAMP_ECHAPPE = 0; // (morsure résolue à cette part de l'élan ; morsure visible d'avance ; nuée pour s'échapper d'une prise) // fil de sang : durée, PV aspirés par seconde, distance au-delà de laquelle il casse
 const VAMP_RESERVE_BLESSURE = 0.2, VAMP_RESERVE_PART = 0.5, VAMP_RESERVE_MAX = 30, VAMP_NUEE_COUT = 15, VAMP_NUEE_DUREE = 1.8, VAMP_DISSOUT = 0.4, VAMP_NUEE_VITESSE = 360, VAMP_NUEE_TIC = 0.25, VAMP_NUEE_DEG = 2; // réserve de sang et nuée de chauves-souris
 const ODA_SAIGNE = 0.2, ODA_SAIGNE_DUREE = 3, ODA_SAIGNE_MAX = 6; // saignement : PV perdus par seconde et par cran, durée (relancée à chaque coup), crans au plus
 const ODA_BOND_MIN = 120, ODA_BOND_MAX = 330, ODA_BOND_PREP = 0.22, ODA_BOND_DUREE = 0.42, ODA_BOND_HAUT = 46, ODA_BOND_DEGATS = 7, ODA_BOND_RATE = 0.6, ODA_BOND_CD = 3.4;
@@ -3919,7 +3928,7 @@ function saigner(o, crans) {
   S.n = Math.min(ODA_SAIGNE_MAX, S.n + crans); S.t = ODA_SAIGNE_DUREE;
 }
 // Burger Furax : bonds lents, sauce qui gicle quand il retombe, trois frites volantes s'il n'a touché personne
-const BURGER_PAUSE = 0.7, BURGER_SAUT = 0.75, BURGER_BOND = 190, BURGER_HAUT = 55, BURGER_VISE = 0.65; // pause au sol, durée d'un bond, vitesse, hauteur, chance de bondir vers l'adversaire
+const BURGER_PAUSE = 0.7, BURGER_SAUT = 0.75, BURGER_BOND = 190, BURGER_HAUT = 55, BURGER_VISE = 0.65, BURGER_REBOND_HASARD = 0; // pause au sol, durée d'un bond, vitesse, hauteur, chance de bondir vers l'adversaire
 const BURGER_ECRASE = 10, BURGER_SAUCE = 7, BURGER_SAUCE_R = 100, BURGER_LENT = 1.6; // dégâts s'il retombe sur lui ; éclaboussures : dégâts, portée autour de lui, durée du ralenti
 const FRITES_NB = 3, FRITES_PREPARE = 0.5, FRITES_LANCE = 0.45, FRITES_ATTENTE = 1.1; // frites : nombre, temps pour les préparer et les cracher, attente en l'air avant la première
 const FRITE_VITESSE = 430, FRITE_DEGATS = 8, FRITE_DEPASSE = 25, FRITE_AVANCE = 0.7, FRITE_TAILLE = 1.5; // FRITE_DEPASSE court : une frite ratée finit surtout au sol (au mur seulement si l'adversaire en était près)
@@ -4083,7 +4092,7 @@ function dessinerRayonOeil(f) {
   ctx.restore();
 }
 const BOUCLIER_RENVOI = 0.25; // part des dégâts reçus par le bouclier renvoyée à l'attaquant
-const FEU_BONUS = 4; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
+const FEU_BONUS = 4, FEU_ANTICIPE = 0; // dégâts en plus d'une boule de feu lancée depuis sa flaque de feu
 const PV_BASE = 100; // PV de départ de chaque perso (sauf réglage propre, comme le Bombardier)
 const BOUCLIER_PV = 36, FEU_RAYON = 130, FEU_DUREE = 3.5; // bouclier de feu du Sorcier
 const INCONNU_SOIN = 4; // PV regagnés par l'Inconnu à chaque téléportation
